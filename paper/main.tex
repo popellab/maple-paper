@@ -80,21 +80,21 @@ Quantitative systems pharmacology (QSP) models require parameter values derived 
 
 \subsection{The Calibration Challenge}
 
-Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response. A typical QSP model comprises dozens to hundreds of ordinary differential equations representing cell populations, signaling molecules, and drug pharmacokinetics. These models can capture patient heterogeneity, predict combination therapies, and identify biomarkers, but their utility depends on having credible parameter values.
+Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response \citep{gadkarSixStageWorkflowRobust2016}. A typical QSP model comprises dozens to hundreds of ordinary differential equations representing cell populations, signaling molecules, and drug pharmacokinetics. Parameterizing these models requires values drawn from experimental literature---proliferation rates, death rates, secretion constants, binding affinities---often fifty or more parameters per model \citep{ribbaMethodologiesQuantitativeSystems2017a}. Proper calibration with uncertainty quantification is essential not only for model credibility but also for downstream applications such as virtual population generation and virtual clinical trials, where parameter distributions directly determine predicted patient heterogeneity \citep{riegerImprovingGenerationSelection2018a, craigPracticalGuideGeneration2023}.
 
-Calibration is the process of constraining model parameters using experimental data. In principle, Bayesian inference provides a natural framework: specify prior distributions encoding existing knowledge, define a likelihood connecting model predictions to observations, and compute the posterior distribution over parameters. In practice, QSP calibration faces two related problems.
+The challenge is not finding relevant papers; it is extracting data systematically with full provenance. Each experiment reports results in different formats, with different units, time points, and uncertainty quantification. Experimental conditions vary across studies and are inconsistently documented. Converting a reported measurement into a calibration constraint requires judgment about applicability, uncertainty, and potential biases. And crucially, the reasoning behind each extraction---why this value, from this paper, interpreted this way---must be documented for reproducibility and review.
 
-The first is identifiability. Clinical endpoints like tumor volume or survival constrain aggregate model behavior but leave many mechanistic parameters underdetermined. A proliferation rate, a death rate, and a carrying capacity may all influence tumor growth, but their individual contributions cannot be distinguished from tumor volume alone. Parameters that are structurally or practically unidentifiable from available data will have posteriors that reflect priors rather than evidence.
+Current practice relies on manual curation into spreadsheets. This approach yields poorly documented assumptions, lost provenance, and copy-paste propagation across models. When a reviewer asks ``where did this number come from?'', the answer is often difficult to reconstruct. When a new team member joins, institutional knowledge must be transferred orally. When a parameter needs updating, the original reasoning may be lost.
 
-The second is computational cost. Running MCMC on a full QSP model is expensive. Each likelihood evaluation requires solving the ODE system, often with stiff dynamics and discontinuous dosing events. High-dimensional parameter spaces are difficult to explore, and chains may require millions of samples to converge. These costs multiply when exploring model variants or conducting sensitivity analyses.
+A further challenge arises when combining constraints from multiple experiments. Parameters often appear across different assays, and the ideal calibration would use all available data simultaneously. But without a structured representation of calibration targets, joint inference requires ad-hoc scripting for each new combination of experiments. There is no standard path from extracted data to inference code.
 
-Both problems motivate looking beyond clinical data for calibration constraints.
+The rate of relevant publications outpaces what manual curation can accommodate. A scalable approach requires automation, but automation introduces its own risks.
 
 \subsection{Isolated System Experiments}
 
 The biological literature contains a wealth of experiments that isolate specific mechanisms from the complexity of in vivo systems. In vitro proliferation assays measure cell division rates without immune infiltration or nutrient gradients. Ex vivo cytotoxicity experiments quantify killing efficiency without the confounding effects of tumor heterogeneity or drug distribution. Preclinical studies in simplified animal models can isolate specific pathway dynamics.
 
-These isolated system experiments are valuable precisely because they remove confounding factors. When a proliferation assay reports a doubling time, that measurement directly constrains the proliferation rate parameter. The experimental design has already done the work of isolating the relevant biology. Parameters that would be unidentifiable from clinical data become identifiable from targeted in vitro measurements.
+These isolated system experiments are valuable precisely because they remove confounding factors. When a proliferation assay reports a doubling time, that measurement directly constrains the proliferation rate parameter. The experimental design has already done the work of isolating the relevant biology. Parameters that would be unidentifiable from clinical data become identifiable from targeted in vitro measurements \citep{ribbaMethodologiesQuantitativeSystems2017a}.
 
 The challenge is that this data is scattered across thousands of papers, reported in varying formats, with different units, time points, and uncertainty quantification. Experimental conditions (cell line, passage number, serum concentration, oxygen tension) vary across studies and are inconsistently documented. Converting a reported doubling time into a prior distribution for a rate constant requires judgment about uncertainty, applicability, and potential biases.
 
@@ -102,19 +102,39 @@ We use the term \textit{calibration target} to refer to a structured representat
 
 \subsection{Existing Approaches and Their Limitations}
 
-Parameterizing QSP models from literature remains a persistent bottleneck. Parameter databases like PK-Sim and GastroPlus aggregate published values, but they typically store point estimates without uncertainty. Experimental context (species, cell type, assay conditions) is inconsistently documented, which makes it difficult to assess whether a given value applies to a particular model. Tracing values back to their original sources still requires manual effort.
+\subsubsection{Parameter Databases}
 
-Manual expert curation yields well-documented extractions but scales poorly; a thorough literature review for a single model can require weeks, documentation quality varies across individuals, and institutional knowledge disappears when personnel change. The rate of new publications outpaces what manual curation can accommodate.
+Several databases aggregate quantitative biological parameters from literature. BioNumbers provides over 13,000 entries covering cell sizes, metabolite concentrations, reaction rates, and growth constants, each linked to its source publication \citep{miloBioNumbersDatabaseKey2010}. BRENDA contains over 5 million data points for approximately 90,000 enzymes, including kinetic parameters manually extracted from 157,000 primary literature references \citep{changBRENDAELIXIRCore2021}. Sabio-RK focuses specifically on biochemical reaction kinetics \citep{wittigSABIORKDatabaseBiochemical2012}. For pharmacokinetic modeling, PK-Sim provides physiological parameters for humans and common laboratory animals as part of the Open Systems Pharmacology suite \citep{lippertOpenSystemsPharmacology2019}.
 
-Large language models can process literature rapidly, identifying relevant passages and extracting numeric values across many papers. But their failure modes are well documented: hallucination of plausible values, fabrication of citations, internal inconsistencies. These are particularly problematic when extracted parameters directly influence model predictions. Naive LLM extraction without validation is not suitable for quantitative work.
+These databases serve their intended purposes well, but they have limitations for QSP calibration. Most store point estimates without uncertainty quantification. Experimental context---the species, cell type, assay conditions, and methodological details that determine whether a value applies to a particular modeling scenario---is inconsistently documented. The databases are organized around biological entities (enzymes, metabolites, organisms) rather than the inference tasks that QSP modelers face. And critically, tracing a value back through intermediate sources to the original experimental measurement often requires substantial manual effort.
 
-These approaches are not mutually exclusive. LLMs offer throughput that manual curation lacks, and structured validation can address their reliability problems. Whether a hybrid approach can achieve both the speed of automated extraction and the rigor of expert curation is an open question.
+\subsubsection{Biomedical Text Mining}
+
+Automated extraction of quantitative information from scientific literature has been a goal of biomedical text mining for decades. Named entity recognition can identify mentions of genes, proteins, diseases, and drugs; relation extraction can link entities into structured assertions; and numerical information extraction can pull quantities from text \citep{zhaoRecentAdvancesBiomedical2021}. Tools like PubTator and SciSpacy provide pre-trained models for biomedical NLP tasks.
+
+The challenge for QSP parameterization is that the relevant information is often embedded in complex experimental descriptions. A reported doubling time depends on cell type, passage number, serum concentration, oxygen tension, and measurement method---details that are scattered across methods sections, figure captions, and supplementary materials. Traditional NLP pipelines struggle with this kind of distributed, context-dependent extraction. Performance on relation extraction benchmarks does not translate directly to the task of assembling coherent calibration targets from heterogeneous experimental reports \citep{leverTextminingClinicallyRelevant2019}.
+
+\subsubsection{Manual Expert Curation}
+
+Manual curation by domain experts remains the gold standard for quality. An experienced modeler can identify the relevant passages, assess methodological quality, judge applicability to the modeling context, and document assumptions. The result is a well-reasoned parameter estimate with clear provenance.
+
+The limitation is scale. A thorough literature review for a single QSP model can require weeks of effort. Documentation quality varies across individuals and projects. When personnel change, institutional knowledge disappears---the reasoning behind a parameter choice may be lost even if the value persists in the model. And the rate of new publications outpaces what manual curation can accommodate; PubMed adds over one million new records annually.
+
+\subsubsection{Large Language Models}
+
+Large language models offer a potential path forward. LLMs can read scientific text, follow structured templates, and extract information at scale. Recent work has explored LLM-assisted workflows for QSP model development, including semi-automated parameter extraction from literature \citep{sainiQSPCopilotAIAugmentedPlatform2025a}. The potential for accelerating model development is substantial.
+
+But LLMs have well-documented failure modes that are particularly problematic for quantitative scientific work. Hallucination---the generation of plausible but incorrect information---is endemic to current models \citep{farquharDetectingHallucinationsLarge2024}. LLMs may fabricate numeric values, invent citations to papers that do not exist, or generate internally inconsistent outputs. These failures are especially dangerous because they often appear fluent and confident, making them difficult to detect through casual review. Studies of LLM hallucination in medical and scientific contexts have found that even state-of-the-art models achieve modest accuracy on detecting subtle factual errors \citep{panditMedHalluComprehensiveBenchmark2025}. For parameter extraction, where the extracted values directly influence model predictions, naive LLM extraction without validation is not acceptable.
+
+\subsubsection{Toward Validated Automation}
+
+These approaches are not mutually exclusive. Databases provide curated reference points. Traditional NLP offers robust entity recognition. Manual curation contributes domain expertise. LLMs provide throughput. The question is whether these can be combined into a workflow that achieves both scale and reliability---using LLMs for rapid extraction while systematically catching their characteristic errors before the results reach downstream inference.
 
 \subsection{Constrained Extraction with Validation}
 
 The failure modes of LLM extraction are serious but amenable to systematic detection. Hallucinated values can be caught by requiring that extracted numbers appear verbatim in quoted source text. Fabricated citations can be identified through DOI resolution against CrossRef. Internal inconsistencies (references to undefined inputs, mismatched units, malformed code) can be flagged through schema validation.
 
-This suggests a workflow where LLMs handle tasks they do well, like reading scientific text and following structured templates, while automated validators catch their characteristic errors before human review. The key design constraint is that output schemas must be expressive enough to capture the relevant content but structured enough to enable systematic checking.
+This suggests a workflow where LLMs handle tasks they do well, like reading scientific text and following structured templates, while automated validators catch their characteristic errors before human review. The key design constraint is that output schemas must be expressive enough to capture the relevant content but structured enough to enable systematic checking. This approach aligns with emerging best practices for constraining LLM outputs through typed schemas and validation layers \citep{HoMinimizeLLM2024}.
 
 \subsection{Contributions}
 
@@ -312,7 +332,7 @@ Structural validators check schema-level constraints: time spans must have start
 
 \subsubsection{Single-Target Translation}
 
-The translator converts a validated YAML specification into a complete Julia script for Bayesian inference using Turing.jl. The generated script includes:
+The translator converts a validated YAML specification into a complete Julia script for Bayesian inference using Turing.jl \citep{geTuringLanguageFlexible2018}. The generated script includes:
 \begin{itemize}
     \item Observed data constants extracted from the inputs layer
     \item An ODE function corresponding to the specified model type
@@ -543,6 +563,6 @@ The SubmodelTarget schema, validation framework, and Julia code generator are av
 %=============================================================================
 
 \bibliographystyle{unsrtnat}
-% \bibliography{references}
+\bibliography{references}
 
 \end{document}
