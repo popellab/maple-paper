@@ -49,7 +49,7 @@
 - **Correlation structure**: Captures how parameters covary, which matters for model predictions
 - **Principled combination**: No ad-hoc averaging or weighting—Bayes' theorem handles it
 
-### 2.2 Schema Design: SimplifiedIsolatedTarget
+### 2.2 Schema Design: SubmodelTarget
 
 **Design philosophy for LLM-assisted extraction**:
 - Structured schema constrains LLM output to a predictable format (plays to LLM strength: following templates)
@@ -471,7 +471,7 @@ obs_B ~ Normal(target_B_pred, σ_B)  # likelihood from target B
 
 A framework that harnesses LLM capabilities while systematically guarding against their weaknesses:
 
-1. **SimplifiedIsolatedTarget schema**: Structured template that constrains LLM output to a predictable, machine-verifiable format
+1. **SubmodelTarget schema**: Structured template that constrains LLM output to a predictable, machine-verifiable format
 2. **10-validator framework**: Automated checks targeting specific LLM failure modes (hallucination, fabricated citations, inconsistent references)
 3. **Automatic Julia/Turing.jl translator**: YAML → inference code, removing manual transcription errors
 4. **Demonstration**: 10 PDAC stromal biology targets with full convergence diagnostics
@@ -489,7 +489,7 @@ A framework that harnesses LLM capabilities while systematically guarding agains
 ## 5. Conclusions
 
 - Presented a framework for LLM-assisted calibration target extraction that plays to LLM strengths (speed, template following) while guarding against weaknesses (hallucination, fabrication)
-- SimplifiedIsolatedTarget schema constrains LLM output to structured, machine-verifiable format
+- SubmodelTarget schema constrains LLM output to structured, machine-verifiable format
 - 10 validators specifically target LLM failure modes: hallucinated values caught by snippet matching, fabricated DOIs caught by CrossRef resolution
 - Automatic Julia code generation removes manual transcription as error source
 - Demonstrated on 10 PDAC targets: all parameters converged, excellent posterior predictive performance
@@ -517,7 +517,7 @@ A framework that harnesses LLM capabilities while systematically guarding agains
 
 ## Supplementary Material
 
-- S1: Full SimplifiedIsolatedTarget Pydantic schema
+- S1: Full SubmodelTarget Pydantic schema
 - S2: Complete YAML files for all 10 targets
 - S3: Generated Julia code for joint inference
 - S4: Posterior trace plots and pair plots

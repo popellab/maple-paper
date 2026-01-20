@@ -71,7 +71,7 @@
 %=============================================================================
 
 \begin{abstract}
-Quantitative systems pharmacology (QSP) models require parameter values derived from experimental literature, yet current approaches to literature extraction face a trade-off between throughput and rigor. Parameter databases provide point estimates without uncertainty or provenance; manual expert curation yields high-quality extractions but does not scale; and large language models (LLMs) offer rapid extraction but exhibit failure modes including value hallucination and citation fabrication. We present a framework that combines LLM-assisted extraction with systematic validation to address this trade-off. The SimplifiedIsolatedTarget schema separates data extraction from model specification, capturing literature values with full provenance while constraining output to a machine-verifiable form. A ten-validator framework targets known LLM failure modes, including a value-in-snippet check that requires extracted numbers to appear verbatim in quoted source text. Validated targets are automatically translated to Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields well-converged posteriors ($\hat{R} < 1.01$) for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration. The framework provides a reproducible pipeline from literature to calibrated parameters while maintaining the provenance required for scientific applications.
+Quantitative systems pharmacology (QSP) models require parameter values derived from experimental literature, yet current approaches to literature extraction face a trade-off between throughput and rigor. Parameter databases provide point estimates without uncertainty or provenance; manual expert curation yields high-quality extractions but does not scale; and large language models (LLMs) offer rapid extraction but exhibit failure modes including value hallucination and citation fabrication. We present a framework that combines LLM-assisted extraction with systematic validation to address this trade-off. The SubmodelTarget schema separates data extraction from model specification, capturing literature values with full provenance while constraining output to a machine-verifiable form. A ten-validator framework targets known LLM failure modes, including a value-in-snippet check that requires extracted numbers to appear verbatim in quoted source text. Validated targets are automatically translated to Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields well-converged posteriors ($\hat{R} < 1.01$) for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration. The framework provides a reproducible pipeline from literature to calibrated parameters while maintaining the provenance required for scientific applications.
 \end{abstract}
 
 %=============================================================================
@@ -120,7 +120,7 @@ This suggests a workflow where LLMs handle tasks they do well, like reading scie
 
 We present a framework for LLM-assisted extraction of QSP calibration targets with four components.
 
-The \textbf{SimplifiedIsolatedTarget schema} is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
+The \textbf{SubmodelTarget schema} is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
 
 The \textbf{validation framework} includes ten automated validators targeting specific failure modes: value-in-snippet matching for hallucination detection, DOI resolution for citation verification, reference consistency checks, unit parsing, and code syntax validation.
 
@@ -136,7 +136,7 @@ We apply the framework to ten calibration targets for pancreatic stellate cell d
 
 \subsection{Schema Design}
 
-The SimplifiedIsolatedTarget schema structures calibration targets into two layers: an inputs layer that captures data exactly as reported in the literature, and a calibration layer that specifies how that data constrains model parameters. This separation reflects a data-first philosophy where extraction and model mapping are distinct operations.
+The SubmodelTarget schema structures calibration targets into two layers: an inputs layer that captures data exactly as reported in the literature, and a calibration layer that specifies how that data constrains model parameters. This separation reflects a data-first philosophy where extraction and model mapping are distinct operations.
 
 \subsubsection{Submodels and Parameter Sharing}
 
@@ -471,7 +471,7 @@ The author declares no conflict of interest.
 \section*{Data Availability Statement}
 %=============================================================================
 
-The SimplifiedIsolatedTarget schema, validation framework, and Julia code generator are available at \url{https://github.com/popellab/qsp-llm-workflows}. The ten PDAC calibration targets used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
+The SubmodelTarget schema, validation framework, and Julia code generator are available at \url{https://github.com/popellab/qsp-llm-workflows}. The ten PDAC calibration targets used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
 
 %=============================================================================
 % REFERENCES

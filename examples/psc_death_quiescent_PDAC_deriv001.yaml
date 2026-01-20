@@ -1,4 +1,4 @@
-# Schema: SimplifiedIsolatedTarget
+# Schema: SubmodelTarget
 # Source: Louzoun et al. (2014) J Theor Biol - Mathematical model for pancreatic cancer
 
 target_id: psc_death_quiescent_PDAC_deriv001

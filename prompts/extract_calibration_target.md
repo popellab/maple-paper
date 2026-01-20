@@ -18,7 +18,7 @@ Extract the calibration target `[TARGET_ID]` following this workflow:
 - Record verbatim quotes containing the values
 
 ### 3. Create YAML
-- Create `examples/[target_id]_PDAC_deriv001.yaml` using SimplifiedIsolatedTarget schema
+- Create `examples/[target_id]_PDAC_deriv001.yaml` using SubmodelTarget schema
 - Follow existing examples in `examples/` for format
 - All `value_snippet` fields must be **verbatim quotes** from the paper
 - All `source_ref` must match a `source_tag` defined in data sources section
@@ -26,7 +26,7 @@ Extract the calibration target `[TARGET_ID]` following this workflow:
 
 ### 4. Validate
 ```bash
-python scripts/validate_simplified_target.py examples/[filename].yaml
+python scripts/validate_submodel_target.py examples/[filename].yaml
 ```
 
 ### 5. Run Joint Inference
