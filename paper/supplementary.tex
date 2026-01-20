@@ -381,7 +381,9 @@ Model Type & ODE & Parameters \\
 \label{sec:validators}
 %=============================================================================
 
-The validation framework includes the following automated checks:
+The validation framework includes ten automated checks implemented as Pydantic \texttt{@model\_validator} methods. Each validator runs after field parsing and raises a \texttt{ValidationError} with detailed messages when constraints are violated.
+
+\subsection{Summary of Validators}
 
 \begin{enumerate}
     \item \textbf{Input reference validation}: All \texttt{uses\_inputs} references match defined input names
@@ -395,6 +397,162 @@ The validation framework includes the following automated checks:
     \item \textbf{Span ordering validation}: Time spans have start $<$ end
     \item \textbf{ODE model requirements}: ODE models have required state variables and spans
 \end{enumerate}
+
+\subsection{DOI Resolution Validator}
+
+The DOI validator queries the CrossRef API to verify that every cited DOI resolves to a valid publication. This catches fabricated citations before they enter the calibration pipeline. The validator also performs fuzzy matching on title and year to detect metadata inconsistencies.
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+def resolve_doi(doi: str) -> Optional[dict]:
+    """Resolve DOI and get metadata from CrossRef."""
+    doi_clean = doi.replace("https://doi.org/", "").strip()
+
+    url = f"https://doi.org/{doi_clean}"
+    headers = {"Accept": "application/vnd.citationstyles.csl+json"}
+    response = requests.get(url, headers=headers, timeout=10)
+
+    if response.status_code != 200:
+        return None  # DOI does not resolve
+
+    metadata = response.json()
+    return {
+        "title": metadata.get("title", ""),
+        "first_author": metadata.get("author", [{}])[0].get("family", ""),
+        "year": metadata.get("issued", {}).get("date-parts", [[]])[0][0]
+    }
+
+@model_validator(mode="after")
+def validate_doi_resolution_and_metadata(self) -> "SubmodelTarget":
+    """Validate that DOIs resolve and metadata matches."""
+    errors = []
+
+    metadata = resolve_doi(self.primary_data_source.doi)
+    if metadata is None:
+        errors.append(f"DOI '{self.primary_data_source.doi}' failed to resolve")
+    else:
+        # Check title match (fuzzy)
+        if not fuzzy_match(self.primary_data_source.title, metadata["title"]):
+            errors.append(f"Title mismatch with CrossRef")
+        # Check year match
+        if self.primary_data_source.year != metadata["year"]:
+            errors.append(f"Year mismatch: {self.primary_data_source.year} vs {metadata['year']}")
+
+    if errors:
+        raise ValueError("DOI validation errors:\n  - " + "\n  - ".join(errors))
+    return self
+\end{lstlisting}
+
+\textbf{Example failure}: If an LLM fabricates a citation with DOI \texttt{10.1234/fake.2023.12345}, the CrossRef query returns a 404 error and validation fails with:
+\begin{verbatim}
+ValidationError: DOI '10.1234/fake.2023.12345' failed to resolve.
+Verify at https://doi.org/10.1234/fake.2023.12345
+\end{verbatim}
+
+\subsection{Value-in-Snippet Validator}
+
+The value-in-snippet validator checks that each extracted numeric value appears in its associated source text. This catches hallucinations where an LLM extracts a plausible but incorrect value. The validator handles multiple numeric formats including scientific notation, percentages, and Unicode superscripts.
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+def check_value_in_text(text: str, value: float) -> bool:
+    """Check if numeric value appears in text."""
+    text_norm = text.lower().replace(",", "")
+    patterns = []
+
+    # Direct value and common formats
+    patterns.append(str(value))
+    patterns.append(f"{value:.1f}")
+    patterns.append(f"{value:.2f}")
+
+    # Scientific notation (e.g., "1.5e-3", "1.5E-03")
+    if abs(value) < 0.01 or abs(value) > 1000:
+        patterns.append(f"{value:e}")
+        patterns.append(f"{value:.2e}")
+
+    # Percentage format (if value is between 0 and 1)
+    if 0 < value < 1:
+        pct = value * 100
+        patterns.extend([f"{pct}%", f"{pct:.0f}%", f"{pct:.1f}%"])
+
+    return any(p.lower() in text_norm for p in patterns)
+
+@model_validator(mode="after")
+def validate_input_values_in_snippets(self) -> "SubmodelTarget":
+    """Validate that extracted values appear in their value_snippet."""
+    errors = []
+    for inp in self.inputs:
+        if not inp.value_snippet:
+            continue
+        # Skip types that may not have explicit values in text
+        if inp.input_type in (InputType.INFERRED_ESTIMATE, InputType.ASSUMED_VALUE):
+            continue
+
+        if not check_value_in_text(inp.value_snippet, inp.value):
+            errors.append(
+                f"Input '{inp.name}': value {inp.value} not found in snippet "
+                f"'{inp.value_snippet[:60]}...'"
+            )
+
+    if errors:
+        raise ValueError("Value-snippet mismatches (possible hallucination):\n  - "
+                        + "\n  - ".join(errors))
+    return self
+\end{lstlisting}
+
+\textbf{Example failure}: If an input claims \texttt{value: 4.37} but the snippet reads ``Cell proliferation was 3.21-fold of control'', validation fails with:
+\begin{verbatim}
+ValidationError: Value-snippet mismatches (possible hallucination):
+  - Input 'pdgf_fold_mean': value 4.37 not found in snippet
+    'Cell proliferation was 3.21-fold of control...'
+\end{verbatim}
+
+This validator is particularly effective because LLMs that hallucinate values rarely fabricate consistent snippets---the mismatch provides a reliable detection signal.
+
+\subsection{Unit Validation}
+
+The unit validator parses all unit strings using Pint, a Python library for physical quantities. Malformed or unrecognized units trigger validation failure.
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+@model_validator(mode="after")
+def validate_units_are_valid_pint(self) -> "SubmodelTarget":
+    """Validate that all unit strings are valid Pint units."""
+    from pint import UnitRegistry
+    ureg = UnitRegistry()
+    errors = []
+
+    def check_unit(unit_str: str, location: str):
+        try:
+            ureg(unit_str)
+        except Exception as e:
+            errors.append(f"{location}: '{unit_str}' is not valid ({e})")
+
+    for inp in self.inputs:
+        check_unit(inp.units, f"Input '{inp.name}'")
+    for param in self.calibration.parameters:
+        check_unit(param.units, f"Parameter '{param.name}'")
+
+    if errors:
+        raise ValueError("Invalid Pint units:\n  - " + "\n  - ".join(errors))
+    return self
+\end{lstlisting}
+
+\textbf{Example failure}: If a parameter specifies \texttt{units: cells/mL/day} (invalid compound unit), validation fails with:
+\begin{verbatim}
+ValidationError: Invalid Pint units:
+  - Parameter 'k_recruit': 'cells/mL/day' is not valid (...)
+\end{verbatim}
+
+\subsection{Reference Consistency Validators}
+
+Four validators check that all cross-references within the schema are consistent:
+
+\begin{itemize}
+    \item \textbf{Input references}: Every \texttt{uses\_inputs} entry and \texttt{initial\_condition.input\_ref} must match a defined input name.
+    \item \textbf{Source references}: Every \texttt{source\_ref} must match \texttt{primary\_data\_source.source\_tag} or a \texttt{secondary\_data\_sources[].source\_tag}.
+    \item \textbf{Parameter references}: When a model field like \texttt{rate\_constant} contains a string (not an \texttt{InputRef}), it must match a parameter name in \texttt{calibration.parameters}.
+    \item \textbf{State variable references}: Every state variable referenced in \texttt{observable.state\_variables} must exist in \texttt{calibration.state\_variables}.
+\end{itemize}
+
+These validators catch internal inconsistencies where an LLM generates references to entities that don't exist elsewhere in the document.
 
 %=============================================================================
 \section{S4: Generated Julia Code Structure}
@@ -443,5 +601,221 @@ chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
 \end{lstlisting}
 
 For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
+
+%=============================================================================
+\section{S5: Pydantic Model Definitions}
+\label{sec:pydantic-models}
+%=============================================================================
+
+This section provides the key Pydantic model definitions that implement the SubmodelTarget schema. The full implementation is available in the repository at \texttt{src/qsp\_llm\_workflows/core/calibration/submodel\_target.py}.
+
+\subsection{Top-Level Model}
+
+The \texttt{SubmodelTarget} class is the entry point for validation. When a YAML file is loaded, Pydantic recursively validates all nested models.
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+class SubmodelTarget(BaseModel):
+    """
+    Submodel-based calibration target for QSP parameter inference.
+
+    Separates:
+    - `inputs`: What was extracted from papers (with full provenance)
+    - `calibration`: How to use those inputs for inference
+    """
+    target_id: str = Field(description="Unique identifier for this target")
+
+    # Extracted data with provenance
+    inputs: List[Input] = Field(
+        description="Values extracted from literature with full provenance"
+    )
+
+    # Calibration specification
+    calibration: Calibration = Field(
+        description="Everything needed for inference code generation"
+    )
+
+    # Experimental context
+    experimental_context: ExperimentalContext = Field(
+        description="Experimental context for the target"
+    )
+
+    # Study interpretation
+    study_interpretation: str = Field(
+        description="Scientific interpretation of how the study data informs the model"
+    )
+    key_assumptions: List[str] = Field(
+        description="Key assumptions made in using this data"
+    )
+    key_study_limitations: Optional[List[str]] = Field(
+        default=None, description="Known limitations of the study"
+    )
+
+    # Data sources
+    primary_data_source: PrimaryDataSource = Field(
+        description="Primary literature source"
+    )
+    secondary_data_sources: Optional[List[SecondaryDataSource]] = Field(
+        default=None, description="Additional literature sources"
+    )
+
+    # Validators (10 total) are defined as @model_validator methods
+    # See Section S3 for implementation details
+\end{lstlisting}
+
+\subsection{Input Model}
+
+Each input captures a single value extracted from literature with full provenance:
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+class InputType(str, Enum):
+    """Type of input extracted from literature."""
+    DIRECT_MEASUREMENT = "direct_measurement"   # Value reported directly
+    PROXY_MEASUREMENT = "proxy_measurement"     # Requires conversion
+    EXPERIMENTAL_CONDITION = "experimental_condition"  # Protocol choice
+    INFERRED_ESTIMATE = "inferred_estimate"     # Interpreted from qualitative text
+    ASSUMED_VALUE = "assumed_value"             # Domain knowledge, not in source
+
+class InputRole(str, Enum):
+    """Role of input in calibration."""
+    INITIAL_CONDITION = "initial_condition"  # IC for ODE integration
+    TARGET = "target"                        # Calibration target (likelihood term)
+    FIXED_PARAMETER = "fixed_parameter"      # Fixed value in model
+    AUXILIARY = "auxiliary"                  # Supporting data
+
+class Input(BaseModel):
+    """A value extracted from literature with full provenance."""
+    name: str = Field(description="Unique identifier for this input")
+    value: float = Field(description="Extracted numeric value")
+    units: str = Field(description="Units of the value")
+    uncertainty: Optional[Uncertainty] = Field(default=None)
+    n: Optional[int] = Field(default=None, description="Sample size")
+    input_type: InputType
+    role: Optional[InputRole] = Field(default=None)
+    source_ref: str = Field(description="Reference to source_tag in data sources")
+    source_location: str = Field(description="Location within the source")
+    value_snippet: Optional[str] = Field(
+        default=None,
+        description="Exact text from paper containing the value (for validation)"
+    )
+\end{lstlisting}
+
+\subsection{Model Type Discriminated Union}
+
+The schema uses Pydantic's discriminated union pattern to support multiple model types, each with type-specific required fields:
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+class BaseModelSpec(BaseModel):
+    """Base class for all model specifications."""
+    data_rationale: str = Field(
+        description="Why this model type fits the experimental data"
+    )
+    submodel_rationale: str = Field(
+        description="Why this is a valid submodel of the full QSP model"
+    )
+
+class ExponentialGrowthModel(BaseModelSpec):
+    """Exponential growth: dy/dt = k * y"""
+    type: Literal["exponential_growth"] = "exponential_growth"
+    rate_constant: ParameterRole = Field(
+        description="Rate constant parameter name or input_ref"
+    )
+
+class TwoStateModel(BaseModelSpec):
+    """Two-state transition: A -> B with first-order kinetics."""
+    type: Literal["two_state"] = "two_state"
+    forward_rate: ParameterRole = Field(
+        description="Forward transition rate constant"
+    )
+
+class CustomModel(BaseModelSpec):
+    """Custom ODE with user-provided code"""
+    type: Literal["custom"] = "custom"
+    code: str = Field(description="Python ODE function")
+    code_julia: str = Field(description="Julia ODE function for inference")
+
+# Discriminated union selects model class based on 'type' field
+Model = Annotated[
+    Union[
+        FirstOrderDecayModel,
+        ExponentialGrowthModel,
+        LogisticModel,
+        MichaelisMentenModel,
+        TwoStateModel,
+        SaturationModel,
+        DirectConversionModel,
+        DirectFitModel,
+        CustomModel,
+    ],
+    Field(discriminator="type"),
+]
+\end{lstlisting}
+
+The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \texttt{type} field in the YAML to determine which model class to instantiate. This ensures that an \texttt{exponential\_growth} model is validated against \texttt{ExponentialGrowthModel} (which requires \texttt{rate\_constant}) while a \texttt{two\_state} model is validated against \texttt{TwoStateModel} (which requires \texttt{forward\_rate}).
+
+\subsection{Prior Specification}
+
+Priors are specified with distribution type and parameters:
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+class PriorDistribution(str, Enum):
+    """Supported prior distribution types."""
+    LOGNORMAL = "lognormal"    # For positive parameters (rates, densities)
+    NORMAL = "normal"          # For unconstrained parameters
+    UNIFORM = "uniform"        # For bounded parameters
+    HALF_NORMAL = "half_normal"  # For positive parameters with mode at 0
+
+class Prior(BaseModel):
+    """Prior distribution specification for Bayesian inference."""
+    distribution: PriorDistribution
+    mu: Optional[float] = Field(default=None, description="Location parameter")
+    sigma: Optional[float] = Field(default=None, description="Scale parameter")
+    lower: Optional[float] = Field(default=None, description="Lower bound")
+    upper: Optional[float] = Field(default=None, description="Upper bound")
+    rationale: Optional[str] = Field(default=None)
+
+    @model_validator(mode="after")
+    def validate_prior_params(self) -> "Prior":
+        """Validate that required parameters are provided for each distribution."""
+        if self.distribution == PriorDistribution.LOGNORMAL:
+            if self.mu is None or self.sigma is None:
+                raise ValueError("lognormal prior requires mu and sigma")
+        elif self.distribution == PriorDistribution.UNIFORM:
+            if self.lower is None or self.upper is None:
+                raise ValueError("uniform prior requires lower and upper")
+            if self.lower >= self.upper:
+                raise ValueError("uniform lower must be < upper")
+        return self
+\end{lstlisting}
+
+\subsection{Loading and Validating YAML Files}
+
+To load and validate a calibration target:
+
+\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+import yaml
+from qsp_llm_workflows.core.calibration import SubmodelTarget
+
+# Load YAML file
+with open("psc_proliferation_PDAC_deriv001.yaml") as f:
+    data = yaml.safe_load(f)
+
+# Parse and validate (raises ValidationError on failure)
+target = SubmodelTarget(**data)
+
+# Access validated fields
+print(f"Target: {target.target_id}")
+print(f"Parameters: {[p.name for p in target.calibration.parameters]}")
+print(f"Model type: {target.calibration.model.type}")
+\end{lstlisting}
+
+If validation fails, Pydantic raises a \texttt{ValidationError} with detailed error messages:
+
+\begin{verbatim}
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for SubmodelTarget
+calibration.measurements.0.uses_inputs.0
+  Input 'typo_input_name' not found in inputs [...]
+primary_data_source.doi
+  DOI '10.1234/fake' failed to resolve [...]
+\end{verbatim}
 
 \end{document}

@@ -120,23 +120,47 @@ This suggests a workflow where LLMs handle tasks they do well, like reading scie
 
 We present a framework for LLM-assisted extraction of QSP calibration targets with four components.
 
-The \textbf{SubmodelTarget schema} is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
+The SubmodelTarget schema is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
 
-The \textbf{validation framework} includes ten automated validators targeting specific failure modes: value-in-snippet matching for hallucination detection, DOI resolution for citation verification, reference consistency checks, unit parsing, and code syntax validation.
+The validation framework includes ten automated validators targeting specific failure modes: value-in-snippet matching for hallucination detection, DOI resolution for citation verification, reference consistency checks, unit parsing, and code syntax validation.
 
-The \textbf{code generator} translates validated YAML specifications into executable Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets.
+The code generator translates validated YAML specifications into executable Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets.
 
-\textbf{Joint inference} over multiple targets generates posterior distributions for all parameters simultaneously. Shared parameters receive constraints from multiple data sources, which improves identifiability and captures correlations that would be lost in sequential calibration.
+Joint inference over multiple targets generates posterior distributions for all parameters simultaneously. Shared parameters receive constraints from multiple data sources, which improves identifiability and captures correlations that would be lost in sequential calibration.
 
 We apply the framework to ten calibration targets for pancreatic stellate cell dynamics in PDAC, covering proliferation, death, activation, secretion, and immune interactions. Joint inference over the resulting model yields $\hat{R} < 1.01$ for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration.
+
+\subsection{Article Overview}
+
+The remainder of this article is organized as follows. The Methods section describes the schema design, validation framework, code generation pipeline, and the PDAC application. The Results section reports validation outcomes, convergence diagnostics, and posterior predictive checks. The Discussion addresses benefits, limitations, and future directions.
 
 %=============================================================================
 \section{Methods}
 %=============================================================================
 
+\subsection{Problem Framing}
+
+The goal of this work is to calibrate parameters in a full QSP model---often comprising 100+ ODEs and 100+ parameters---using Bayesian inference. The challenge is that clinical endpoints (tumor response, survival) constrain only aggregate model behavior, leaving many mechanistic parameters underdetermined. Running MCMC on the full model is computationally expensive, and many parameters are simply not identifiable from clinical data alone.
+
+Isolated system experiments offer an opportunity. In vitro, ex vivo, and preclinical studies are abundant in the literature, and these experiments isolate specific biological processes (proliferation, death, secretion, cytotoxicity) from confounding factors. They provide direct measurements of quantities that relate to individual model parameters.
+
+The gap is that gathering this data at scale is difficult. Each experiment measures something slightly different, with different units, conditions, and uncertainties. There is no standardized procedure for extracting data with full provenance, no systematic way to connect extracted data to model parameters, and manual curation is error-prone, poorly documented, and not reproducible.
+
+\subsubsection{The LLM Opportunity}
+
+Large language models can read papers and extract structured data at speed and scale. But LLMs have well-known failure modes: hallucination of plausible values, inconsistent outputs, fabricated citations. Naive LLM extraction is not trustworthy for scientific applications. We need a framework that harnesses LLM capabilities while guarding against their pitfalls.
+
+Our approach has four components: (1) extract experimental data with full provenance (the inputs layer), (2) define a submodel that connects the data to full model parameters (the calibration layer), (3) validate the extraction automatically before inference, and (4) generate inference code that combines multiple targets via joint Bayesian inference.
+
+\subsubsection{Why Joint Bayesian Inference}
+
+Joint inference over multiple calibration targets offers several advantages over calibrating parameters independently. First, joint inference finds parameter values that satisfy all targets simultaneously rather than one at a time; when one target pulls a parameter up and another pulls it down, the posterior reflects this tension rather than requiring ad-hoc averaging. Second, when multiple experiments inform the same parameter, all data contributes to its posterior---a parameter appearing in three targets receives constraints from all three, yielding tighter posteriors than any single target could provide. Third, the result is full posterior distributions rather than point estimates; uncertainty from extraction propagates through to parameter uncertainty, which can then propagate to model predictions. Fourth, the joint posterior captures how parameters covary, which matters for prediction uncertainty; if two parameters are correlated given the data, sampling them independently would underestimate prediction uncertainty. Finally, there is no need for ad-hoc weighting schemes: sample size and reported uncertainty naturally weight each target's contribution, and Bayes' theorem handles the combination.
+
 \subsection{Schema Design}
 
 The SubmodelTarget schema structures calibration targets into two layers: an inputs layer that captures data exactly as reported in the literature, and a calibration layer that specifies how that data constrains model parameters. This separation reflects a data-first philosophy where extraction and model mapping are distinct operations.
+
+The schema design is informed by what LLMs do well and poorly. Structured schemas constrain LLM output to a predictable format, playing to LLM strength at following templates. Required fields force completeness: the LLM cannot skip provenance information because the schema demands it. Enumerated options for input types, roles, and model types reduce free-form errors by limiting the space of valid outputs. The separation of inputs from calibration matches how humans reason about the task---first understand what the paper says, then decide how to use it. Every field is machine-verifiable, enabling automated validation of LLM output before it reaches downstream inference.
 
 \subsubsection{Submodels and Parameter Sharing}
 
@@ -209,6 +233,12 @@ The schema provides built-in templates for common ODE patterns: exponential grow
 
 When built-in types are insufficient, users can provide custom ODE code. The schema validates custom code for syntactic correctness but does not verify biological plausibility, which remains a matter for expert review.
 
+\subsubsection{Measurement Model}
+
+The measurement model specifies how model predictions connect to observed data. Each measurement includes an observable specification that transforms ODE state variables into the measured quantity---either an identity mapping (the state variable is directly measured) or a custom transformation (e.g., a ratio or fold-change). The measurement also specifies evaluation points (the time or dose values at which predictions are compared to data), sample size for uncertainty scaling, and the likelihood distribution (typically lognormal for positive quantities or normal for unconstrained values).
+
+For measurements derived from literature with reported uncertainty, the schema supports a \texttt{distribution\_code} field containing Python code that propagates uncertainty from reported values (mean, SD, confidence intervals) to a distribution suitable for the likelihood. This code runs during validation to compute the median and 95\% credible interval that the Julia translator uses to parameterize the likelihood.
+
 Listing~\ref{lst:model} shows a complete model specification using the exponential growth template.
 
 \begin{lstlisting}[style=yaml,caption={Model specification with state variable and observable.},label={lst:model},basicstyle=\ttfamily\footnotesize]
@@ -237,6 +267,23 @@ Listing~\ref{lst:model} shows a complete model specification using the exponenti
 
 A complete example target is provided in Supplementary Material S1.
 
+\subsubsection{Implementation with Pydantic}
+
+The schema is implemented using Pydantic, a Python library for data validation that uses type annotations to define and enforce data structures. Pydantic models declare expected field types, constraints, and relationships; when data is parsed into a model, Pydantic automatically validates that all constraints are satisfied and raises detailed errors when they are not. This approach makes validation logic declarative rather than procedural: constraints are specified once in the model definition and enforced automatically whenever data is loaded.
+
+The \texttt{SubmodelTarget} class serves as the top-level model, containing nested models for inputs, calibration, experimental context, and data sources. Each nested model defines its own fields and validators, creating a compositional structure where complex validation emerges from simpler components. Key model classes include:
+\begin{itemize}
+    \item \texttt{Input}: Captures a single extracted value with its numeric value, units, type classification (via the \texttt{InputType} enum: \texttt{direct\_measurement}, \texttt{proxy\_measurement}, \texttt{inferred\_estimate}, or \texttt{assumed\_value}), provenance fields, and optional uncertainty.
+    \item \texttt{Parameter}: Defines a parameter to estimate, with units and an optional \texttt{Prior} specification supporting lognormal, normal, uniform, and half-normal distributions.
+    \item \texttt{Calibration}: Contains the complete inference specification: parameters, state variables, model type, independent variable, and measurements.
+    \item \texttt{Model}: A discriminated union of nine model types (\texttt{ExponentialGrowthModel}, \texttt{FirstOrderDecayModel}, \texttt{TwoStateModel}, \texttt{LogisticModel}, \texttt{SaturationModel}, \texttt{MichaelisMentenModel}, \texttt{DirectConversionModel}, \texttt{DirectFitModel}, \texttt{CustomModel}), each requiring fields appropriate to its mathematical structure.
+    \item \texttt{Measurement}: Links inputs to observables and specifies the likelihood distribution, evaluation points, and optional Python code for uncertainty propagation.
+\end{itemize}
+
+Pydantic's \texttt{@model\_validator} decorator enables cross-field validation that runs after individual field parsing. The \texttt{SubmodelTarget} class includes ten validators (detailed in the following section) that check reference consistency, content validity, and structural requirements. When validation fails, Pydantic raises a \texttt{ValidationError} with messages indicating which field failed and why, enabling targeted correction.
+
+The discriminated union pattern for model types uses Pydantic's \texttt{Field(discriminator="type")} to automatically select the correct model class based on the \texttt{type} field in the YAML. This ensures that an \texttt{exponential\_growth} model requires a \texttt{rate\_constant} field while a \texttt{two\_state} model requires a \texttt{forward\_rate} field, with type-specific validation for each. Supplementary Material S5 provides the complete Pydantic model definitions.
+
 \subsection{Validation Framework}
 
 The validation framework comprises ten automated checks targeting known LLM failure modes. Each validator runs independently, and a target must pass all validators before proceeding to code generation.
@@ -251,7 +298,7 @@ Content validators address fabrication of values, citations, and other factual c
 
 DOI validation queries CrossRef for every DOI in the sources list. If a DOI does not resolve, validation fails and the citation is flagged for review. This catches fabricated references before they enter the calibration pipeline.
 
-Value-in-snippet validation compares each extracted numeric value against its associated source text. If an input claims a value of 4.37 but the quoted snippet contains 3.21, validation fails. When an LLM hallucinates a number, it rarely fabricates a consistent snippet; the mismatch provides a detection signal. This validator creates an auditable trail from every parameter value back to specific text in the source paper.
+Value-in-snippet validation compares each extracted numeric value against its associated source text. If an input claims a value of 4.37 but the quoted snippet contains 3.21, validation fails. This is the primary anti-hallucination defense in the framework. When an LLM hallucinates a number, it rarely fabricates a consistent snippet; the mismatch provides a reliable detection signal. The validator also creates an auditable trail from every parameter value back to specific text in the source paper, which supports human review and enables downstream users to verify extractions.
 
 Unit validation parses all unit strings using Pint. Malformed or unrecognized units trigger failure.
 
@@ -280,7 +327,25 @@ We chose to generate code rather than provide a library abstraction. Generated s
 
 When the translator processes multiple YAML files, it identifies parameters that appear in more than one target by matching parameter names. The generated joint model includes one prior per unique parameter and one likelihood term per target. Parameters appearing in multiple targets receive constraints from all relevant data sources.
 
-Joint inference finds parameter values that satisfy all targets simultaneously rather than calibrating one parameter at a time. When a proliferation rate appears in both a growth assay and a competition assay, both likelihoods update the same posterior. The joint posterior captures correlations between parameters and propagates full uncertainty to downstream predictions.
+The mechanics of parameter sharing are straightforward. Consider two targets A and B that both involve a parameter \texttt{k\_shared}. In the generated Turing model, the parameter is declared once with its prior, then used in the simulation functions for both targets:
+
+\begin{lstlisting}[style=yaml,basicstyle=\ttfamily\footnotesize]
+@model function joint_model()
+    # Shared parameter declared once
+    k_shared ~ LogNormal(mu, sigma)
+
+    # Each target contributes a simulation and likelihood
+    pred_A = simulate_target_A(k_shared, ...)
+    pred_B = simulate_target_B(k_shared, ...)
+
+    obs_A ~ Normal(pred_A, sigma_A)
+    obs_B ~ Normal(pred_B, sigma_B)
+end
+\end{lstlisting}
+
+The NUTS sampler explores this joint posterior, finding values of \texttt{k\_shared} that are consistent with both observations. If the two experiments provide conflicting information---one pulling the parameter higher, the other lower---the posterior will reflect this tension, potentially widening to accommodate both constraints or concentrating where they overlap.
+
+Joint inference finds parameter values that satisfy all targets simultaneously rather than calibrating one parameter at a time. When a parameter appears in multiple experiments with different designs, both likelihoods update the same posterior, yielding tighter constraints than either alone could provide. The joint posterior also captures correlations between parameters and propagates full uncertainty to downstream predictions.
 
 \subsection{Posterior Diagnostics}
 

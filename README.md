@@ -1,6 +1,6 @@
 # QSP LLM Workflows Paper
 
-Manuscript and validation data for the qsp-llm-workflows framework, targeting CPT: Pharmacometrics & Systems Pharmacology.
+Manuscript and supporting materials for "LLM-Assisted Extraction of QSP Calibration Targets: A Validated Schema for Structured Data and Joint Bayesian Inference", targeting CPT: Pharmacometrics & Systems Pharmacology.
 
 ## Repository Structure
 
@@ -8,27 +8,37 @@ Manuscript and validation data for the qsp-llm-workflows framework, targeting CP
 qsp-llm-workflows-paper/
 ├── paper/                    # Manuscript
 │   ├── main.tex             # Main manuscript
-│   ├── supplementary.tex    # Supplementary materials
+│   ├── supplementary.tex    # Supplementary materials (S1-S5)
+│   ├── cpt_article_outline.md # Article outline
 │   └── references.bib       # Bibliography
 │
-├── examples/                 # PDAC calibration targets
+├── examples/                 # PDAC calibration targets (YAML)
 │   ├── psc_*.yaml           # Pancreatic stellate cell targets
 │   ├── ecm_*.yaml           # ECM secretion targets
 │   ├── tcell_*.yaml         # T cell killing targets
 │   ├── tgfb_*.yaml          # TGF-beta secretion targets
-│   ├── treg_*.yaml          # Treg suppression targets
-│   └── joint_calibration.jl # Generated Julia inference script
+│   └── treg_*.yaml          # Treg suppression targets
 │
 ├── prompts/                  # LLM prompts for extraction
 │   └── extract_calibration_target.md
 │
+├── presentation/             # Conference presentations
+│   └── calibration_workflow_presentation.tex
+│
 └── archive/                  # Old manuscript materials
-    └── docs-manuscript/
 ```
+
+## Supplementary Materials
+
+- **S1**: Complete SubmodelTarget example (PSC proliferation)
+- **S2**: Supported model types table
+- **S3**: Validation checks with code examples (DOI, value-in-snippet, unit validators)
+- **S4**: Generated Julia/Turing.jl code structure
+- **S5**: Pydantic model definitions
 
 ## Related Repository
 
-The framework code is in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
+The framework code (SubmodelTarget schema, validators, Julia translator) is in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
 
 ## Building the Paper
 
@@ -39,17 +49,6 @@ bibtex main
 pdflatex main.tex
 pdflatex main.tex
 ```
-
-## Running Inference
-
-The Julia scripts in `examples/` can be run with:
-
-```bash
-cd examples
-julia joint_calibration.jl
-```
-
-Requires Julia with DifferentialEquations.jl, Turing.jl, and Distributions.jl.
 
 ## License
 
