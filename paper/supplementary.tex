@@ -1,0 +1,447 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+
+% Define custom colors for YAML
+\definecolor{yamlkey}{RGB}{0, 102, 153}       % Blue for keys
+\definecolor{yamlstring}{RGB}{163, 21, 21}    % Maroon for strings
+\definecolor{yamlcomment}{RGB}{0, 128, 0}     % Green for comments
+\definecolor{yamlnumber}{RGB}{128, 0, 128}    % Purple for numbers
+\definecolor{yamlbg}{RGB}{248, 248, 248}      % Light gray background
+
+% Code listing style for YAML
+\lstdefinelanguage{yaml}{
+  keywords={true,false,null,y,n},
+  keywordstyle=\color{yamlnumber}\bfseries,
+  basicstyle=\ttfamily\footnotesize,
+  sensitive=false,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{yamlcomment}\itshape,
+  stringstyle=\color{yamlstring},
+  moredelim=[l][\color{yamlkey}\bfseries]{:},
+  moredelim=**[il][\color{yamlkey}\bfseries]{:\ },
+  morestring=[b]',
+  morestring=[b]",
+  literate=
+    {-}{{{\color{yamlkey}-}}}1
+    {>}{{{\color{yamlkey}>}}}1
+    {|}{{{\color{yamlkey}|}}}1,
+}
+
+\lstdefinestyle{yaml}{
+    language=yaml,
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{yamlbg},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=5pt,
+    showstringspaces=false,
+    tabsize=2,
+    rulecolor=\color{gray!50},
+}
+
+% Julia language definition
+\lstdefinelanguage{julia}{
+  keywordsprefix=\@,
+  morekeywords={
+    exit,whos,edit,load,is,isa,isequal,typeof,tuple,ntuple,uid,hash,finalizer,convert,promote,
+    subtype,typemin,typemax,realmin,realmax,sizeof,eps,promote_type,method_exists,applicable,
+    invoke,dlopen,dlsym,system,error,throw,assert,new,Inf,Nan,pi,im,begin,while,for,in,return,
+    break,continue,macro,quote,let,if,elseif,else,try,catch,end,bitstype,ccall,do,using,module,
+    import,export,importall,baremodule,immutable,local,global,const,Bool,Int,Int8,Int16,Int32,
+    Int64,Uint,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Complex64,Complex128,Any,Nothing,None,
+    function,type,typealias,abstract
+  },
+  sensitive=true,
+  morecomment=[l]{\#},
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  columns=fullflexible,
+  numbers=left,
+  numberstyle=\small\ttfamily\color{Gray},
+  stepnumber=1,
+  numbersep=10pt,
+  numberfirstline=true,
+  numberblanklines=true,
+  tabsize=4,
+  lineskip=-1.5pt,
+  extendedchars=true,
+  breaklines=true,
+  keywordstyle=\color{Blue}\bfseries,
+  identifierstyle=,
+  commentstyle=\sffamily\color{OliveGreen},
+  stringstyle=\color{Maroon},
+  showstringspaces=false,
+  showtabs=false,
+  upquote=false,
+  texcl=true
+}
+
+\title{Supplementary Materials:\\LLM-Assisted Extraction of QSP Calibration Targets}
+\author{Joel Eliason}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+%=============================================================================
+\section{S1: Complete SimplifiedIsolatedTarget Example}
+\label{sec:complete-example}
+%=============================================================================
+
+This section presents a complete calibration target for activated pancreatic stellate cell (aPSC) proliferation, demonstrating all schema components.
+
+\subsection{Overview}
+
+This target constrains the proliferation rate parameter \texttt{k\_apsc\_prolif} using data from Schneider et al. (2001), who measured PSC proliferation in response to PDGF stimulation via BrdU incorporation assay.
+
+\subsection{Complete YAML Specification}
+
+\begin{lstlisting}[style=yaml]
+# Schema: SimplifiedIsolatedTarget
+# Target: Activated PSC proliferation rate
+
+target_id: psc_proliferation_PDAC_deriv001
+
+# =============================================================================
+# INPUTS: Extracted values with full provenance
+# =============================================================================
+inputs:
+  - name: pdgf_fold_mean
+    value: 4.37
+    units: dimensionless
+    input_type: direct_measurement
+    role: target
+    source_ref: Schneider2001_PSC_PDGF
+    source_location: Abstract
+    value_snippet: "Cell proliferation (4.37 +/- 0.49- and 2.96 +/-
+                    0.39-fold of control)."
+
+  - name: pdgf_fold_sd
+    value: 0.49
+    units: dimensionless
+    input_type: direct_measurement
+    role: auxiliary
+    source_ref: Schneider2001_PSC_PDGF
+    source_location: Abstract
+    value_snippet: "Cell proliferation (4.37 +/- 0.49- and 2.96 +/-
+                    0.39-fold of control)."
+
+# =============================================================================
+# CALIBRATION: Everything needed for inference
+# =============================================================================
+calibration:
+  parameters:
+    - name: k_apsc_prolif
+      units: 1/day
+      prior:
+        distribution: lognormal
+        mu: 0.0      # log(1.0) - expect ~1/day for 4x fold-change in 1 day
+        sigma: 1.0
+        rationale: |
+          Wide log-normal prior centered at 1/day. A 4-fold increase in
+          1 day implies k = ln(4) = 1.4/day, so prior median of 1/day
+          is reasonable.
+
+  state_variables:
+    - name: aPSC_rel
+      units: dimensionless
+      initial_condition:
+        value: 1.0
+        rationale: |
+          PSC proliferation data are reported as fold of control. We
+          normalize the initial aPSC population to 1.0 (100% control)
+          to match this convention.
+
+  model:
+    type: exponential_growth
+    rate_constant: k_apsc_prolif
+    data_rationale: |
+      BrdU incorporation assay measures proliferation as fold-change
+      over ~24 hours under constant PDGF stimulus. With a single high
+      PDGF dose and short duration, exponential growth (dN/dt = k*N)
+      fits the data structure.
+    submodel_rationale: |
+      The full QSPIO_PDAC model has aPSC proliferation via:
+      k_apsc_prolif * aPSC * (PDGF / (PDGF_50_prolif + PDGF)).
+      At 50 ng/mL PDGF >> PDGF_50_prolif, the saturation term ~ 1,
+      reducing to exponential growth with rate k_apsc_prolif.
+
+  independent_variable:
+    name: time
+    units: day
+    span: [0.0, 1.0]
+    rationale: |
+      Proliferation assay duration assumed to be ~24 hours based on
+      typical cytokine incubation protocols for rat PSCs.
+
+  measurements:
+    - name: proliferation_fold_change
+      observable:
+        type: identity
+        state_variables: [aPSC_rel]
+        rationale: |
+          The state variable aPSC_rel is the fold-change in aPSC number
+          relative to baseline (control = 1.0), which directly matches
+          the reported proliferation fold-change.
+      units: dimensionless
+      uses_inputs:
+        - pdgf_fold_mean
+        - pdgf_fold_sd
+      evaluation_points: [1.0]
+      sample_size: 3
+      sample_size_rationale: |
+        Sample size not explicitly reported; assumed n=3 independent
+        experiments, typical for in vitro PSC BrdU proliferation assays.
+      distribution_code: |
+        def derive_distribution(inputs, ureg):
+            import numpy as np
+
+            rng = np.random.default_rng(42)
+
+            mean = inputs['pdgf_fold_mean'].magnitude
+            sd = inputs['pdgf_fold_sd'].magnitude
+            n = 10000
+
+            # Use lognormal for positive fold-changes
+            mu_log = np.log(mean**2 / np.sqrt(mean**2 + sd**2))
+            sigma_log = np.sqrt(np.log(1 + sd**2 / mean**2))
+
+            samples = rng.lognormal(mu_log, sigma_log, n)
+
+            median_val = np.median(samples)
+            ci_lower = np.percentile(samples, 2.5)
+            ci_upper = np.percentile(samples, 97.5)
+
+            return {
+                'median': [median_val],
+                'ci95': [[ci_lower, ci_upper]],
+                'units': 'dimensionless'
+            }
+      likelihood:
+        distribution: lognormal
+        rationale: |
+          Fold-changes are positive and multiplicative, making
+          lognormal appropriate.
+
+  identifiability_notes: |
+    With a single timepoint (~24h) and normalized initial condition
+    (aPSC_rel(0)=1), only k_apsc_prolif is estimated. If substantial
+    PSC death occurred over the assay interval, the inferred rate
+    would represent net growth rather than pure proliferation.
+
+# =============================================================================
+# EXPERIMENTAL CONTEXT
+# =============================================================================
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  indication: PDAC
+  cell_types:
+    - name: pancreatic stellate cell
+      phenotype: activated (alpha-SMA positive)
+      isolation_method: Isolated from normal Wistar rat pancreas,
+                        activated by culture on plastic
+  culture_conditions:
+    culture_type: 2d_monolayer
+
+# =============================================================================
+# STUDY INTERPRETATION
+# =============================================================================
+study_interpretation: |
+  Schneider et al. (2001) measured proliferation of cultured rat
+  pancreatic stellate cells (PSCs) in response to growth factors using
+  BrdU incorporation. Addition of 50 ng/mL PDGF increased PSC
+  proliferation to 4.37 +/- 0.49-fold of control, indicating that PDGF
+  acts as a strong mitogen for activated PSCs. We interpret the
+  50 ng/mL PDGF condition as approximating a near-maximal PDGF stimulus
+  and use the reported fold-change over ~24 hours as a quantitative
+  constraint on the maximal PDGF-driven proliferation rate parameter
+  k_apsc_prolif.
+
+key_assumptions:
+  - |
+    50 ng/mL PDGF corresponds to a near-saturating concentration for
+    PSC proliferation, so PDGF/(PDGF_50_prolif + PDGF) ~ 1.
+  - |
+    The proliferation assay duration is approximately 24 hours,
+    consistent with typical cytokine incubation protocols.
+  - |
+    BrdU incorporation fold-change is proportional to fold-change in
+    PSC cell number (negligible death over 24 hours).
+  - |
+    Rat activated PSC proliferation kinetics in vitro provide an upper
+    bound for human tumor aPSC proliferation in vivo.
+
+key_study_limitations:
+  - |
+    Proliferation was measured via BrdU incorporation rather than
+    direct cell counts.
+  - |
+    Single PDGF concentration and single assay interval constrain
+    only the maximal rate.
+  - |
+    Data from rat PSCs in vitro, not human PDAC-associated stellate cells.
+  - |
+    Background serum proliferative signals not explicitly modeled.
+
+# =============================================================================
+# DATA SOURCES
+# =============================================================================
+primary_data_source:
+  doi: "10.1152/ajpcell.2001.281.2.C532"
+  title: "Identification of mediators stimulating proliferation and
+          matrix synthesis of rat pancreatic stellate cells"
+  authors: [Schneider, Schmid, Liptay, Schmid, Pohl]
+  year: 2001
+  source_tag: Schneider2001_PSC_PDGF
+
+secondary_data_sources:
+  - doi: "10.1136/gut.44.4.534"
+    title: "Pancreatic stellate cells are activated by proinflammatory
+            cytokines: implications for pancreatic fibrogenesis"
+    authors: [Apte, Haber, Darby, Rodgers, McCaughan, Korsten, Pirola, Wilson]
+    year: 1999
+    source_tag: Apte1999_PSC_Cytokines
+    contribution: |
+      Provides context on PSC activation and cytokine response protocols.
+\end{lstlisting}
+
+\subsection{Schema Structure Summary}
+
+The SimplifiedIsolatedTarget schema has the following top-level structure:
+
+\begin{itemize}
+    \item \textbf{target\_id}: Unique identifier for the calibration target
+    \item \textbf{inputs}: List of values extracted from literature with provenance
+    \item \textbf{calibration}: Everything needed for inference code generation
+    \begin{itemize}
+        \item \texttt{parameters}: Parameters to estimate with priors
+        \item \texttt{state\_variables}: ODE state variables with initial conditions
+        \item \texttt{model}: Model type specification (built-in or custom)
+        \item \texttt{independent\_variable}: Time or other independent variable
+        \item \texttt{measurements}: Observables with likelihoods
+        \item \texttt{identifiability\_notes}: Discussion of parameter identifiability
+    \end{itemize}
+    \item \textbf{experimental\_context}: Species, system, cell types, culture conditions
+    \item \textbf{study\_interpretation}: Scientific interpretation of the data
+    \item \textbf{key\_assumptions}: Assumptions made in using this data
+    \item \textbf{key\_study\_limitations}: Known limitations of the source study
+    \item \textbf{primary\_data\_source}: Primary literature reference with DOI
+    \item \textbf{secondary\_data\_sources}: Additional references
+\end{itemize}
+
+%=============================================================================
+\section{S2: Supported Model Types}
+\label{sec:model-types}
+%=============================================================================
+
+The schema supports the following built-in model types:
+
+\begin{table}[htbp]
+\centering
+\caption{Built-in model types with their ODE formulations.}
+\label{tab:model-types}
+\begin{tabular}{lll}
+\toprule
+Model Type & ODE & Parameters \\
+\midrule
+\texttt{exponential\_growth} & $dy/dt = k \cdot y$ & \texttt{rate\_constant} \\
+\texttt{first\_order\_decay} & $dy/dt = -k \cdot y$ & \texttt{rate\_constant} \\
+\texttt{logistic} & $dy/dt = k \cdot y \cdot (1 - y/K)$ & \texttt{rate\_constant}, \texttt{carrying\_capacity} \\
+\texttt{saturation} & $dy/dt = k \cdot (1 - y)$ & \texttt{rate\_constant} \\
+\texttt{two\_state} & $dA/dt = -k \cdot A$, $dB/dt = k \cdot A$ & \texttt{forward\_rate} \\
+\texttt{michaelis\_menten} & $dy/dt = -V_{max} \cdot y / (K_m + y)$ & \texttt{vmax}, \texttt{km} \\
+\texttt{direct\_conversion} & (analytical formula) & \texttt{formula} \\
+\texttt{direct\_fit} & (curve fitting) & \texttt{curve} \\
+\texttt{custom} & (user-provided) & \texttt{code}, \texttt{code\_julia} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=============================================================================
+\section{S3: Validation Checks}
+\label{sec:validators}
+%=============================================================================
+
+The validation framework includes the following automated checks:
+
+\begin{enumerate}
+    \item \textbf{Input reference validation}: All \texttt{uses\_inputs} references match defined input names
+    \item \textbf{Source reference validation}: All \texttt{source\_ref} values match defined source tags
+    \item \textbf{Parameter reference validation}: Model parameter roles reference defined parameters
+    \item \textbf{State variable reference validation}: Observable \texttt{state\_variables} match defined state variables
+    \item \textbf{DOI resolution}: All DOIs resolve via CrossRef API
+    \item \textbf{Value-in-snippet validation}: Extracted values appear verbatim in quoted snippets
+    \item \textbf{Unit validation}: All unit strings parse with Pint
+    \item \textbf{Code syntax validation}: Custom code passes Python AST parsing
+    \item \textbf{Span ordering validation}: Time spans have start $<$ end
+    \item \textbf{ODE model requirements}: ODE models have required state variables and spans
+\end{enumerate}
+
+%=============================================================================
+\section{S4: Generated Julia Code Structure}
+\label{sec:julia-code}
+%=============================================================================
+
+The translator generates Julia scripts with the following structure:
+
+\begin{lstlisting}[language=julia]
+using DifferentialEquations
+using Turing
+using Distributions
+
+# Observed data (from inputs layer)
+const obs_proliferation_median = 4.37
+const obs_proliferation_sigma = 0.25  # derived from CI95
+
+# ODE function
+function ode_proliferation!(du, u, p, t)
+    k = p[1]
+    du[1] = k * u[1]  # exponential growth
+end
+
+# Simulate function
+function simulate_proliferation(k; t_span=(0.0, 1.0), u0=[1.0])
+    prob = ODEProblem(ode_proliferation!, u0, t_span, [k])
+    sol = solve(prob, Tsit5())
+    return sol[end][1]  # final value
+end
+
+# Turing model
+@model function proliferation_model()
+    # Prior
+    k_apsc_prolif ~ LogNormal(0.0, 1.0)
+
+    # Simulate
+    pred = simulate_proliferation(k_apsc_prolif)
+
+    # Likelihood
+    obs_proliferation_median ~ LogNormal(log(pred), obs_proliferation_sigma)
+end
+
+# Run inference
+model = proliferation_model()
+chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
+\end{lstlisting}
+
+For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
+
+\end{document}

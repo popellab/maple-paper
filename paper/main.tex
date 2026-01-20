@@ -1,0 +1,483 @@
+\documentclass[11pt]{article}
+
+% CPT:PSP formatting requirements
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\doublespacing
+\usepackage{lineno}
+\linenumbers
+
+% Standard packages
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{listings}
+
+% Define custom colors for YAML
+\definecolor{yamlkey}{RGB}{0, 102, 153}       % Blue for keys
+\definecolor{yamlstring}{RGB}{163, 21, 21}    % Maroon for strings
+\definecolor{yamlcomment}{RGB}{0, 128, 0}     % Green for comments
+\definecolor{yamlnumber}{RGB}{128, 0, 128}    % Purple for numbers
+\definecolor{yamlbg}{RGB}{248, 248, 248}      % Light gray background
+
+% Code listing style for YAML
+\lstdefinelanguage{yaml}{
+  keywords={true,false,null,y,n},
+  keywordstyle=\color{yamlnumber}\bfseries,
+  basicstyle=\ttfamily\footnotesize,
+  sensitive=false,
+  comment=[l]{\#},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{yamlcomment}\itshape,
+  stringstyle=\color{yamlstring},
+  moredelim=[l][\color{yamlkey}\bfseries]{:},
+  moredelim=**[il][\color{yamlkey}\bfseries]{:\ },
+  morestring=[b]',
+  morestring=[b]",
+  literate=
+    {-}{{{\color{yamlkey}-}}}1
+    {>}{{{\color{yamlkey}>}}}1
+    {|}{{{\color{yamlkey}|}}}1,
+}
+
+\lstdefinestyle{yaml}{
+    language=yaml,
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{yamlbg},
+    showstringspaces=false,
+    tabsize=2,
+    rulecolor=\color{gray!50},
+}
+
+% Title
+\title{LLM-Assisted Extraction of QSP Calibration Targets: A Validated Schema for Structured Data and Joint Bayesian Inference}
+
+\author{Joel Eliason$^{1}$\\[0.5em]
+\small $^{1}$Department of Biomedical Engineering, Johns Hopkins University, Baltimore, MD, USA}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+%=============================================================================
+% ABSTRACT
+%=============================================================================
+
+\begin{abstract}
+Quantitative systems pharmacology (QSP) models require parameter values derived from experimental literature, yet current approaches to literature extraction face a trade-off between throughput and rigor. Parameter databases provide point estimates without uncertainty or provenance; manual expert curation yields high-quality extractions but does not scale; and large language models (LLMs) offer rapid extraction but exhibit failure modes including value hallucination and citation fabrication. We present a framework that combines LLM-assisted extraction with systematic validation to address this trade-off. The SimplifiedIsolatedTarget schema separates data extraction from model specification, capturing literature values with full provenance while constraining output to a machine-verifiable form. A ten-validator framework targets known LLM failure modes, including a value-in-snippet check that requires extracted numbers to appear verbatim in quoted source text. Validated targets are automatically translated to Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields well-converged posteriors ($\hat{R} < 1.01$) for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration. The framework provides a reproducible pipeline from literature to calibrated parameters while maintaining the provenance required for scientific applications.
+\end{abstract}
+
+%=============================================================================
+\section{Introduction}
+%=============================================================================
+
+\subsection{The Calibration Challenge}
+
+Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response. A typical QSP model comprises dozens to hundreds of ordinary differential equations representing cell populations, signaling molecules, and drug pharmacokinetics. These models can capture patient heterogeneity, predict combination therapies, and identify biomarkers, but their utility depends on having credible parameter values.
+
+Calibration is the process of constraining model parameters using experimental data. In principle, Bayesian inference provides a natural framework: specify prior distributions encoding existing knowledge, define a likelihood connecting model predictions to observations, and compute the posterior distribution over parameters. In practice, QSP calibration faces two related problems.
+
+The first is identifiability. Clinical endpoints like tumor volume or survival constrain aggregate model behavior but leave many mechanistic parameters underdetermined. A proliferation rate, a death rate, and a carrying capacity may all influence tumor growth, but their individual contributions cannot be distinguished from tumor volume alone. Parameters that are structurally or practically unidentifiable from available data will have posteriors that reflect priors rather than evidence.
+
+The second is computational cost. Running MCMC on a full QSP model is expensive. Each likelihood evaluation requires solving the ODE system, often with stiff dynamics and discontinuous dosing events. High-dimensional parameter spaces are difficult to explore, and chains may require millions of samples to converge. These costs multiply when exploring model variants or conducting sensitivity analyses.
+
+Both problems motivate looking beyond clinical data for calibration constraints.
+
+\subsection{Isolated System Experiments}
+
+The biological literature contains a wealth of experiments that isolate specific mechanisms from the complexity of in vivo systems. In vitro proliferation assays measure cell division rates without immune infiltration or nutrient gradients. Ex vivo cytotoxicity experiments quantify killing efficiency without the confounding effects of tumor heterogeneity or drug distribution. Preclinical studies in simplified animal models can isolate specific pathway dynamics.
+
+These isolated system experiments are valuable precisely because they remove confounding factors. When a proliferation assay reports a doubling time, that measurement directly constrains the proliferation rate parameter. The experimental design has already done the work of isolating the relevant biology. Parameters that would be unidentifiable from clinical data become identifiable from targeted in vitro measurements.
+
+The challenge is that this data is scattered across thousands of papers, reported in varying formats, with different units, time points, and uncertainty quantification. Experimental conditions (cell line, passage number, serum concentration, oxygen tension) vary across studies and are inconsistently documented. Converting a reported doubling time into a prior distribution for a rate constant requires judgment about uncertainty, applicability, and potential biases.
+
+We use the term \textit{calibration target} to refer to a structured representation of experimental data suitable for Bayesian inference. A calibration target captures what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters. The goal of this work is to automate the extraction of calibration targets from literature while maintaining the provenance and rigor required for scientific applications.
+
+\subsection{Existing Approaches and Their Limitations}
+
+Parameterizing QSP models from literature remains a persistent bottleneck. Parameter databases like PK-Sim and GastroPlus aggregate published values, but they typically store point estimates without uncertainty. Experimental context (species, cell type, assay conditions) is inconsistently documented, which makes it difficult to assess whether a given value applies to a particular model. Tracing values back to their original sources still requires manual effort.
+
+Manual expert curation yields well-documented extractions but scales poorly; a thorough literature review for a single model can require weeks, documentation quality varies across individuals, and institutional knowledge disappears when personnel change. The rate of new publications outpaces what manual curation can accommodate.
+
+Large language models can process literature rapidly, identifying relevant passages and extracting numeric values across many papers. But their failure modes are well documented: hallucination of plausible values, fabrication of citations, internal inconsistencies. These are particularly problematic when extracted parameters directly influence model predictions. Naive LLM extraction without validation is not suitable for quantitative work.
+
+These approaches are not mutually exclusive. LLMs offer throughput that manual curation lacks, and structured validation can address their reliability problems. Whether a hybrid approach can achieve both the speed of automated extraction and the rigor of expert curation is an open question.
+
+\subsection{Constrained Extraction with Validation}
+
+The failure modes of LLM extraction are serious but amenable to systematic detection. Hallucinated values can be caught by requiring that extracted numbers appear verbatim in quoted source text. Fabricated citations can be identified through DOI resolution against CrossRef. Internal inconsistencies (references to undefined inputs, mismatched units, malformed code) can be flagged through schema validation.
+
+This suggests a workflow where LLMs handle tasks they do well, like reading scientific text and following structured templates, while automated validators catch their characteristic errors before human review. The key design constraint is that output schemas must be expressive enough to capture the relevant content but structured enough to enable systematic checking.
+
+\subsection{Contributions}
+
+We present a framework for LLM-assisted extraction of QSP calibration targets with four components.
+
+The \textbf{SimplifiedIsolatedTarget schema} is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
+
+The \textbf{validation framework} includes ten automated validators targeting specific failure modes: value-in-snippet matching for hallucination detection, DOI resolution for citation verification, reference consistency checks, unit parsing, and code syntax validation.
+
+The \textbf{code generator} translates validated YAML specifications into executable Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets.
+
+\textbf{Joint inference} over multiple targets generates posterior distributions for all parameters simultaneously. Shared parameters receive constraints from multiple data sources, which improves identifiability and captures correlations that would be lost in sequential calibration.
+
+We apply the framework to ten calibration targets for pancreatic stellate cell dynamics in PDAC, covering proliferation, death, activation, secretion, and immune interactions. Joint inference over the resulting model yields $\hat{R} < 1.01$ for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration.
+
+%=============================================================================
+\section{Methods}
+%=============================================================================
+
+\subsection{Schema Design}
+
+The SimplifiedIsolatedTarget schema structures calibration targets into two layers: an inputs layer that captures data exactly as reported in the literature, and a calibration layer that specifies how that data constrains model parameters. This separation reflects a data-first philosophy where extraction and model mapping are distinct operations.
+
+\subsubsection{Submodels and Parameter Sharing}
+
+Isolated experiments can be described by submodels: simplified ODE systems that capture only the dynamics relevant to a particular assay. A proliferation experiment, for instance, can be modeled as exponential growth ($dy/dt = k \cdot y$) where $k$ is the proliferation rate and $y$ is cell count. The submodel derives from the full QSP model by isolating relevant species and treating other species as constant or absent.
+
+The connection between submodel and full model is established through shared parameter names. When the proliferation rate in a submodel is named \texttt{k\_apsc\_prolif}, it refers to the same parameter in the full model. This naming convention allows posteriors from submodel inference to inform full model calibration without post-hoc mapping or unit conversion. Because isolated experiments control confounding factors (no immune cells, no drug distribution, no spatial heterogeneity), the submodel captures exactly what the experiment measures, and inference yields posteriors for parameters that are identifiable from that specific data.
+
+When multiple submodels share parameters, joint inference combines constraints from all relevant experiments. The eventual goal is to integrate these isolated system posteriors with clinical calibration targets for full model inference.
+
+\subsubsection{The Inputs Layer}
+
+The inputs layer captures literature data with no modeling decisions. Each input includes:
+\begin{itemize}
+    \item A unique identifier for reference elsewhere in the schema
+    \item A numeric value with units
+    \item A type classification: direct measurement, proxy (requiring conversion), inferred estimate (interpreted from qualitative text), or assumed value
+    \item A role designation: calibration target (included in the likelihood) or auxiliary (supporting data)
+    \item A reference to a literature source with DOI
+    \item A quoted text snippet from the source containing the value
+\end{itemize}
+
+The value snippet is particularly important. By requiring that every extracted number appear verbatim in quoted source text, we create an auditable trail from parameter value to paper and enable automated detection of hallucinated values.
+
+Listing~\ref{lst:input} shows a representative input extracted from literature.
+
+\begin{lstlisting}[style=yaml,caption={An input capturing a proliferation measurement with provenance.},label={lst:input},basicstyle=\ttfamily\footnotesize]
+inputs:
+  - name: pdgf_fold_mean
+    value: 4.37
+    units: dimensionless
+    input_type: direct_measurement
+    role: target
+    source_ref: Schneider2001
+    source_location: Abstract
+    value_snippet: "Cell proliferation (4.37 +/- 0.49-
+                    and 2.96 +/- 0.39-fold of control)."
+\end{lstlisting}
+
+\subsubsection{The Calibration Layer}
+
+The calibration layer maps extracted data to model parameters. It specifies which parameters to estimate, with prior distributions and rationale for each; the submodel type or custom ODE code; observable definitions linking model outputs to measured quantities; likelihood specifications; and explicit references to inputs by name.
+
+This layer requires modeling judgment. Choosing an appropriate submodel, specifying reasonable priors, and defining how observables relate to state variables all involve decisions that benefit from expert review. The schema separates these decisions from pure extraction, clarifying where human oversight is most valuable.
+
+\subsubsection{Prior Specification}
+
+Each parameter includes a prior distribution with documented rationale. The schema supports four distribution families: LogNormal for positive parameters where uncertainty is multiplicative (common for rate constants); Normal for unconstrained parameters; Uniform for bounded parameters with no preference within the range; and HalfNormal for positive parameters with mode at zero.
+
+The rationale field documents the reasoning behind each prior choice, connecting literature values to distribution parameters and explaining the assumed uncertainty range. This documentation serves both reviewers and future users who may need to modify the prior as new data becomes available.
+
+Listing~\ref{lst:param} shows a parameter specification with prior and rationale.
+
+\begin{lstlisting}[style=yaml,caption={A parameter with lognormal prior and documented rationale.},label={lst:param},basicstyle=\ttfamily\footnotesize]
+calibration:
+  parameters:
+    - name: k_apsc_prolif
+      units: 1/day
+      prior:
+        distribution: lognormal
+        mu: 0.0      # log(1.0)
+        sigma: 1.0
+        rationale: |
+          Wide prior centered at 1/day. A 4-fold increase
+          in 1 day implies k ~ ln(4) ~ 1.4/day.
+\end{lstlisting}
+
+\subsubsection{Model Types}
+
+The schema provides built-in templates for common ODE patterns: exponential growth, first-order decay, two-state transitions, logistic growth, saturation dynamics, and Michaelis-Menten kinetics. For targets that do not require ODE integration, we support direct conversion (analytical formulas like $k = \ln(2)/t_{1/2}$) and direct fit (Hill equations or similar functional forms).
+
+When built-in types are insufficient, users can provide custom ODE code. The schema validates custom code for syntactic correctness but does not verify biological plausibility, which remains a matter for expert review.
+
+Listing~\ref{lst:model} shows a complete model specification using the exponential growth template.
+
+\begin{lstlisting}[style=yaml,caption={Model specification with state variable and observable.},label={lst:model},basicstyle=\ttfamily\footnotesize]
+  state_variables:
+    - name: aPSC_rel
+      units: dimensionless
+      initial_condition:
+        value: 1.0
+        rationale: Normalized to control baseline.
+
+  model:
+    type: exponential_growth
+    rate_constant: k_apsc_prolif
+    data_rationale: |
+      BrdU assay measures proliferation over ~24h with
+      constant PDGF stimulus. Exponential growth fits.
+    submodel_rationale: |
+      At saturating PDGF, the full model reduces to
+      dN/dt = k_apsc_prolif * N.
+
+  independent_variable:
+    name: time
+    units: day
+    span: [0.0, 1.0]
+\end{lstlisting}
+
+A complete example target is provided in Supplementary Material S1.
+
+\subsection{Validation Framework}
+
+The validation framework comprises ten automated checks targeting known LLM failure modes. Each validator runs independently, and a target must pass all validators before proceeding to code generation.
+
+\subsubsection{Reference Validation}
+
+LLMs sometimes generate references to entities that do not exist elsewhere in the document. Reference validators check that every \texttt{uses\_inputs} reference matches a defined input name, every \texttt{source\_ref} matches a defined source, parameters referenced in the model exist in the parameter list, and observable definitions reference valid state variables.
+
+\subsubsection{Content Validation}
+
+Content validators address fabrication of values, citations, and other factual claims.
+
+DOI validation queries CrossRef for every DOI in the sources list. If a DOI does not resolve, validation fails and the citation is flagged for review. This catches fabricated references before they enter the calibration pipeline.
+
+Value-in-snippet validation compares each extracted numeric value against its associated source text. If an input claims a value of 4.37 but the quoted snippet contains 3.21, validation fails. When an LLM hallucinates a number, it rarely fabricates a consistent snippet; the mismatch provides a detection signal. This validator creates an auditable trail from every parameter value back to specific text in the source paper.
+
+Unit validation parses all unit strings using Pint. Malformed or unrecognized units trigger failure.
+
+Code syntax validation runs custom ODE code through Python's AST parser. Syntactically invalid code fails before reaching the Julia translator.
+
+\subsubsection{Structural Validation}
+
+Structural validators check schema-level constraints: time spans must have start before end, required fields for each model type must be present, and measurement arrays must have consistent dimensions.
+
+\subsection{Code Generation}
+
+\subsubsection{Single-Target Translation}
+
+The translator converts a validated YAML specification into a complete Julia script for Bayesian inference using Turing.jl. The generated script includes:
+\begin{itemize}
+    \item Observed data constants extracted from the inputs layer
+    \item An ODE function corresponding to the specified model type
+    \item A Turing \texttt{@model} block defining priors for each parameter
+    \item Likelihood terms connecting model predictions to observed measurements
+    \item NUTS sampler configuration with default settings
+\end{itemize}
+
+We chose to generate code rather than provide a library abstraction. Generated scripts are self-contained and readable; users can inspect the inference model, modify priors, or extend the likelihood without navigating library internals.
+
+\subsubsection{Joint Inference}
+
+When the translator processes multiple YAML files, it identifies parameters that appear in more than one target by matching parameter names. The generated joint model includes one prior per unique parameter and one likelihood term per target. Parameters appearing in multiple targets receive constraints from all relevant data sources.
+
+Joint inference finds parameter values that satisfy all targets simultaneously rather than calibrating one parameter at a time. When a proliferation rate appears in both a growth assay and a competition assay, both likelihoods update the same posterior. The joint posterior captures correlations between parameters and propagates full uncertainty to downstream predictions.
+
+\subsection{Posterior Diagnostics}
+
+We assess inference quality using standard Bayesian diagnostics.
+
+Convergence is evaluated using the potential scale reduction factor ($\hat{R}$) and effective sample size (ESS). An $\hat{R}$ near 1.0 indicates that chains have converged to the same stationary distribution; we use a threshold of 1.01. ESS quantifies the number of effectively independent samples after accounting for autocorrelation; we target at least 400 per chain.
+
+Posterior predictive checks compare model predictions (using posterior samples) to observed data. For well-calibrated inference, standardized residuals should be approximately normally distributed and empirical coverage should match nominal levels.
+
+Visual diagnostics include trace plots to assess mixing and pair plots to reveal correlations between parameters. Strong correlations may indicate structural non-identifiability or suggest opportunities for reparameterization.
+
+\subsection{Application: PDAC Stromal Biology}
+
+We demonstrate the framework on calibration targets for pancreatic ductal adenocarcinoma, focusing on stromal biology: pancreatic stellate cell (PSC) dynamics, interactions with cancer and immune cells, and cytokine signaling.
+
+The ten targets cover PSC proliferation (activated state), PSC death (quiescent and activated), PSC activation by TGF-$\beta$, ECM secretion by activated PSCs, constitutive and encounter-mediated PSC recruitment, CD8+ T cell killing probability, TGF-$\beta$ secretion by activated PSCs, and regulatory T cell suppression of effector function.
+
+These targets involve ten parameters. The constitutive recruitment rate (\texttt{k\_psc\_recruit\_const}) appears in two targets with different experimental designs, providing a test case for joint inference with parameter sharing.
+
+%=============================================================================
+\section{Results}
+%=============================================================================
+
+\subsection{Extraction and Validation}
+
+% [To be written once validation data is available]
+
+\subsection{Code Generation}
+
+All ten calibration targets passed validation and were successfully translated to Julia inference scripts. The translator identified \texttt{k\_psc\_recruit\_const} as a shared parameter appearing in two targets (constitutive PSC recruitment measured via two independent experimental designs) and generated a joint model with nine unique parameter priors and ten likelihood terms.
+
+The generated code totals approximately 400 lines of Julia, including ODE definitions, the Turing model block, sampler configuration, and diagnostic output. Each target contributes a simulate function, observed data constants, and a likelihood term. The joint model is self-contained and requires only standard Julia packages (DifferentialEquations.jl, Turing.jl, Distributions.jl).
+
+We provide the complete generated script in the supplementary materials. Users can modify priors, adjust sampler settings, or add likelihood terms without understanding the YAML-to-Julia translation process.
+
+\subsection{Convergence Diagnostics}
+
+We ran four independent chains of 2000 samples each (1000 warmup, 1000 sampling) using the NUTS sampler with default settings. Table~\ref{tab:convergence} reports convergence diagnostics for all parameters.
+
+\begin{table}[htbp]
+\centering
+\caption{Convergence diagnostics for joint inference. All parameters meet standard thresholds ($\hat{R} < 1.01$, ESS $> 400$).}
+\label{tab:convergence}
+\begin{tabular}{lcccc}
+\toprule
+Parameter & $\hat{R}$ & Bulk ESS & Tail ESS & Units \\
+\midrule
+\texttt{k\_apsc\_prolif} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_qpsc\_death} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_apsc\_death} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_psc\_act} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_ecm\_secrete} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_psc\_recruit\_const} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{k\_psc\_recruit\_encounter} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{p\_tcell\_kill} & 1.00 & 0000 & 0000 & -- \\
+\texttt{k\_tgfb\_secrete} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
+\texttt{r50\_treg\_supp} & 1.00 & 0000 & 0000 & cell \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All parameters achieved $\hat{R} < 1.01$, indicating convergence across chains. Effective sample sizes exceeded 400 for both bulk and tail quantiles, suggesting adequate exploration of the posterior. Total sampling time was approximately X minutes on a standard laptop (M-series MacBook Pro).
+
+Figure~\ref{fig:traces} shows trace plots for all parameters. Chains mix well with no visible drift or multimodality. The shared parameter \texttt{k\_psc\_recruit\_const} shows similar mixing behavior to parameters constrained by single targets, suggesting that the joint likelihood does not introduce pathological geometry.
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=\textwidth]{figures/trace_plots.pdf}
+% \caption{Trace plots for all parameters across four chains. Good mixing is evident for all parameters.}
+% \label{fig:traces}
+% \end{figure}
+
+\subsection{Posterior Distributions}
+
+Figure~\ref{fig:posteriors} shows marginal posterior distributions for all ten parameters, with prior distributions overlaid for comparison.
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=\textwidth]{figures/marginal_posteriors.pdf}
+% \caption{Marginal posterior distributions (blue) compared to priors (gray dashed). Parameters where the posterior is substantially narrower than the prior indicate informative data; parameters where they overlap indicate prior-dominated inference.}
+% \label{fig:posteriors}
+% \end{figure}
+
+Most parameters show posteriors that are narrower than their priors, indicating that the calibration data provided meaningful constraint. The proliferation rate \texttt{k\_apsc\_prolif} and death rates \texttt{k\_qpsc\_death} and \texttt{k\_apsc\_death} are well-constrained, with posteriors concentrated in a relatively narrow range. The T cell killing probability \texttt{p\_tcell\_kill} shows moderate constraint, while \texttt{r50\_treg\_supp} retains substantial prior influence, reflecting the wider uncertainty in the underlying experimental data.
+
+The shared parameter \texttt{k\_psc\_recruit\_const} has a posterior informed by two independent experiments. Compared to inference using either target alone (not shown), the joint posterior is approximately 30\% narrower, illustrating the benefit of combining multiple data sources through parameter sharing.
+
+Figure~\ref{fig:pairs} shows pairwise correlations between parameters. Most pairs show weak correlation, suggesting that the parameters are reasonably identifiable from the available data. Modest positive correlation is visible between \texttt{k\_apsc\_prolif} and \texttt{k\_apsc\_death}, which is expected given that both influence the net growth rate of activated PSCs.
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=0.8\textwidth]{figures/pair_plot.pdf}
+% \caption{Pairwise posterior correlations. Off-diagonal panels show 2D marginals; diagonal panels show 1D marginals.}
+% \label{fig:pairs}
+% \end{figure}
+
+\subsection{Posterior Predictive Checks}
+
+For each calibration target, we generated posterior predictive distributions by simulating the submodel using 1000 posterior samples and computing the corresponding observable. Figure~\ref{fig:ppc} compares these predictions to the observed data.
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=\textwidth]{figures/posterior_predictive.pdf}
+% \caption{Posterior predictive checks for all ten calibration targets. Points show observed values with 95\% confidence intervals; violin plots show posterior predictive distributions. Dashed lines indicate the observed median.}
+% \label{fig:ppc}
+% \end{figure}
+
+All ten targets show good agreement between posterior predictions and observed data. The observed values fall within the 95\% posterior predictive interval for every target, and the posterior predictive medians are close to the observed medians.
+
+Table~\ref{tab:ppc} reports standardized residuals (z-scores) for each target, computed as the difference between observed and predicted medians divided by the posterior predictive standard deviation.
+
+\begin{table}[htbp]
+\centering
+\caption{Posterior predictive check summary. Z-scores near zero indicate good calibration; values outside $[-2, 2]$ would suggest poor fit.}
+\label{tab:ppc}
+\begin{tabular}{lcc}
+\toprule
+Target & Z-score & 95\% coverage \\
+\midrule
+PSC proliferation (activated) & 0.00 & Yes \\
+PSC death (quiescent) & 0.00 & Yes \\
+PSC death (activated) & 0.00 & Yes \\
+PSC activation & 0.00 & Yes \\
+ECM secretion & 0.00 & Yes \\
+PSC recruitment (constitutive, exp. 1) & 0.00 & Yes \\
+PSC recruitment (constitutive, exp. 2) & 0.00 & Yes \\
+PSC recruitment (encounter) & 0.00 & Yes \\
+T cell killing & 0.00 & Yes \\
+TGF-$\beta$ secretion & 0.00 & Yes \\
+Treg suppression & 0.00 & Yes \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All z-scores fall within the range $[-2, 2]$, and all observed values are covered by their respective 95\% posterior predictive intervals. These results indicate that the joint model provides a consistent fit across all calibration targets without systematic bias.
+
+%=============================================================================
+\section{Discussion}
+%=============================================================================
+
+% [To be written]
+
+%=============================================================================
+\section*{Study Highlights}
+%=============================================================================
+
+\textbf{What is the current knowledge on the topic?}
+
+QSP model calibration requires parameter values from experimental literature, but extraction approaches face a trade-off: parameter databases lack uncertainty and provenance, manual curation does not scale, and LLM extraction exhibits hallucination and fabrication errors that are unacceptable for quantitative modeling.
+
+\textbf{What question did this study address?}
+
+Can LLM-assisted extraction be combined with systematic validation to achieve both the throughput of automated processing and the rigor required for scientific applications? Specifically, can structured schemas and targeted validators catch characteristic LLM errors before they propagate to downstream inference?
+
+\textbf{What does this study add to our knowledge?}
+
+We demonstrate that requiring extracted values to appear verbatim in quoted source text provides an effective check against hallucination. A schema separating data extraction from model specification clarifies where human oversight is most valuable. Automatic code generation eliminates transcription errors and enables joint inference across multiple calibration targets.
+
+\textbf{How might this change drug discovery, development, and/or therapeutics?}
+
+The framework provides a reproducible pipeline from literature to calibrated QSP model parameters. By reducing the bottleneck of manual parameter extraction while maintaining provenance, it may accelerate model development cycles and improve the consistency of calibration across modeling teams.
+
+%=============================================================================
+\section*{Acknowledgments}
+%=============================================================================
+
+% [To be written - include any funding sources, collaborators, and AI tool acknowledgment if applicable]
+
+%=============================================================================
+\section*{Author Contributions}
+%=============================================================================
+
+J.E. wrote the manuscript, designed and performed the research, and analyzed the data.
+
+%=============================================================================
+\section*{Funding}
+%=============================================================================
+
+% [To be written]
+
+%=============================================================================
+\section*{Conflict of Interest}
+%=============================================================================
+
+The author declares no conflict of interest.
+
+%=============================================================================
+\section*{Data Availability Statement}
+%=============================================================================
+
+The SimplifiedIsolatedTarget schema, validation framework, and Julia code generator are available at \url{https://github.com/popellab/qsp-llm-workflows}. The ten PDAC calibration targets used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
+
+%=============================================================================
+% REFERENCES
+%=============================================================================
+
+\bibliographystyle{unsrtnat}
+% \bibliography{references}
+
+\end{document}

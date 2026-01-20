@@ -1,0 +1,216 @@
+# Schema: SimplifiedIsolatedTarget
+
+target_id: tcell_kill_probability_PDAC_deriv001
+
+# =============================================================================
+# INPUTS: Extracted values with full provenance
+# =============================================================================
+inputs:
+  - name: kill_prob_single_contact
+    value: 0.15
+    units: dimensionless
+    input_type: direct_measurement
+    role: target
+    source_ref: Halle2016_CTL_Killing
+    source_location: Figure 3D and text
+    value_snippet: "Probability of target death by number of CTL contacts: p(1) = 0.15"
+
+  - name: kill_prob_solid_tumor_melanoma
+    value: 0.05
+    units: dimensionless
+    input_type: direct_measurement
+    role: auxiliary
+    source_ref: Weigelin2021_Additive_Cytotoxicity
+    source_location: Results
+    value_snippet: "only a minority of individual CTL-target cell contacts (~5%) achieves B16F10 melanoma cell killing directly"
+
+  - name: contact_survival_rate
+    value: 0.85
+    units: dimensionless
+    input_type: inferred_estimate
+    role: auxiliary
+    source_ref: Halle2016_CTL_Killing
+    source_location: Figure 3D
+    value_snippet: "individual productive CTL contacts are typically survived (in 80-90% of interactions)"
+
+# =============================================================================
+# CALIBRATION: Everything needed for inference
+# =============================================================================
+calibration:
+  parameters:
+    - name: p_T_kill_per_contact
+      units: dimensionless
+      prior:
+        distribution: uniform
+        lower: 0.01
+        upper: 0.50
+        rationale: |
+          Uniform prior bounded by experimental observations. Lower bound (0.01) reflects
+          near-zero killing in highly immunosuppressive solid tumors. Upper bound (0.50)
+          reflects theoretical maximum for well-matched CTL-target interactions. Central
+          estimate of ~0.15 from two-photon imaging data.
+
+  model:
+    type: direct_conversion
+    formula: p_T_kill_per_contact = kill_prob_single_contact
+    data_rationale: |
+      CTL killing probability is directly measured via two-photon intravital microscopy
+      by tracking individual CTL-target cell contacts and determining the fraction
+      that result in target cell death. The parameter represents the probability that
+      a single CTL-tumor cell contact results in tumor cell death.
+    submodel_rationale: |
+      In the full QSPIO_PDAC model, p_T_kill_per_contact appears in the effective killing
+      rate calculation: k_C_Tcell_eff = p_T_kill_per_contact * v_T_search_volume * CD8/V_T * ...
+      This parameter directly scales the overall T cell killing efficacy and is
+      independent of the other modulating factors (ECM, Tregs, PD-1, TGF-beta).
+
+  measurements:
+    - name: kill_probability
+      observable:
+        type: identity
+        state_variables: [p_T_kill_per_contact]
+        rationale: |
+          The parameter is directly measured from single-contact experiments. No ODE
+          integration is needed as this is a probability parameter observed directly.
+      units: dimensionless
+      uses_inputs:
+        - kill_prob_single_contact
+      evaluation_points: [0.0]
+      sample_size: 170
+      sample_size_rationale: |
+        Halle et al. analyzed 170 CTL-target conjugates via two-photon microscopy.
+        The probability of death after 1 contact (p=0.15) is derived from this dataset.
+      distribution_code: |
+        def derive_distribution(inputs, ureg):
+            import numpy as np
+            from scipy import stats
+
+            rng = np.random.default_rng(42)
+
+            # Primary estimate from two-photon imaging: p = 0.15 per contact
+            # Supporting data from melanoma: p = 0.05 (lower bound for solid tumors)
+            # Sample size n = 170 conjugates observed
+
+            p_observed = inputs['kill_prob_single_contact'].magnitude
+            n_total = 170  # conjugates observed
+
+            # Use beta distribution for probability parameter
+            # Estimate effective successes/failures from observed proportion
+            # For p = 0.15 with n = 170: ~25 kills, ~145 survivals
+            n_kills = int(p_observed * n_total)
+            n_survivals = n_total - n_kills
+
+            # Beta posterior with uniform prior (a=1, b=1)
+            alpha_post = n_kills + 1
+            beta_post = n_survivals + 1
+
+            samples = rng.beta(alpha_post, beta_post, 10000)
+
+            median_val = np.median(samples)
+            ci_lower = np.percentile(samples, 2.5)
+            ci_upper = np.percentile(samples, 97.5)
+
+            return {
+                'median': [median_val],
+                'ci95': [[ci_lower, ci_upper]],
+                'units': 'dimensionless'
+            }
+      likelihood:
+        distribution: beta
+        rationale: |
+          Beta distribution is appropriate for bounded probability parameters (0-1).
+          The observed killing probability from conjugate experiments follows
+          binomial sampling, making beta the conjugate prior/posterior.
+
+  identifiability_notes: |
+    This parameter is directly identifiable from single-contact killing experiments.
+    The primary challenge is generalization: different tumor types show different
+    killing probabilities (melanoma ~5%, other solid tumors ~15%). PDAC may have
+    even lower effective killing due to immunosuppressive stroma.
+
+# =============================================================================
+# EXPERIMENTAL CONTEXT
+# =============================================================================
+experimental_context:
+  species: mouse
+  system: in_vivo_imaging
+  indication: melanoma
+  cell_types:
+    - name: cytotoxic T lymphocyte
+      phenotype: activated CD8+ effector
+      isolation_method: OT-I TCR transgenic T cells recognizing OVA peptide
+    - name: target cell
+      phenotype: various (thymoma, melanoma, infected cells)
+      isolation_method: tumor cell lines or virus-infected splenocytes
+  culture_conditions:
+    culture_type: in_vivo_two_photon_imaging
+
+# =============================================================================
+# STUDY INTERPRETATION
+# =============================================================================
+study_interpretation: |
+  Halle et al. (2016) used two-photon intravital microscopy to quantify CTL
+  killing capacity in vivo. They tracked individual CTL-target cell contacts and
+  measured the probability of target cell death as a function of contact number.
+  The key finding is that single CTL contacts have a low killing probability
+  (~15%), with death probability increasing with cumulative contacts (additive
+  cytotoxicity). This low per-contact killing efficiency is consistent with
+  Weigelin et al.'s finding that only ~5% of single CTL contacts achieve direct
+  melanoma cell killing. For PDAC modeling, we use the 15% estimate as an
+  upper bound, recognizing that the immunosuppressive PDAC microenvironment
+  may further reduce effective killing probability.
+
+key_assumptions:
+  - |
+    Single-contact killing probability from mouse models (viral infection,
+    melanoma) is applicable to human PDAC T cell-tumor interactions.
+  - |
+    The 15% per-contact estimate represents effective killing in
+    immunologically responsive tumors; PDAC may be lower.
+  - |
+    Contact-dependent killing dominates over cytokine-mediated bystander effects
+    at the single-cell level.
+
+key_study_limitations:
+  - |
+    Data derived from mouse models, not human PDAC tissue.
+  - |
+    Two-photon imaging studies used model antigens (OVA) rather than
+    endogenous tumor antigens which may have different TCR affinities.
+  - |
+    The immunosuppressive PDAC stroma (CAFs, Tregs, MDSCs) may reduce
+    effective killing probability beyond what these studies measure.
+  - |
+    Solid tumor microenvironment differences between melanoma and PDAC
+    may affect CTL effector function.
+
+# =============================================================================
+# DATA SOURCES
+# =============================================================================
+primary_data_source:
+  doi: "10.1016/j.immuni.2016.01.010"
+  title: "In Vivo Killing Capacity of Cytotoxic T Cells Is Limited and Involves Dynamic Interactions and T Cell Cooperativity"
+  authors: [Halle, Keyser, Stahl, Busche, Marquardt, Zheng, Galla, Heissmeyer, Heller, Boelter, Wagner, Bischoff, Martens, Braun, Werth, Uvarovskii, Kempf, Meyer-Hermann, Arens, Kremer, Sutter, Messerle, Forster]
+  year: 2016
+  source_tag: Halle2016_CTL_Killing
+
+secondary_data_sources:
+  - doi: "10.1038/s41467-021-25282-3"
+    title: "Cytotoxic T cells are able to efficiently eliminate cancer cells by additive cytotoxicity"
+    authors: [Weigelin, den Boer, Wagena, Broen, Dolstra, de Boer, Figdor, Textor, Friedl]
+    year: 2021
+    source_tag: Weigelin2021_Additive_Cytotoxicity
+    contribution: |
+      Provides supporting evidence that single CTL contacts rarely kill solid
+      tumor cells (~5% for melanoma), consistent with the additive cytotoxicity
+      model where multiple sequential hits are required for tumor cell death.
+
+  - doi: "10.1084/jem.20061890"
+    title: "In vivo imaging of cytotoxic T cell infiltration and elimination of a solid tumor"
+    authors: [Boissonnas, Fetler, Zeelenberg, Hugues, Amigorena]
+    year: 2007
+    source_tag: Boissonnas2007_CTL_Imaging
+    contribution: |
+      Pioneering two-photon imaging study demonstrating CTL behavior in solid
+      tumors. Shows CTLs arrest in contact with antigen-expressing tumor cells,
+      establishing the basis for contact-dependent killing quantification.

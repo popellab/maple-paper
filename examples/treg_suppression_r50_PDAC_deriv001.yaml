@@ -1,0 +1,258 @@
+# Schema: SimplifiedIsolatedTarget
+
+target_id: treg_suppression_r50_PDAC_deriv001
+
+# =============================================================================
+# INPUTS: Extracted values with full provenance
+# =============================================================================
+inputs:
+  # Suppression data at different Treg:Teff ratios (murine cells)
+  - name: division_no_treg
+    value: 93.7
+    units: percent
+    input_type: direct_measurement
+    role: auxiliary
+    source_ref: Akimova2016_Treg_AUC
+    source_location: Table 1
+    value_snippet: "Teff only (0 ratio): 93.7% CD4+ division"
+
+  - name: division_ratio_1_1
+    value: 29.0
+    units: percent
+    input_type: direct_measurement
+    role: target
+    source_ref: Akimova2016_Treg_AUC
+    source_location: Table 1
+    value_snippet: "1/1 ratio: 29% CD4+ division"
+
+  - name: division_ratio_1_2
+    value: 45.4
+    units: percent
+    input_type: direct_measurement
+    role: target
+    source_ref: Akimova2016_Treg_AUC
+    source_location: Table 1
+    value_snippet: "1/2 ratio: 45.4% division"
+
+  - name: division_ratio_1_4
+    value: 67.2
+    units: percent
+    input_type: direct_measurement
+    role: target
+    source_ref: Akimova2016_Treg_AUC
+    source_location: Table 1
+    value_snippet: "1/4 ratio: 67.2% division"
+
+# =============================================================================
+# CALIBRATION: Everything needed for inference
+# =============================================================================
+calibration:
+  parameters:
+    - name: R50_Treg
+      units: dimensionless
+      prior:
+        distribution: lognormal
+        mu: -1.2  # log(0.3) ~ -1.2, centered near expected R50
+        sigma: 0.5
+        rationale: |
+          Log-normal prior centered near 0.3 (Treg:Teff ratio for 50% inhibition).
+          Literature data shows ~52% suppression at ratio 0.5 and ~28% at ratio 0.25,
+          suggesting R50 is in the range 0.2-0.5. Prior sigma of 0.5 spans ~0.1-0.8.
+
+  model:
+    type: direct_conversion
+    formula: R50_Treg estimated from Hill function fit to dose-response data
+    data_rationale: |
+      In vitro Treg suppression assays measure T cell proliferation at different
+      Treg:Teff ratios. Suppression follows a Hill-type dose-response curve:
+      Suppression(R) = R / (R + R50) where R is the Treg:Teff ratio. The R50
+      parameter is the ratio at which 50% suppression occurs.
+    submodel_rationale: |
+      In the full QSPIO_PDAC model, Treg-mediated inhibition of T cell killing uses:
+      H_Treg = 1 / (1 + K_T_Treg * Treg/Teff) where K_T_Treg = 1/R50_Treg.
+      At Treg/Teff = R50_Treg, H_Treg = 0.5, representing 50% inhibition of killing.
+      This directly calibrates the immune suppression module.
+
+  measurements:
+    - name: suppression_dose_response
+      observable:
+        type: identity
+        state_variables: [suppression_fraction]
+        rationale: |
+          Suppression is calculated as: S = 1 - (division_with_treg / division_no_treg).
+          The Hill function S = R / (R + R50) relates suppression to Treg:Teff ratio R.
+      units: dimensionless
+      uses_inputs:
+        - division_no_treg
+        - division_ratio_1_1
+        - division_ratio_1_2
+        - division_ratio_1_4
+      evaluation_points: [0.25, 0.5, 1.0]  # Treg:Teff ratios (1:4, 1:2, 1:1)
+      sample_size: 3
+      sample_size_rationale: |
+        Table 1 shows 50,000 cells/well per condition. Standard deviation values
+        were not reported in Table 1; assumed n=3 replicates typical of suppression assays.
+      distribution_code: |
+        def derive_distribution(inputs, ureg):
+            import numpy as np
+            from scipy import stats
+            from scipy.optimize import curve_fit
+
+            rng = np.random.default_rng(42)
+
+            # Extract division percentages
+            div_no_treg = inputs['division_no_treg'].magnitude
+            div_1_1 = inputs['division_ratio_1_1'].magnitude
+            div_1_2 = inputs['division_ratio_1_2'].magnitude
+            div_1_4 = inputs['division_ratio_1_4'].magnitude
+
+            # Calculate suppression at each ratio
+            ratios = np.array([0.25, 0.5, 1.0])  # 1:4, 1:2, 1:1
+            divisions = np.array([div_1_4, div_1_2, div_1_1])
+            suppression = 1 - divisions / div_no_treg
+
+            # Hill function: S = R / (R + R50)
+            def hill_func(R, R50):
+                return R / (R + R50)
+
+            # Fit R50 to data
+            popt, pcov = curve_fit(hill_func, ratios, suppression, p0=[0.3], bounds=(0.01, 2.0))
+            R50_fit = popt[0]
+            R50_se = np.sqrt(pcov[0, 0])
+
+            # Bootstrap for uncertainty
+            n_boot = 10000
+            R50_samples = np.zeros(n_boot)
+
+            # Add measurement noise (assume ~10% CV on division measurements)
+            cv = 0.10
+            for i in range(n_boot):
+                div_boot = rng.normal(divisions, divisions * cv)
+                div_no_boot = rng.normal(div_no_treg, div_no_treg * cv)
+                supp_boot = 1 - div_boot / div_no_boot
+                supp_boot = np.clip(supp_boot, 0.01, 0.99)
+                try:
+                    popt_boot, _ = curve_fit(hill_func, ratios, supp_boot, p0=[0.3], bounds=(0.01, 2.0))
+                    R50_samples[i] = popt_boot[0]
+                except:
+                    R50_samples[i] = R50_fit
+
+            median_val = np.median(R50_samples)
+            ci_lower = np.percentile(R50_samples, 2.5)
+            ci_upper = np.percentile(R50_samples, 97.5)
+
+            return {
+                'median': [median_val],
+                'ci95': [[ci_lower, ci_upper]],
+                'units': 'dimensionless'
+            }
+      likelihood:
+        distribution: lognormal
+        rationale: |
+          R50 is a positive ratio parameter. Log-normal distribution ensures positivity
+          and captures the asymmetric uncertainty typical of EC50-like parameters.
+
+  identifiability_notes: |
+    R50 is identifiable from dose-response data spanning the 50% inhibition point.
+    The data covers ratios 0.25-1.0 with suppression ranging from 28-69%, bracketing
+    the 50% point. Limited data points (n=3 ratios) and assumed measurement uncertainty
+    contribute to parameter uncertainty. Human vs. murine Treg suppression potency
+    may differ.
+
+# =============================================================================
+# EXPERIMENTAL CONTEXT
+# =============================================================================
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  indication: general_immunology
+  cell_types:
+    - name: regulatory T cell
+      phenotype: CD4+CD25+Foxp3+ Treg
+      isolation_method: FACS-sorted from spleen
+    - name: effector T cell
+      phenotype: CD4+CD25- Teff
+      isolation_method: FACS-sorted from spleen, Celltrace Violet labeled
+  culture_conditions:
+    culture_type: 2d_coculture
+    stimulation: anti-CD3/CD28 Dynabeads
+
+# =============================================================================
+# STUDY INTERPRETATION
+# =============================================================================
+study_interpretation: |
+  Akimova et al. (2016) developed a standardized Treg suppression assay measuring
+  CD4+ T cell division at varying Treg:Teff ratios. At 50,000 cells/well with
+  anti-CD3/CD28 stimulation, they observed dose-dependent suppression: 29% division
+  at 1:1 ratio (69% suppression) decreasing to 67.2% division at 1:4 ratio (28%
+  suppression), compared to 93.7% division without Tregs. These data allow
+  estimation of R50 (the Treg:Teff ratio for 50% inhibition) via Hill function
+  fitting. The estimated R50 of ~0.35-0.45 represents the intrinsic suppressive
+  potency of murine Tregs under standardized in vitro conditions.
+
+key_assumptions:
+  - |
+    Hill function with n=1 (standard hyperbolic) adequately describes
+    Treg suppression dose-response without cooperative effects.
+  - |
+    Murine Treg suppressive potency (R50) is applicable to human PDAC
+    tumor microenvironment, though actual suppression may vary.
+  - |
+    In vitro suppression of proliferation correlates with in vivo suppression
+    of T cell effector function (cytotoxicity).
+  - |
+    Division percentage is linearly proportional to effective T cell number/function.
+
+key_study_limitations:
+  - |
+    Data from murine cells, not human PDAC-infiltrating Tregs.
+  - |
+    In vitro assay does not capture tumor microenvironment complexity
+    (hypoxia, TGF-beta, metabolic constraints).
+  - |
+    Suppression of proliferation measured, not direct cytotoxicity inhibition.
+  - |
+    Standard deviation not reported in Table 1; uncertainty estimated from
+    typical assay variability (~10% CV).
+  - |
+    Single timepoint (72h) and single cell concentration tested.
+
+# =============================================================================
+# DATA SOURCES
+# =============================================================================
+primary_data_source:
+  doi: "10.1007/978-1-4939-3139-2_4"
+  title: "Standardization, Evaluation, and Area-Under-Curve Analysis of Human and Murine Treg Suppressive Function"
+  authors: [Akimova, Levine, Beier, Hancock]
+  year: 2016
+  source_tag: Akimova2016_Treg_AUC
+
+secondary_data_sources:
+  - doi: "10.1084/jem.188.2.287"
+    title: "CD4+CD25+ immunoregulatory T cells suppress polyclonal T cell activation in vitro by inhibiting interleukin 2 production"
+    authors: [Thornton, Shevach]
+    year: 1998
+    source_tag: Thornton1998_Treg_Classic
+    contribution: |
+      Classic paper establishing the in vitro Treg suppression assay methodology.
+      Demonstrated that CD4+CD25+ T cells potently suppress CD4+CD25- and CD8+
+      T cell proliferation through IL-2 inhibition.
+
+  - doi: "10.3389/fimmu.2018.02461"
+    title: "Regulatory T Cells Suppress Effector T Cell Proliferation by Limiting Division Destiny"
+    authors: [Dowling, Boeschen, Dockree, Kinnon, Simon]
+    year: 2018
+    source_tag: Dowling2018_Division_Destiny
+    contribution: |
+      Provides mechanistic insight that Tregs suppress by reducing division destiny
+      (number of divisions Teffs undergo) rather than increasing death rate. Shows
+      dose-dependent suppression at ratios 1:1, 1:4, 1:8, 1:16.
+
+  - doi: "10.1186/2045-3701-4-51"
+    title: "Evaluation of immunosuppressive function of regulatory T cells using a novel in vitro cytotoxicity assay"
+    authors: [Zhang, Manirarora, Wei]
+    year: 2014
+    source_tag: Zhang2014_Treg_Cytotox
+    contribution: |
+      Describes Treg suppression of CD8+ T cell cytotoxicity (not just proliferation),
+      relevant for understanding Treg effects on tumor killing in PDAC.
