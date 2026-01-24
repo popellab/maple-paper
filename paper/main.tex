@@ -55,7 +55,7 @@
 }
 
 % Title
-\title{LLM-Assisted Extraction of QSP Calibration Targets: A Validated Schema for Structured Data and Joint Bayesian Inference}
+\title{MAPLE: Model-Aware Parameter Literature Extraction for QSP Model Calibration}
 
 \author{Joel Eliason$^{1}$\\[0.5em]
 \small $^{1}$Department of Biomedical Engineering, Johns Hopkins University, Baltimore, MD, USA}
@@ -71,86 +71,28 @@
 %=============================================================================
 
 \begin{abstract}
-Quantitative systems pharmacology (QSP) models require parameter values derived from experimental literature, yet current approaches to literature extraction face a trade-off between throughput and rigor. Parameter databases provide point estimates without uncertainty or provenance; manual expert curation yields high-quality extractions but does not scale; and large language models (LLMs) offer rapid extraction but exhibit failure modes including value hallucination and citation fabrication. We present a framework that combines LLM-assisted extraction with systematic validation to address this trade-off. The SubmodelTarget schema separates data extraction from model specification, capturing literature values with full provenance while constraining output to a machine-verifiable form. A ten-validator framework targets known LLM failure modes, including a value-in-snippet check that requires extracted numbers to appear verbatim in quoted source text. Validated targets are automatically translated to Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields well-converged posteriors ($\hat{R} < 1.01$) for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration. The framework provides a reproducible pipeline from literature to calibrated parameters while maintaining the provenance required for scientific applications.
+Quantitative systems pharmacology (QSP) models require parameter values derived from experimental literature, yet current approaches face a trade-off between throughput and rigor. Both identifying relevant experiments and extracting data from them are labor-intensive: effective literature search requires understanding what parameters the model needs, what reactions they govern, and what experimental designs can constrain them. Manual curation remains the standard but produces inconsistent documentation, with uncertainty quantification and provenance tracked poorly if at all. Large language models (LLMs) can accelerate both literature search and extraction, but exhibit failure modes including value hallucination and citation fabrication. We present MAPLE (Model-Aware Parameter Literature Extraction), a framework that combines LLM-assisted literature search and extraction with systematic validation. Model-aware prompts inject mechanistic context (parameter descriptions, reactions, rate laws) to guide LLM web search toward experiments that constrain specific parameters. A structured schema separates data extraction from model specification, capturing literature values with full provenance while constraining output to a machine-verifiable form. A multi-validator framework targets known LLM failure modes, including a value-in-snippet check that requires extracted numbers to appear verbatim in quoted source text. Validated targets are automatically translated to Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields well-converged posteriors ($\hat{R} < 1.01$) for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration. MAPLE provides a reproducible pipeline from literature to calibrated parameters while maintaining the provenance required for scientific applications.
 \end{abstract}
 
 %=============================================================================
 \section{Introduction}
 %=============================================================================
 
-\subsection{The Calibration Challenge}
+Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response \citep{gadkarSixStageWorkflowRobust2016}. A typical QSP model comprises from a few to hundreds of ordinary differential equations representing cell populations, signaling molecules, and drug pharmacokinetics. Parameterizing these models requires values drawn from experimental literature (proliferation rates, death rates, secretion constants, binding affinities), often with many parameters per model \citep{ribbaMethodologiesQuantitativeSystems2017a}. Proper calibration with uncertainty quantification is essential not only for model credibility but also for downstream applications such as virtual population generation and virtual clinical trials, where parameter distributions directly determine predicted patient heterogeneity \citep{riegerImprovingGenerationSelection2018a, craigPracticalGuideGeneration2023}.
 
-Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response \citep{gadkarSixStageWorkflowRobust2016}. A typical QSP model comprises dozens to hundreds of ordinary differential equations representing cell populations, signaling molecules, and drug pharmacokinetics. Parameterizing these models requires values drawn from experimental literature---proliferation rates, death rates, secretion constants, binding affinities---often fifty or more parameters per model \citep{ribbaMethodologiesQuantitativeSystems2017a}. Proper calibration with uncertainty quantification is essential not only for model credibility but also for downstream applications such as virtual population generation and virtual clinical trials, where parameter distributions directly determine predicted patient heterogeneity \citep{riegerImprovingGenerationSelection2018a, craigPracticalGuideGeneration2023}.
+Beyond identifying relevant literature lies the challenge of extracting data systematically with full provenance. Each experiment reports results in different formats, with different units, time points, and uncertainty quantification. Experimental conditions vary across studies and are inconsistently documented. Converting a reported measurement into a calibration constraint requires judgment about applicability, uncertainty, and potential biases. The reasoning behind each extraction (why this value, from this paper, interpreted this way) must be documented for reproducibility and review.
 
-The challenge is not finding relevant papers; it is extracting data systematically with full provenance. Each experiment reports results in different formats, with different units, time points, and uncertainty quantification. Experimental conditions vary across studies and are inconsistently documented. Converting a reported measurement into a calibration constraint requires judgment about applicability, uncertainty, and potential biases. And crucially, the reasoning behind each extraction---why this value, from this paper, interpreted this way---must be documented for reproducibility and review.
+The biological literature contains a wealth of experiments that isolate specific mechanisms from the complexity of in vivo systems. In vitro proliferation assays measure cell division rates without immune infiltration or nutrient gradients. Ex vivo cytotoxicity experiments quantify killing efficiency without the confounding effects of tumor heterogeneity or drug distribution. These isolated system experiments are valuable precisely because they remove confounding factors: when a proliferation assay reports a doubling time, that measurement directly constrains the proliferation rate parameter. Parameters that would be unidentifiable from clinical data become identifiable from targeted in vitro measurements \citep{ribbaMethodologiesQuantitativeSystems2017a}. We use the term \textit{calibration target} to refer to a structured representation of such experimental data suitable for Bayesian inference, capturing what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters.
 
-Current practice relies on manual curation into spreadsheets. This approach yields poorly documented assumptions, lost provenance, and copy-paste propagation across models. When a reviewer asks ``where did this number come from?'', the answer is often difficult to reconstruct. When a new team member joins, institutional knowledge must be transferred orally. When a parameter needs updating, the original reasoning may be lost.
+Manual curation by domain experts remains the standard approach to extracting calibration targets from literature. An experienced modeler identifies relevant passages, assesses methodological quality, judges applicability to the modeling context, and documents assumptions. The result, when done well, is a well-reasoned parameter estimate with clear provenance. But manual curation has significant limitations. The process is labor-intensive: a thorough literature review for a single QSP model can require weeks of effort. Documentation quality varies across individuals and projects, with uncertainty quantification and provenance tracking handled inconsistently if at all. When personnel change, institutional knowledge disappears, and the reasoning behind a parameter choice may be lost even if the value persists in the model. A further challenge arises when combining constraints from multiple experiments: without a structured representation, joint inference requires ad-hoc scripting for each new combination of experiments, with no standard path from extracted data to inference code.
 
-A further challenge arises when combining constraints from multiple experiments. Parameters often appear across different assays, and the ideal calibration would use all available data simultaneously. But without a structured representation of calibration targets, joint inference requires ad-hoc scripting for each new combination of experiments. There is no standard path from extracted data to inference code.
+Several databases aggregate quantitative biological parameters from literature, providing useful reference points. BioNumbers \citep{miloBioNumbersDatabaseKey2010}, BRENDA \citep{changBRENDAELIXIRCore2021}, and Sabio-RK \citep{wittigSABIORKDatabaseBiochemical2012} cover metabolic and enzymatic parameters; PK-Sim provides physiological parameters for pharmacokinetic modeling \citep{lippertOpenSystemsPharmacology2019}. These databases serve their intended purposes well but do not solve the core extraction problem: most store point estimates without uncertainty quantification, experimental context is inconsistently documented, and coverage is sparse for disease-specific biology.
 
-The rate of relevant publications outpaces what manual curation can accommodate. A scalable approach requires automation, but automation introduces its own risks.
+Automated extraction has been a goal of biomedical text mining for decades \citep{zhaoRecentAdvancesBiomedical2021}, but traditional NLP pipelines struggle with the distributed, context-dependent information that characterizes experimental reports \citep{leverTextminingClinicallyRelevant2019}. Large language models offer a more promising path forward. LLMs with web search capabilities can identify relevant literature when given appropriate context about what parameters need calibration and how they are used mechanistically in the model. Once papers are identified, LLMs can read scientific text, follow structured templates, and extract information at scale \citep{sainiQSPCopilotAIAugmentedPlatform2025a}. But LLMs have well-documented failure modes that are particularly problematic for quantitative scientific work. Hallucination (the generation of plausible but incorrect information) is endemic to current models \citep{farquharDetectingHallucinationsLarge2024}. LLMs may fabricate numeric values, invent citations to papers that do not exist, or generate internally inconsistent outputs. These failures are especially dangerous because they often appear fluent and confident \citep{panditMedHalluComprehensiveBenchmark2025}. For parameter extraction, where the extracted values directly influence model predictions, naive LLM extraction without validation is not acceptable.
 
-\subsection{Isolated System Experiments}
+The failure modes of LLM extraction, however, are amenable to systematic detection. Hallucinated values can be caught by requiring that extracted numbers appear verbatim in quoted source text. Fabricated citations can be identified through DOI resolution. Internal inconsistencies can be flagged through schema validation. This suggests a workflow where LLMs handle tasks they do well (reading scientific text and following structured templates) while automated validators catch their characteristic errors before human review. The key design constraint is that output schemas must be expressive enough to capture the relevant content but structured enough to enable systematic checking \citep{HoMinimizeLLM2024}.
 
-The biological literature contains a wealth of experiments that isolate specific mechanisms from the complexity of in vivo systems. In vitro proliferation assays measure cell division rates without immune infiltration or nutrient gradients. Ex vivo cytotoxicity experiments quantify killing efficiency without the confounding effects of tumor heterogeneity or drug distribution. Preclinical studies in simplified animal models can isolate specific pathway dynamics.
-
-These isolated system experiments are valuable precisely because they remove confounding factors. When a proliferation assay reports a doubling time, that measurement directly constrains the proliferation rate parameter. The experimental design has already done the work of isolating the relevant biology. Parameters that would be unidentifiable from clinical data become identifiable from targeted in vitro measurements \citep{ribbaMethodologiesQuantitativeSystems2017a}.
-
-The challenge is that this data is scattered across thousands of papers, reported in varying formats, with different units, time points, and uncertainty quantification. Experimental conditions (cell line, passage number, serum concentration, oxygen tension) vary across studies and are inconsistently documented. Converting a reported doubling time into a prior distribution for a rate constant requires judgment about uncertainty, applicability, and potential biases.
-
-We use the term \textit{calibration target} to refer to a structured representation of experimental data suitable for Bayesian inference. A calibration target captures what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters. The goal of this work is to automate the extraction of calibration targets from literature while maintaining the provenance and rigor required for scientific applications.
-
-\subsection{Existing Approaches and Their Limitations}
-
-\subsubsection{Parameter Databases}
-
-Several databases aggregate quantitative biological parameters from literature. BioNumbers provides over 13,000 entries covering cell sizes, metabolite concentrations, reaction rates, and growth constants, each linked to its source publication \citep{miloBioNumbersDatabaseKey2010}. BRENDA contains over 5 million data points for approximately 90,000 enzymes, including kinetic parameters manually extracted from 157,000 primary literature references \citep{changBRENDAELIXIRCore2021}. Sabio-RK focuses specifically on biochemical reaction kinetics \citep{wittigSABIORKDatabaseBiochemical2012}. For pharmacokinetic modeling, PK-Sim provides physiological parameters for humans and common laboratory animals as part of the Open Systems Pharmacology suite \citep{lippertOpenSystemsPharmacology2019}.
-
-These databases serve their intended purposes well, but they have limitations for QSP calibration. Most store point estimates without uncertainty quantification. Experimental context---the species, cell type, assay conditions, and methodological details that determine whether a value applies to a particular modeling scenario---is inconsistently documented. The databases are organized around biological entities (enzymes, metabolites, organisms) rather than the inference tasks that QSP modelers face. And critically, tracing a value back through intermediate sources to the original experimental measurement often requires substantial manual effort.
-
-\subsubsection{Biomedical Text Mining}
-
-Automated extraction of quantitative information from scientific literature has been a goal of biomedical text mining for decades. Named entity recognition can identify mentions of genes, proteins, diseases, and drugs; relation extraction can link entities into structured assertions; and numerical information extraction can pull quantities from text \citep{zhaoRecentAdvancesBiomedical2021}. Tools like PubTator and SciSpacy provide pre-trained models for biomedical NLP tasks.
-
-The challenge for QSP parameterization is that the relevant information is often embedded in complex experimental descriptions. A reported doubling time depends on cell type, passage number, serum concentration, oxygen tension, and measurement method---details that are scattered across methods sections, figure captions, and supplementary materials. Traditional NLP pipelines struggle with this kind of distributed, context-dependent extraction. Performance on relation extraction benchmarks does not translate directly to the task of assembling coherent calibration targets from heterogeneous experimental reports \citep{leverTextminingClinicallyRelevant2019}.
-
-\subsubsection{Manual Expert Curation}
-
-Manual curation by domain experts remains the gold standard for quality. An experienced modeler can identify the relevant passages, assess methodological quality, judge applicability to the modeling context, and document assumptions. The result is a well-reasoned parameter estimate with clear provenance.
-
-The limitation is scale. A thorough literature review for a single QSP model can require weeks of effort. Documentation quality varies across individuals and projects. When personnel change, institutional knowledge disappears---the reasoning behind a parameter choice may be lost even if the value persists in the model. And the rate of new publications outpaces what manual curation can accommodate; PubMed adds over one million new records annually.
-
-\subsubsection{Large Language Models}
-
-Large language models offer a potential path forward. LLMs can read scientific text, follow structured templates, and extract information at scale. Recent work has explored LLM-assisted workflows for QSP model development, including semi-automated parameter extraction from literature \citep{sainiQSPCopilotAIAugmentedPlatform2025a}. The potential for accelerating model development is substantial.
-
-But LLMs have well-documented failure modes that are particularly problematic for quantitative scientific work. Hallucination---the generation of plausible but incorrect information---is endemic to current models \citep{farquharDetectingHallucinationsLarge2024}. LLMs may fabricate numeric values, invent citations to papers that do not exist, or generate internally inconsistent outputs. These failures are especially dangerous because they often appear fluent and confident, making them difficult to detect through casual review. Studies of LLM hallucination in medical and scientific contexts have found that even state-of-the-art models achieve modest accuracy on detecting subtle factual errors \citep{panditMedHalluComprehensiveBenchmark2025}. For parameter extraction, where the extracted values directly influence model predictions, naive LLM extraction without validation is not acceptable.
-
-\subsubsection{Toward Validated Automation}
-
-These approaches are not mutually exclusive. Databases provide curated reference points. Traditional NLP offers robust entity recognition. Manual curation contributes domain expertise. LLMs provide throughput. The question is whether these can be combined into a workflow that achieves both scale and reliability---using LLMs for rapid extraction while systematically catching their characteristic errors before the results reach downstream inference.
-
-\subsection{Constrained Extraction with Validation}
-
-The failure modes of LLM extraction are serious but amenable to systematic detection. Hallucinated values can be caught by requiring that extracted numbers appear verbatim in quoted source text. Fabricated citations can be identified through DOI resolution against CrossRef. Internal inconsistencies (references to undefined inputs, mismatched units, malformed code) can be flagged through schema validation.
-
-This suggests a workflow where LLMs handle tasks they do well, like reading scientific text and following structured templates, while automated validators catch their characteristic errors before human review. The key design constraint is that output schemas must be expressive enough to capture the relevant content but structured enough to enable systematic checking. This approach aligns with emerging best practices for constraining LLM outputs through typed schemas and validation layers \citep{HoMinimizeLLM2024}.
-
-\subsection{Contributions}
-
-We present a framework for LLM-assisted extraction of QSP calibration targets with four components.
-
-The SubmodelTarget schema is a Pydantic-validated YAML format that separates data extraction (values, units, provenance) from model specification (ODEs, priors, likelihoods). The schema constrains LLM output to a machine-verifiable form while preserving traceability from posterior to source text.
-
-The validation framework includes ten automated validators targeting specific failure modes: value-in-snippet matching for hallucination detection, DOI resolution for citation verification, reference consistency checks, unit parsing, and code syntax validation.
-
-The code generator translates validated YAML specifications into executable Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets.
-
-Joint inference over multiple targets generates posterior distributions for all parameters simultaneously. Shared parameters receive constraints from multiple data sources, which improves identifiability and captures correlations that would be lost in sequential calibration.
-
-We apply the framework to ten calibration targets for pancreatic stellate cell dynamics in PDAC, covering proliferation, death, activation, secretion, and immune interactions. Joint inference over the resulting model yields $\hat{R} < 1.01$ for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration.
-
-\subsection{Article Overview}
+We present MAPLE (Model-Aware Parameter Literature Extraction), a framework for LLM-assisted calibration of QSP models with five components: (1) model-aware literature search, where prompts inject mechanistic context (parameter descriptions, reactions, rate laws) to guide LLM web search toward experiments that can constrain specific parameters; (2) a Pydantic-validated YAML schema that separates data extraction from model specification, constraining LLM output to a machine-verifiable form while preserving traceability from posterior to source text; (3) a validation framework targeting specific failure modes, including value-in-snippet matching for hallucination detection and DOI resolution for citation verification; (4) a code generator that translates validated specifications into executable Julia/Turing.jl scripts for Bayesian inference, with automatic identification of shared parameters across targets; and (5) joint inference over multiple targets, generating posterior distributions for all parameters simultaneously. We demonstrate the framework on ten calibration targets for pancreatic stellate cell dynamics in pancreatic ductal adenocarcinoma (PDAC). Joint inference yields $\hat{R} < 1.01$ for all parameters, and posterior predictive checks confirm appropriate uncertainty calibration.
 
 The remainder of this article is organized as follows. The Methods section describes the schema design, validation framework, code generation pipeline, and the PDAC application. The Results section reports validation outcomes, convergence diagnostics, and posterior predictive checks. The Discussion addresses benefits, limitations, and future directions.
 
@@ -168,13 +110,23 @@ The gap is that gathering this data at scale is difficult. Each experiment measu
 
 \subsubsection{The LLM Opportunity}
 
-Large language models can read papers and extract structured data at speed and scale. But LLMs have well-known failure modes: hallucination of plausible values, inconsistent outputs, fabricated citations. Naive LLM extraction is not trustworthy for scientific applications. We need a framework that harnesses LLM capabilities while guarding against their pitfalls.
+Large language models can assist with both literature search and data extraction. When given mechanistic context about parameters (their units, the reactions they govern, related species), LLMs with web search can identify experiments that would constrain those specific parameters. Once relevant papers are identified, LLMs can extract structured data at scale. But LLMs have well-known failure modes: hallucination of plausible values, inconsistent outputs, fabricated citations. Naive LLM extraction is not trustworthy for scientific applications. We need a framework that harnesses LLM capabilities while guarding against their pitfalls.
 
-Our approach has four components: (1) extract experimental data with full provenance (the inputs layer), (2) define a submodel that connects the data to full model parameters (the calibration layer), (3) validate the extraction automatically before inference, and (4) generate inference code that combines multiple targets via joint Bayesian inference.
+Our approach has five components: (1) model-aware literature search using LLM web search guided by parameter context, (2) extract experimental data with full provenance (the inputs layer), (3) define a submodel that connects the data to full model parameters (the calibration layer), (4) validate the extraction automatically before inference, and (5) generate inference code that combines multiple targets via joint Bayesian inference.
 
 \subsubsection{Why Joint Bayesian Inference}
 
 Joint inference over multiple calibration targets offers several advantages over calibrating parameters independently. First, joint inference finds parameter values that satisfy all targets simultaneously rather than one at a time; when one target pulls a parameter up and another pulls it down, the posterior reflects this tension rather than requiring ad-hoc averaging. Second, when multiple experiments inform the same parameter, all data contributes to its posterior---a parameter appearing in three targets receives constraints from all three, yielding tighter posteriors than any single target could provide. Third, the result is full posterior distributions rather than point estimates; uncertainty from extraction propagates through to parameter uncertainty, which can then propagate to model predictions. Fourth, the joint posterior captures how parameters covary, which matters for prediction uncertainty; if two parameters are correlated given the data, sampling them independently would underestimate prediction uncertainty. Finally, there is no need for ad-hoc weighting schemes: sample size and reported uncertainty naturally weight each target's contribution, and Bayes' theorem handles the combination.
+
+\subsection{Model-Aware Literature Search}
+
+The workflow begins with a parameter-driven search: the user specifies which model parameters need calibration, and the system builds a prompt that guides the LLM to find relevant experimental literature via web search.
+
+The prompt includes mechanistic context extracted from the model structure: the parameter's units and description, the reactions where the parameter appears with their rate laws, the species involved in those reactions, and other parameters that might need co-calibration. For example, when searching for data to calibrate a proliferation rate \texttt{k\_apsc\_prolif}, the prompt includes the reaction \texttt{aPSC -> 2*aPSC} with rate law \texttt{k\_apsc\_prolif * aPSC}, along with descriptions of the aPSC species and any related parameters like death rates that appear in the same reaction network.
+
+This context serves two purposes. First, it guides the LLM's web search toward experiments that actually constrain the target parameters, rather than experiments that mention similar concepts but measure different quantities. Second, it enables the LLM to design an appropriate submodel that captures how the parameter is used mechanistically in the full model, ensuring that inference results transfer correctly to the full model context.
+
+The prompt also includes a list of already-used primary sources to encourage diversity across extractions. When calibrating multiple parameters, this prevents the LLM from repeatedly extracting from the same well-known papers and promotes broader literature coverage.
 
 \subsection{Schema Design}
 
@@ -300,13 +252,13 @@ The \texttt{SubmodelTarget} class serves as the top-level model, containing nest
     \item \texttt{Measurement}: Links inputs to observables and specifies the likelihood distribution, evaluation points, and optional Python code for uncertainty propagation.
 \end{itemize}
 
-Pydantic's \texttt{@model\_validator} decorator enables cross-field validation that runs after individual field parsing. The \texttt{SubmodelTarget} class includes ten validators (detailed in the following section) that check reference consistency, content validity, and structural requirements. When validation fails, Pydantic raises a \texttt{ValidationError} with messages indicating which field failed and why, enabling targeted correction.
+Pydantic's \texttt{@model\_validator} decorator enables cross-field validation that runs after individual field parsing. The \texttt{SubmodelTarget} class includes multiple validators (detailed in the following section) that check reference consistency, content validity, and structural requirements. When validation fails, Pydantic raises a \texttt{ValidationError} with messages indicating which field failed and why, enabling targeted correction.
 
 The discriminated union pattern for model types uses Pydantic's \texttt{Field(discriminator="type")} to automatically select the correct model class based on the \texttt{type} field in the YAML. This ensures that an \texttt{exponential\_growth} model requires a \texttt{rate\_constant} field while a \texttt{two\_state} model requires a \texttt{forward\_rate} field, with type-specific validation for each. Supplementary Material S5 provides the complete Pydantic model definitions.
 
 \subsection{Validation Framework}
 
-The validation framework comprises ten automated checks targeting known LLM failure modes. Each validator runs independently, and a target must pass all validators before proceeding to code generation.
+The validation framework comprises multiple automated checks targeting known LLM failure modes. Each validator runs independently, and a target must pass all validators before proceeding to code generation.
 
 \subsubsection{Reference Validation}
 
@@ -379,7 +331,7 @@ Visual diagnostics include trace plots to assess mixing and pair plots to reveal
 
 \subsection{Application: PDAC Stromal Biology}
 
-We demonstrate the framework on calibration targets for pancreatic ductal adenocarcinoma, focusing on stromal biology: pancreatic stellate cell (PSC) dynamics, interactions with cancer and immune cells, and cytokine signaling.
+We demonstrate MAPLE on calibration targets for pancreatic ductal adenocarcinoma, focusing on stromal biology: pancreatic stellate cell (PSC) dynamics, interactions with cancer and immune cells, and cytokine signaling.
 
 The ten targets cover PSC proliferation (activated state), PSC death (quiescent and activated), PSC activation by TGF-$\beta$, ECM secretion by activated PSCs, constitutive and encounter-mediated PSC recruitment, CD8+ T cell killing probability, TGF-$\beta$ secretion by activated PSCs, and regulatory T cell suppression of effector function.
 
@@ -514,7 +466,7 @@ All z-scores fall within the range $[-2, 2]$, and all observed values are covere
 
 \textbf{What is the current knowledge on the topic?}
 
-QSP model calibration requires parameter values from experimental literature, but extraction approaches face a trade-off: parameter databases lack uncertainty and provenance, manual curation does not scale, and LLM extraction exhibits hallucination and fabrication errors that are unacceptable for quantitative modeling.
+QSP model calibration requires parameter values from experimental literature, but manual curation is labor-intensive with inconsistent documentation practices, often lacking systematic uncertainty quantification and provenance, while LLM extraction exhibits hallucination and fabrication errors that are unacceptable for quantitative modeling.
 
 \textbf{What question did this study address?}
 
@@ -522,11 +474,11 @@ Can LLM-assisted extraction be combined with systematic validation to achieve bo
 
 \textbf{What does this study add to our knowledge?}
 
-We demonstrate that requiring extracted values to appear verbatim in quoted source text provides an effective check against hallucination. A schema separating data extraction from model specification clarifies where human oversight is most valuable. Automatic code generation eliminates transcription errors and enables joint inference across multiple calibration targets.
+We demonstrate that LLMs with web search can identify relevant experimental literature when given mechanistic context about target parameters. Requiring extracted values to appear verbatim in quoted source text provides an effective check against hallucination. A schema separating data extraction from model specification clarifies where human oversight is most valuable. Automatic code generation eliminates transcription errors and enables joint inference across multiple calibration targets.
 
 \textbf{How might this change drug discovery, development, and/or therapeutics?}
 
-The framework provides a reproducible pipeline from literature to calibrated QSP model parameters. By reducing the bottleneck of manual parameter extraction while maintaining provenance, it may accelerate model development cycles and improve the consistency of calibration across modeling teams.
+MAPLE provides a reproducible pipeline from literature to calibrated QSP model parameters. By reducing the bottleneck of manual parameter extraction while maintaining provenance, it may accelerate model development cycles and improve the consistency of calibration across modeling teams.
 
 %=============================================================================
 \section*{Acknowledgments}
@@ -556,7 +508,7 @@ The author declares no conflict of interest.
 \section*{Data Availability Statement}
 %=============================================================================
 
-The SubmodelTarget schema, validation framework, and Julia code generator are available at \url{https://github.com/popellab/qsp-llm-workflows}. The ten PDAC calibration targets used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
+MAPLE (the SubmodelTarget schema, validation framework, and Julia code generator) is available at \url{https://github.com/popellab/qsp-llm-workflows}. The ten PDAC calibration targets used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
 
 %=============================================================================
 % REFERENCES

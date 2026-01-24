@@ -1,6 +1,8 @@
-# QSP LLM Workflows Paper
+# MAPLE Paper
 
-Manuscript and supporting materials for "LLM-Assisted Extraction of QSP Calibration Targets: A Validated Schema for Structured Data and Joint Bayesian Inference", targeting CPT: Pharmacometrics & Systems Pharmacology.
+Manuscript and supporting materials for "MAPLE: Model-Aware Parameter Literature Extraction for QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
+
+MAPLE is a framework for LLM-assisted calibration of quantitative systems pharmacology (QSP) models. It combines model-aware literature search (using LLM web search guided by mechanistic context) with validated extraction and automatic code generation for Bayesian inference.
 
 ## Repository Structure
 
@@ -38,7 +40,7 @@ qsp-llm-workflows-paper/
 
 ## Related Repository
 
-The framework code (SubmodelTarget schema, validators, Julia translator) is in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
+MAPLE (SubmodelTarget schema, validators, Julia translator) is implemented in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
 
 ## Building the Paper
 
