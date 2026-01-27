@@ -1,0 +1,194 @@
+study_interpretation: |
+  Serial CT imaging of untreated human PDAC provides direct measurements of primary tumor volume doubling times, capturing the net expansion of the tumor mass in vivo under natural disease progression. Interpreting these VDTs as arising from exponential tumor cell growth in the regime where carrying capacity limitations are not yet dominant allows analytic conversion to the per capita cancer cell growth rate k_C1_growth used in the QSPIO-PDAC model.
+
+key_assumptions:
+- |
+  Tumor volume change measured on CT is proportional to the total number of viable cancer cells C1, i.e., changes in stromal and necrotic components do not dominate volume dynamics over the time window used to estimate VDT.
+- |
+  The exponential growth model used by Ahn et al. to compute VDT between two CT scans is appropriate for the size range studied, such that VDT meaningfully reflects an effective per capita growth rate.
+- |
+  Early- and mid-stage human PDAC lesions included in the study are in a regime where the logistic saturation factor (1 - C_total/C_max) in the full model is not yet strongly limiting, so that dC1/dt ~ k_C1_growth * C1 applies.
+- |
+  Host- and microenvironment-specific influences (e.g., desmoplasia, hypoxia) are effectively embedded in the clinically observed net growth rate and can be mapped onto k_C1_growth without explicit correction.
+- |
+  Inter-patient heterogeneity in VDT is represented statistically via a lognormal distribution, which is adequate for constructing a prior and likelihood for k_C1_growth.
+
+key_study_limitations:
+- |
+  CT-derived tumor volumes include cancer cells, stroma, and necrosis; thus VDT reflects net mass expansion rather than pure cancer cell number dynamics, potentially biasing k_C1_growth relative to a cell-centric definition.
+- |
+  Only two or a few CT time points per patient are available, so individual VDT estimates may be noisy, and the published mean +/- SD aggregate the effects of measurement error and biological variability.
+- |
+  VDTs are reported for a heterogeneous cohort spanning a wide range of initial tumor sizes; growth kinetics may differ systematically between small and large tumors, whereas the submodel assumes a single effective growth rate.
+- |
+  The clinical cohort reflects untreated disease but not necessarily early micrometastatic stages; k_C1_growth inferred here may overestimate the proliferation rate of very small occult tumors.
+- |
+  This calibration target constrains net tumor growth and cannot by itself disentangle intrinsic proliferation from cell loss or immune-mediated killing, which must be informed by additional experimental or clinical data.
+
+experimental_context:
+  species: human
+  system: clinical_imaging
+  cell_lines:
+  cell_types:
+  - name: pancreatic ductal adenocarcinoma cells
+    phenotype: primary malignant epithelial cells within patient tumors
+    isolation_method: in situ within native pancreatic tumors; not isolated ex vivo
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma (PDAC)
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    CT-derived tumor volume doubling times measured directly in untreated human PDAC patients provide the most clinically relevant constraint for tumor growth kinetics. This is primary human PDAC clinical data capturing net tumor expansion in the native disease context.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Clinical imaging captures tumor growth in the native PDAC microenvironment including desmoplastic stroma, hypoxia, and immune infiltrate. The data directly reflect in vivo growth dynamics.
+  estimated_translation_uncertainty_fold: 1.5
+
+primary_data_source:
+  doi: 10.1007/s12029-016-9876-7
+  title: |
+    Time to Progression of Pancreatic Cancer: Evaluation with Multi-Detector Computed Tomography
+  authors:
+  - Su Joa Ahn
+  - Seung Joon Choi
+  - Hyung Sik Kim
+  year: 2016
+  source_tag: Ahn2017
+
+secondary_data_sources:
+- doi: 10.3390/cancers15245753
+  url:
+  title: |
+    Establishment and Thorough Characterization of Xenograft (PDX) Models Derived from Patients with Pancreatic Cancer for Molecular Analyses and Chemosensitivity Testing
+  authors:
+  - Diana Behrens
+  - Ulrike Pfohl
+  - Theresia Conrad
+  - Michael Becker
+  - Bernadette Brzezicha
+  - Britta Buttner
+  - Silvia Wagner
+  - Cora Hallas
+  - Rita Lawlor
+  - Vladimir Khazak
+  year: 2023
+  source_tag: Behrens2023
+  contribution: |
+    Provides a broad distribution of tumor doubling times (4-32 days) across 45 PDAC PDX models in immunocompromised mice, supporting the plausibility and variability of PDAC growth rates inferred from human clinical data and highlighting model-system differences.
+- doi: 10.1158/1078-0432.CCR-17-1115
+  url:
+  title: |
+    Treatment of Pancreatic Cancer Patient-Derived Xenograft Panel with Metabolic Inhibitors Reveals Efficacy of Phenformin
+  authors:
+  - N.V. Rajeshkumar
+  - S. Yabuuchi
+  - E. De Oliveira
+  - J.J. Kamphorst
+  - H. Tejero
+  - F. Al-Shahrour
+  - M. Hidalgo
+  - A. Maitra
+  - C.V. Dang
+  year: 2017
+  source_tag: Rajeshkumar2017
+  contribution: |
+    Reports tumor doubling times on a panel of human PDAC PDXs and shows how metabolic therapy alters them, providing independent support that PDAC xenografts exhibit doubling times on the order of 10-20 days and thereby bracketing the clinical growth rates observed in patients.
+
+target_id: k_C1_growth_pdac_human_vdt_ahn2017
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019bfe38fe0a7fcc0255bb557bddaf25
+
+inputs:
+- name: vdtime_mean
+  value: 132.3
+  units: day
+  uncertainty:
+  n: 100
+  input_type: direct_measurement
+  role: target
+  source_ref: Ahn2017
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: |
+    Tumor growth rates were -0.4 to 19.9 cm/year (mean, 4.2 +/- 3.8 cm/year) in diameter, and 11.1-13,321.5 cm^{3}/year (mean, 727.8 +/- 1609.5 cm^{3}/year) in volume corresponding to VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days).
+- name: vdtime_sd
+  value: 132.1
+  units: day
+  uncertainty:
+  n: 100
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Ahn2017
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days).
+
+calibration:
+  parameters:
+  - name: k_C1_growth
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -5.0
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Clinical imaging study reports a mean tumor volume doubling time (VDT) of 132.3 +/- 132.1 days for untreated human PDAC (n=100). Converting via k = ln(2)/VDT gives typical net growth rates on the order of 10^-3 to 10^-2 1/day. A lognormal prior with mu = -5.0 and sigma = 1.0 on the log scale is chosen to be weakly informative while centered in this range, allowing for more than an order-of-magnitude variability to accommodate inter-patient heterogeneity.
+  state_variables:
+  model:
+    data_rationale: |
+      Ahn et al. followed 100 patients with untreated pancreatic ductal adenocarcinoma using serial multi-detector CT and computed tumor volume doubling times (VDT) assuming exponential tumor growth between scans. The published summary (mean +/- SD VDT) directly characterizes net tumor expansion kinetics in human PDAC without treatment.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, viable cancer cells C1 in the tumor compartment grow according to dC1/dt = k_C1_growth * C1 * (1 - C_total/C_max). When total cancer cell burden C_total is well below the carrying capacity C_max, the logistic term (1 - C_total/C_max) ~ 1 and the dynamics reduce to exponential growth dC1/dt ~ k_C1_growth * C1. Under this regime, the tumor cell population has a doubling time VDT related to k_C1_growth by k_C1_growth = ln(2)/VDT. The clinical VDT measurements thus provide a mechanistically consistent way to infer k_C1_growth during early-to-intermediate tumor growth where saturation effects are modest.
+    type: direct_conversion
+    formula: k_C1_growth = ln(2) / VDT
+  independent_variable:
+  measurements:
+  - name: k_C1_growth_from_VDT
+    observable:
+    units: 1/day
+    uses_inputs:
+    - vdtime_mean
+    - vdtime_sd
+    evaluation_points:
+    - 0.0
+    sample_size: 100
+    sample_size_rationale: |
+      The imaging study included 100 patients with histologically confirmed PDAC and at least two untreated CT scans; all contributed to the reported VDT distribution.
+    distribution_code: |
+      def derive_distribution(inputs, ureg):
+          import numpy as np
+          # Mean and SD of tumor volume doubling time (VDT)
+          vdt_mean = inputs['vdtime_mean'].to('day').magnitude
+          vdt_sd = inputs['vdtime_sd'].to('day').magnitude
+
+          # Approximate VDT distribution as lognormal based on reported mean and SD
+          # Standard lognormal moment-matching formulas
+          mu_log_vdt = np.log(vdt_mean**2 / np.sqrt(vdt_mean**2 + vdt_sd**2))
+          sigma_log_vdt = np.sqrt(np.log(1.0 + (vdt_sd**2) / (vdt_mean**2)))
+
+          # Sample VDT values, then transform to growth rate k = ln(2)/VDT
+          vdt_samples = np.random.lognormal(mu_log_vdt, sigma_log_vdt, 10000)
+          k_samples = np.log(2.0) / vdt_samples  # 1/day
+
+          # Return summary statistics for the implied distribution of k_C1_growth
+          return {
+              'median': float(np.median(k_samples)),
+              'ci95_lower': float(np.percentile(k_samples, 2.5)),
+              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        The clinical VDTs span nearly two orders of magnitude and are well-described by positively skewed distributions. Approximating VDT as lognormal and propagating uncertainty via k = ln(2)/VDT yields an approximately lognormal distribution for k_C1_growth. The derived lognormal for k_C1_growth (computed in distribution_code) is used as the observation model linking the literature-derived VDT summary to the QSP parameter.
+  identifiability_notes: |
+    Because only net tumor volume doubling time is observed, this target constrains the combined effect of cancer cell proliferation and loss (necrosis, apoptosis) embedded in the clinical growth rate. The large coefficient of variation (CV ~100%) in the reported VDT data reflects substantial inter-patient heterogeneity in PDAC tumor growth rates, spanning from rapidly growing tumors (VDT ~20 days) to indolent ones (VDT >900 days). This biological variability is captured in the lognormal likelihood and propagates into wide uncertainty on k_C1_growth, which is appropriate given the known heterogeneity of PDAC. In the full QSPIO-PDAC model, k_C1_growth will be statistically correlated with separate death and immune-mediated killing parameters (k_C1_death, k_C_Tcell_eff, k_M1_phago). This submodel effectively identifies an effective net growth rate in the low-saturation regime; additional data (e.g., histologic proliferation indices, xenograft cell cycle measurements, or longitudinal volumetric data under varying microenvironmental conditions) would be needed to separately estimate intrinsic proliferation versus death terms and to refine how k_C1_growth changes with tumor size and stromal content.
