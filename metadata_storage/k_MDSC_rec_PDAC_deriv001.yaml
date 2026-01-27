@@ -102,8 +102,9 @@ secondary_data_sources:
   authors: []
   year: 2019
   source_tag: LogCellKillWiki
+  source_quality: non_peer_reviewed
   contribution: |
-    Provides the commonly used approximation that a 1 gram tumor contains about 10^9 cells, used here to approximate total tumor cell density per milliliter.
+    Provides the commonly used approximation that a 1 gram tumor contains about 10^9 cells, used here to approximate total tumor cell density per milliliter. Wikipedia used as a convenient reference for this widely-accepted approximation in oncology.
 
 target_id: k_MDSC_rec_recruitment_pericyte_MDSC_Hong2015
 
@@ -171,7 +172,7 @@ calibration:
     prior:
       distribution: lognormal
       mu: 17.44
-      sigma: 1.0
+      sigma: 2.5
       lower:
       upper:
       rationale: |

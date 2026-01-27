@@ -98,7 +98,7 @@ calibration:
     prior:
       distribution: lognormal
       mu: 3.0
-      sigma: 1.0
+      sigma: 1.7
       lower:
       upper:
       rationale: |

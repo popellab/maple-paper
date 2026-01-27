@@ -95,8 +95,9 @@ secondary_data_sources:
   authors:
   year: 2024
   source_tag: PhagocyteWiki
+  source_quality: non_peer_reviewed
   contribution: |
-    Summarizes tissue macrophage life-span estimates (4-15 days) used to define the range of macrophage half-lives for deriving k_Mac_rec from steady-state considerations.
+    Summarizes tissue macrophage life-span estimates (4-15 days) used to define the range of macrophage half-lives for deriving k_Mac_rec from steady-state considerations. Wikipedia used as a convenient summary; the underlying estimates derive from primary literature on tissue macrophage turnover.
 
 target_id: k_Mac_rec_PDAC_M1_recruitment_Gu2023
 
@@ -173,7 +174,7 @@ calibration:
     prior:
       distribution: lognormal
       mu: 13.89
-      sigma: 0.32
+      sigma: 0.7
       lower:
       upper:
       rationale: |

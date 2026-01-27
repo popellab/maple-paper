@@ -160,7 +160,7 @@ calibration:
     prior:
       distribution: lognormal
       mu: -2.65
-      sigma: 0.7
+      sigma: 1.7
       lower:
       upper:
       rationale: |
