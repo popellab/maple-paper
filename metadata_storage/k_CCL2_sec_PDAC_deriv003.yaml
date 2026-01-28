@@ -1,0 +1,222 @@
+study_interpretation: |
+  Yoshimura 2023 compiles prior measurements of CCL2 production by human breast cancer cell lines. Nam et al. reported that MDA-MB-231 cells secrete approximately 30 ng CCL2 per 10^6 cells over 48 h, which, when converted using the CCL2 molecular weight, corresponds to a per-cell secretion rate on the order of 10^-9 nmol/cell/day. Because the QSP PDAC model represents CCL2 production as a zero-order flux proportional to tumor cell number, this in vitro measurement provides a mechanistically consistent estimate of the secretion rate parameter k_CCL2_sec, albeit in a different tumor type. The data therefore inform an order-of-magnitude prior for k_CCL2_sec that can be updated with PDAC-specific data.
+
+key_assumptions:
+- |
+  Cumulative CCL2 measured in conditioned medium over 48 h reflects net secretion with negligible degradation, adsorption, or consumption during the assay window.
+- |
+  Cell number is approximately constant over the 48 h measurement period or appropriately normalized, so the reported value (ng/10^6 cells/48 h) can be interpreted as an average per-cell secretion rate.
+- |
+  The molecular weight of human CCL2 relevant for ELISA calibration is approximately 11 kDa as reported in curated protein databases, allowing reliable conversion from mass to moles.
+- |
+  Tumor-cell-intrinsic machinery governing CCL2 transcription, translation, and secretion is broadly similar between triple-negative breast cancer cells and PDAC cells, so per-cell secretion rates are at least within an order of magnitude.
+- |
+  Differences between 2D in vitro culture and the PDAC tumor microenvironment (e.g., hypoxia, cytokine milieu, stromal contact) primarily modulate the effective secretion rate but do not change the underlying reaction stoichiometry represented by k_CCL2_sec.
+
+key_study_limitations:
+- |
+  The quantitative CCL2 secretion values are drawn from a review article summarizing multiple primary studies rather than directly from the original Nam et al. publication; experimental details and replicate variability are not fully accessible.
+- |
+  The source tumor type is breast cancer, not PDAC, and CCL2 expression is known to vary across tumor types and even among cell lines of the same type, introducing substantial translation uncertainty.
+- |
+  Reported values are approximate ("approximately 30 ng/10^6 cells/48 h") without explicit measures of dispersion (e.g., SD or CI), limiting statistical characterization of measurement error.
+- |
+  Assay conditions (medium composition, cell density, passage number) are not standardized across studies and can influence chemokine secretion rates.
+- |
+  The conversion neglects potential CCL2 degradation or binding in the culture medium over 48 h, which could cause a modest underestimate of the true secretion rate.
+
+experimental_context:
+  species: human
+  system: in_vitro_immortalized
+  cell_lines:
+  - name: MDA-MB-231
+    species: human
+    tissue_origin: breast
+    cell_type: adenocarcinoma epithelial cells
+  cell_types:
+  culture_conditions:
+    substrate: tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication: breast cancer
+
+primary_data_source:
+  doi: 10.1038/s41423-023-01013-0
+  title: |
+    The chemokine monocyte chemoattractant protein-1/CCL2 is a promoter of breast cancer metastasis
+  authors:
+  - Teizo Yoshimura
+  - Chunning Li
+  - Yuze Wang
+  - Akihiro Matsukawa
+  year: 2023
+  source_tag: Yoshimura2023
+
+secondary_data_sources:
+- doi:
+  url: https://pubmed.ncbi.nlm.nih.gov/14612545/
+  title: |
+    The CC chemokine MCP-1/CCL2 in pancreatic cancer progression: regulation of expression and potential mechanisms of antimalignant activity
+  authors:
+  - Paolo Monti
+  - Biagio Eugenio Leone
+  - Federica Marchesi
+  - Gianpaolo Balzano
+  - Alessandro Zerbi
+  - Francesca Scaltrini
+  - Claudio Pasquali
+  - Giliola Calori
+  - Francesca Pessi
+  - Cosimo Sperti
+  - Valerio Di Carlo
+  - Paola Allavena
+  - Lorenzo Piemonti
+  year: 2003
+  source_tag: Monti2003
+  contribution: |
+    Demonstrated that many human PDAC cell lines and primary tumors constitutively produce CCL2 and that serum CCL2 levels correlate with macrophage infiltration and disease features, supporting the mechanistic relevance of CCL2 secretion in PDAC but without providing directly usable per-cell secretion rates.
+  source_quality: primary_human_clinical
+- doi:
+  url: https://go.drugbank.com/polypeptides/P13500
+  title: DrugBank entry for C-C motif chemokine 2 (CCL2, UniProt P13500)
+  authors: []
+  year: 2024
+  source_tag: DrugBank_CCL2
+  contribution: |
+    Provided the molecular weight of human CCL2 (11024.87 Da) used to convert mass-based secretion measurements to molar secretion rates.
+  source_quality: textbook
+
+target_id: k_CCL2_sec_bcproxy_yoshimura2023
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c0339ce719b5fcfc397fa48f893a1
+
+inputs:
+- name: MDA_MB231_CCL2_mass_48h
+  value: 30.0
+  units: nanogram
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Yoshimura2023
+  source_location: Table 2 and accompanying text
+  extraction_method: manual
+  value_snippet: |
+    In a study by Nam et al., a high level of CCL2 was secreted by MDA-MB-231 cells (approximately 30 ng/10^6 cells/48 h) and a low level (approximately 7 pg/10^6 cells/48 h) by T47D cells.
+- name: MDA_MB231_time_interval_48h
+  value: 48.0
+  units: hour
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Yoshimura2023
+  source_location: Table 2 value "30 ng/10^6 cells/48 h"
+  extraction_method: manual
+  value_snippet: 30 ng/10^6 cells/48 h
+- name: MDA_MB231_cell_count
+  value: 1000000.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: initial_condition
+  source_ref: Yoshimura2023
+  source_location: Table 2 value "30 ng/10^6 cells/48 h"
+  extraction_method: manual
+  value_snippet: 30 ng/10^6 cells/48 h
+- name: CCL2_molecular_weight
+  value: 11024.87
+  units: gram/mole
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: DrugBank_CCL2
+  source_location: DrugBank polypeptide entry for C-C motif chemokine 2 (P13500)
+  extraction_method: manual
+  value_snippet: Molecular Weight 11024.87
+
+calibration:
+  parameters:
+  - name: k_CCL2_sec
+    units: nanomole/cell/day
+    prior:
+      distribution: lognormal
+      mu: -20.7
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Wide prior centered near 10^-9 nmol/cell/day based on constitutive CCL2 secretion reported for human breast cancer cells (MDA-MB-231), inflated to account for inter-line variability and translation from breast cancer in vitro to PDAC in vivo tumor cells.
+  state_variables:
+  model:
+    data_rationale: |
+      Yoshimura 2023 summarizes Nam et al. measurements of cumulative CCL2 production by MDA-MB-231 breast cancer cells over 48 h, normalized per 10^6 cells. Under constant cell number and negligible degradation in conditioned medium, this directly determines the per-cell secretion rate.
+    submodel_rationale: |
+      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment follow d(CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * CCL2. Integrating this ODE over a short interval with approximately constant cell number and ignoring degradation yields CCL2(t) - CCL2(0) ≈ k_CCL2_sec * C_total * t. The in vitro assay measures this cumulative production per cell over a fixed time, so an algebraic conversion from cumulative mass to moles per cell per day is a mechanistically consistent submodel for k_CCL2_sec.
+    type: direct_conversion
+    formula: |
+      k_CCL2_sec = (MDA_MB231_CCL2_mass_48h / CCL2_molecular_weight / MDA_MB231_cell_count / MDA_MB231_time_interval_48h)
+  independent_variable:
+  measurements:
+  - name: k_CCL2_sec_observation
+    observable:
+    units: nanomole/cell/day
+    uses_inputs:
+    - MDA_MB231_CCL2_mass_48h
+    - MDA_MB231_time_interval_48h
+    - MDA_MB231_cell_count
+    - CCL2_molecular_weight
+    evaluation_points:
+    - 0.0
+    sample_size: 3
+    sample_size_rationale: |
+      Nam et al. likely used triplicate cultures, but the review summarizing their data did not report n; we assume a typical n=3 for ELISA-based secretion assays.
+    distribution_code: |
+      def derive_distribution(inputs, ureg):
+          import numpy as np
+          mass = inputs['MDA_MB231_CCL2_mass_48h']
+          time = inputs['MDA_MB231_time_interval_48h']
+          cells = inputs['MDA_MB231_cell_count']
+          mw = inputs['CCL2_molecular_weight']
+          # Convert to base units
+          mass_g = mass.to('gram').magnitude
+          mw_g_per_mol = mw.to('gram/mole').magnitude
+          moles = mass_g / mw_g_per_mol
+          time_days = time.to('day').magnitude
+          cell_number = cells.magnitude
+          k_mol_per_cell_per_day = moles / (cell_number * time_days)
+          k_nmol_per_cell_per_day = k_mol_per_cell_per_day * 1e9
+          samples = np.array([k_nmol_per_cell_per_day])
+          return {
+              'median': float(np.median(samples)),
+              'ci95_lower': float(np.percentile(samples, 2.5)),
+              'ci95_upper': float(np.percentile(samples, 97.5)),
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Per-cell secretion rates are positive and typically vary over orders of magnitude across tumors and cell lines; a lognormal likelihood is appropriate for such scale parameters.
+  identifiability_notes: |
+    Given fixed molecular weight, cell count, and time interval, the algebraic conversion uniquely maps the measured cumulative CCL2 production to k_CCL2_sec; thus the parameter is structurally identifiable from this dataset. However, the experiment was performed in breast cancer cell lines rather than PDAC, and different studies report variable CCL2 levels even for the same line, so biological and experimental heterogeneity will introduce substantial practical uncertainty. When this submodel is embedded in the full PDAC QSP model, additional CCL2-related data (e.g., PDAC patient serum CCL2 levels vs. tumor burden or PDAC cell line secretion data) would further constrain k_CCL2_sec and help separate it from k_CCL2_deg.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The quantitative secretion measurement comes from human triple-negative breast cancer cell line MDA-MB-231 rather than PDAC. We use this as a mechanistic proxy for tumor-cell-intrinsic CCL2 secretion because CCL2 is widely produced by many epithelial tumors, including PDAC, and is regulated by conserved pathways such as NF-kappaB. However, baseline secretion levels and regulation likely differ between breast and pancreatic tumors and between in vitro monolayers and in vivo PDAC lesions. We therefore treat this source as providing only an order-of-magnitude prior for k_CCL2_sec, not a PDAC-specific value.
+  species_source: human
+  species_target: human
+  source_quality: review_article
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Data are from 2D monocultures of breast cancer cells lacking stromal and immune components, whereas PDAC tumors exhibit a dense desmoplastic stroma, hypoxia, and complex paracrine regulation. CCL2 secretion is partly tumor-cell intrinsic but can be strongly modulated by cytokines and stromal interactions, so per-cell secretion rates in PDAC in vivo could differ by several fold.
+  estimated_translation_uncertainty_fold: 5.0
+  validation_warnings: []
