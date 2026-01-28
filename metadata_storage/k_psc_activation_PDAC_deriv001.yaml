@@ -111,6 +111,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019bfe38fdfd273ecc701741a0ac4762
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: psc_activation_time_48h

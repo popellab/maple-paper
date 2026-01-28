@@ -88,6 +88,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019c00d310795ac33a06b83ad79e067c
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: t_vis_Treg

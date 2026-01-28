@@ -94,6 +94,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019c0339ce719b5fcfc397fa48f893a1
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: MDA_MB231_CCL2_mass_48h

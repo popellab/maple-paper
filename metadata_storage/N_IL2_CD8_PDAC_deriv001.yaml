@@ -105,6 +105,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019c00c3eaac0d2f2ad6caf84c048d37
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: fold_increase_memory_day10_min

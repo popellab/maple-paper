@@ -100,6 +100,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019bfe38fe199fcc69303c378358cfe4
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: psc_viability_mel_1mM_48h

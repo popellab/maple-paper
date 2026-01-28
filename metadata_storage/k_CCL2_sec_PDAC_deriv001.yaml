@@ -95,6 +95,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019bfe27b95a0ebc9517fc063476a293
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: CCL2_prsc_unstim_mean

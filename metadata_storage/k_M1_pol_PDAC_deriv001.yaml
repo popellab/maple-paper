@@ -76,6 +76,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019c00abbcff620a46181ceb04a04010
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: t_reprogram_max_90min

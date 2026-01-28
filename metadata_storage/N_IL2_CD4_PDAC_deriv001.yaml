@@ -102,6 +102,8 @@ tags:
 - ai-generated
 
 logfire_trace_id: 019c00c3eac81549f77c3af06276c54a
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
 
 inputs:
 - name: max_divisions_cd4_antiCD3_IL2_IL4
