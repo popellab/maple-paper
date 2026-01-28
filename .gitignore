@@ -13,7 +13,7 @@
 *.blg
 
 # Keep PDFs (they're the output)
-# *.pdf
+*.pdf
 
 # Python
 __pycache__/
@@ -32,3 +32,8 @@ venv/
 merged_yamls/
 merged_yamls.zip
 published_parameter_details.xlsx
+.env
+
+jobs
+archive
+_minted

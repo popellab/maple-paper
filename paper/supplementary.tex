@@ -6,89 +6,13 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage[dvipsnames]{xcolor}
-\usepackage{listings}
+\usepackage{minted}
 
-% Define custom colors for YAML
-\definecolor{yamlkey}{RGB}{0, 102, 153}       % Blue for keys
-\definecolor{yamlstring}{RGB}{163, 21, 21}    % Maroon for strings
-\definecolor{yamlcomment}{RGB}{0, 128, 0}     % Green for comments
-\definecolor{yamlnumber}{RGB}{128, 0, 128}    % Purple for numbers
-\definecolor{yamlbg}{RGB}{248, 248, 248}      % Light gray background
-
-% Code listing style for YAML
-\lstdefinelanguage{yaml}{
-  keywords={true,false,null,y,n},
-  keywordstyle=\color{yamlnumber}\bfseries,
-  basicstyle=\ttfamily\footnotesize,
-  sensitive=false,
-  comment=[l]{\#},
-  morecomment=[s]{/*}{*/},
-  commentstyle=\color{yamlcomment}\itshape,
-  stringstyle=\color{yamlstring},
-  moredelim=[l][\color{yamlkey}\bfseries]{:},
-  moredelim=**[il][\color{yamlkey}\bfseries]{:\ },
-  morestring=[b]',
-  morestring=[b]",
-  literate=
-    {-}{{{\color{yamlkey}-}}}1
-    {>}{{{\color{yamlkey}>}}}1
-    {|}{{{\color{yamlkey}|}}}1,
-}
-
-\lstdefinestyle{yaml}{
-    language=yaml,
-    basicstyle=\ttfamily\footnotesize,
-    breaklines=true,
-    frame=single,
-    backgroundcolor=\color{yamlbg},
-    numbers=left,
-    numberstyle=\tiny\color{gray},
-    numbersep=5pt,
-    showstringspaces=false,
-    tabsize=2,
-    rulecolor=\color{gray!50},
-}
-
-% Julia language definition
-\lstdefinelanguage{julia}{
-  keywordsprefix=\@,
-  morekeywords={
-    exit,whos,edit,load,is,isa,isequal,typeof,tuple,ntuple,uid,hash,finalizer,convert,promote,
-    subtype,typemin,typemax,realmin,realmax,sizeof,eps,promote_type,method_exists,applicable,
-    invoke,dlopen,dlsym,system,error,throw,assert,new,Inf,Nan,pi,im,begin,while,for,in,return,
-    break,continue,macro,quote,let,if,elseif,else,try,catch,end,bitstype,ccall,do,using,module,
-    import,export,importall,baremodule,immutable,local,global,const,Bool,Int,Int8,Int16,Int32,
-    Int64,Uint,Uint8,Uint16,Uint32,Uint64,Float32,Float64,Complex64,Complex128,Any,Nothing,None,
-    function,type,typealias,abstract
-  },
-  sensitive=true,
-  morecomment=[l]{\#},
-  morestring=[b]',
-  morestring=[b]"
-}
-
-\lstset{
-  basicstyle=\ttfamily\footnotesize,
-  columns=fullflexible,
-  numbers=left,
-  numberstyle=\small\ttfamily\color{Gray},
-  stepnumber=1,
-  numbersep=10pt,
-  numberfirstline=true,
-  numberblanklines=true,
-  tabsize=4,
-  lineskip=-1.5pt,
-  extendedchars=true,
-  breaklines=true,
-  keywordstyle=\color{Blue}\bfseries,
-  identifierstyle=,
-  commentstyle=\sffamily\color{OliveGreen},
-  stringstyle=\color{Maroon},
-  showstringspaces=false,
-  showtabs=false,
-  upquote=false,
-  texcl=true
-}
+% Minted settings
+\setminted{fontsize=\footnotesize, breaklines, frame=single, framesep=2mm}
+\setminted[yaml]{style=friendly}
+\setminted[python]{style=friendly}
+\setminted[julia]{style=friendly}
 
 \title{Supplementary Materials:\\LLM-Assisted Extraction of QSP Calibration Targets}
 \author{Joel Eliason}
@@ -114,7 +38,7 @@ This target constrains the proliferation rate parameter \texttt{k\_apsc\_prolif}
 
 \subsection{Complete YAML Specification}
 
-\begin{lstlisting}[style=yaml]
+\begin{minted}{yaml}
 # Schema: SubmodelTarget
 # Target: Activated PSC proliferation rate
 
@@ -322,7 +246,7 @@ secondary_data_sources:
     source_tag: Apte1999_PSC_Cytokines
     contribution: |
       Provides context on PSC activation and cytokine response protocols.
-\end{lstlisting}
+\end{minted}
 
 \subsection{Schema Structure Summary}
 
@@ -402,7 +326,7 @@ The validation framework includes ten automated checks implemented as Pydantic \
 
 The DOI validator queries the CrossRef API to verify that every cited DOI resolves to a valid publication. This catches fabricated citations before they enter the calibration pipeline. The validator also performs fuzzy matching on title and year to detect metadata inconsistencies.
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 def resolve_doi(doi: str) -> Optional[dict]:
     """Resolve DOI and get metadata from CrossRef."""
     doi_clean = doi.replace("https://doi.org/", "").strip()
@@ -440,7 +364,7 @@ def validate_doi_resolution_and_metadata(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("DOI validation errors:\n  - " + "\n  - ".join(errors))
     return self
-\end{lstlisting}
+\end{minted}
 
 \textbf{Example failure}: If an LLM fabricates a citation with DOI \texttt{10.1234/fake.2023.12345}, the CrossRef query returns a 404 error and validation fails with:
 \begin{verbatim}
@@ -452,7 +376,7 @@ Verify at https://doi.org/10.1234/fake.2023.12345
 
 The value-in-snippet validator checks that each extracted numeric value appears in its associated source text. This catches hallucinations where an LLM extracts a plausible but incorrect value. The validator handles multiple numeric formats including scientific notation, percentages, and Unicode superscripts.
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 def check_value_in_text(text: str, value: float) -> bool:
     """Check if numeric value appears in text."""
     text_norm = text.lower().replace(",", "")
@@ -496,7 +420,7 @@ def validate_input_values_in_snippets(self) -> "SubmodelTarget":
         raise ValueError("Value-snippet mismatches (possible hallucination):\n  - "
                         + "\n  - ".join(errors))
     return self
-\end{lstlisting}
+\end{minted}
 
 \textbf{Example failure}: If an input claims \texttt{value: 4.37} but the snippet reads ``Cell proliferation was 3.21-fold of control'', validation fails with:
 \begin{verbatim}
@@ -511,7 +435,7 @@ This validator is particularly effective because LLMs that hallucinate values ra
 
 The unit validator parses all unit strings using Pint, a Python library for physical quantities. Malformed or unrecognized units trigger validation failure.
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 @model_validator(mode="after")
 def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     """Validate that all unit strings are valid Pint units."""
@@ -533,7 +457,7 @@ def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("Invalid Pint units:\n  - " + "\n  - ".join(errors))
     return self
-\end{lstlisting}
+\end{minted}
 
 \textbf{Example failure}: If a parameter specifies \texttt{units: cells/mL/day} (invalid compound unit), validation fails with:
 \begin{verbatim}
@@ -561,7 +485,7 @@ These validators catch internal inconsistencies where an LLM generates reference
 
 The translator generates Julia scripts with the following structure:
 
-\begin{lstlisting}[language=julia]
+\begin{minted}{julia}
 using DifferentialEquations
 using Turing
 using Distributions
@@ -598,7 +522,7 @@ end
 # Run inference
 model = proliferation_model()
 chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
-\end{lstlisting}
+\end{minted}
 
 For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
 
@@ -613,7 +537,7 @@ This section provides the key Pydantic model definitions that implement the Subm
 
 The \texttt{SubmodelTarget} class is the entry point for validation. When a YAML file is loaded, Pydantic recursively validates all nested models.
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 class SubmodelTarget(BaseModel):
     """
     Submodel-based calibration target for QSP parameter inference.
@@ -658,15 +582,15 @@ class SubmodelTarget(BaseModel):
         default=None, description="Additional literature sources"
     )
 
-    # Validators (10 total) are defined as @model_validator methods
+    # Validators (10 total) defined via Pydantic decorators
     # See Section S3 for implementation details
-\end{lstlisting}
+\end{minted}
 
 \subsection{Input Model}
 
 Each input captures a single value extracted from literature with full provenance:
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 class InputType(str, Enum):
     """Type of input extracted from literature."""
     DIRECT_MEASUREMENT = "direct_measurement"   # Value reported directly
@@ -697,13 +621,13 @@ class Input(BaseModel):
         default=None,
         description="Exact text from paper containing the value (for validation)"
     )
-\end{lstlisting}
+\end{minted}
 
 \subsection{Model Type Discriminated Union}
 
 The schema uses Pydantic's discriminated union pattern to support multiple model types, each with type-specific required fields:
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 class BaseModelSpec(BaseModel):
     """Base class for all model specifications."""
     data_rationale: str = Field(
@@ -748,7 +672,7 @@ Model = Annotated[
     ],
     Field(discriminator="type"),
 ]
-\end{lstlisting}
+\end{minted}
 
 The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \texttt{type} field in the YAML to determine which model class to instantiate. This ensures that an \texttt{exponential\_growth} model is validated against \texttt{ExponentialGrowthModel} (which requires \texttt{rate\_constant}) while a \texttt{two\_state} model is validated against \texttt{TwoStateModel} (which requires \texttt{forward\_rate}).
 
@@ -756,7 +680,7 @@ The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \text
 
 Priors are specified with distribution type and parameters:
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 class PriorDistribution(str, Enum):
     """Supported prior distribution types."""
     LOGNORMAL = "lognormal"    # For positive parameters (rates, densities)
@@ -785,13 +709,13 @@ class Prior(BaseModel):
             if self.lower >= self.upper:
                 raise ValueError("uniform lower must be < upper")
         return self
-\end{lstlisting}
+\end{minted}
 
 \subsection{Loading and Validating YAML Files}
 
 To load and validate a calibration target:
 
-\begin{lstlisting}[language=python,basicstyle=\ttfamily\scriptsize]
+\begin{minted}[fontsize=\scriptsize]{python}
 import yaml
 from qsp_llm_workflows.core.calibration import SubmodelTarget
 
@@ -806,7 +730,7 @@ target = SubmodelTarget(**data)
 print(f"Target: {target.target_id}")
 print(f"Parameters: {[p.name for p in target.calibration.parameters]}")
 print(f"Model type: {target.calibration.model.type}")
-\end{lstlisting}
+\end{minted}
 
 If validation fails, Pydantic raises a \texttt{ValidationError} with detailed error messages:
 
