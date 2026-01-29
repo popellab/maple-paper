@@ -134,26 +134,50 @@ calibration:
       upper:
       rationale: |
         Centered on approximately eight generations, matching the maximum resolvable divisions ("divisions 8+") for naive CD4+ T cells stimulated with anti-CD3, IL-2, and IL-4 in Gett and Hodgkin 1998. A relatively wide sigma of 2 divisions allows for unresolved additional divisions beyond the CFSE detection limit, differences between mouse and human CD4 T cells, and context-dependent modulation by other signals (antigen, co-stimulation, other cytokines).
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: N_IL2_CD4 = max_divisions_cd4_antiCD3_IL2_IL4
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: N_IL2_CD4 is directly the max divisions."""
+          N = params['N_IL2_CD4']
+          return N * ureg.dimensionless
+    code_julia: |
+      function compute(params, inputs)
+          N = params["N_IL2_CD4"]
+          return N
+      end
     data_rationale: |
       Gett and Hodgkin (1998) tracked division of naive murine CD4+ T cells labeled with CFSE and stimulated with plate-bound anti-CD3, IL-2 (100 U/ml), and IL-4 (100 U/ml). Under these conditions, cells progressed through multiple synchronous divisions, and the authors reported that divisions beyond seven cycles were indistinguishable and were grouped as "divisions 8+" due to the CFSE detection limit. This provides a direct experimental estimate of the maximum number of cell generations achieved by strongly IL-2-supported naive CD4+ T cells in vitro.
     submodel_rationale: |
       In the full QSPIO-PDAC model, N_IL2_CD4 represents a maximum number of activated CD4 T cell generations driven by IL-2 (a division-destiny-like cap). The Gett and Hodgkin system provides naive CD4+ T cells with strong TCR stimulation plus exogenous IL-2 and IL-4, resulting in repeated symmetric divisions until proliferation slows. Since the key outcome is the maximum division number rather than detailed time-course dynamics, a direct mapping of the experimentally observed maximal division index to N_IL2_CD4 is mechanistically consistent. The division-destiny framework used conceptually in the QSP model directly parallels the division limit inferred from CFSE peaks in this experiment.
-    type: direct_conversion
-    formula: N_IL2_CD4 = max_divisions_cd4_antiCD3_IL2_IL4
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: N_IL2_CD4_estimate
     observable:
     units: dimensionless
     uses_inputs:
     - max_divisions_cd4_antiCD3_IL2_IL4
-    evaluation_points:
-    - 0.0
     sample_size: 5
     sample_size_rationale: |
       Approximate number of independent cultures implied by "two experiments" and multiple replicate wells; exact n is not specified, so n=5 is treated as an approximate effective sample size for uncertainty calibration.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for N_IL2_CD4 from CFSE division tracking.
+
+          SD set to approximately 2 divisions based on CFSE detection limit uncertainty.
+          """
+          max_div = inputs['max_divisions_cd4_antiCD3_IL2_IL4'].magnitude
+          sd = 0.25 * max_div  # ~2 divisions for max_div=8
+          return {
+              'sd': sd * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 5,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -178,5 +202,6 @@ calibration:
       distribution: normal
       rationale: |
         We treat the experimental proxy (max_divisions_cd4_antiCD3_IL2_IL4) as a noisy observation of the latent division-destiny parameter N_IL2_CD4 with approximately one division of experimental and biological scatter. The distribution_code above is used to map the proxy input into an effective prior/posterior over N_IL2_CD4.
+
   identifiability_notes: |
     This calibration uses a single in vitro proxy measurement of the maximum resolvable division number for naive murine CD4+ T cells under strong anti-CD3, IL-2 and IL-4 stimulation. As a result, N_IL2_CD4 is only weakly constrained: (1) the true biological division destiny may exceed the CFSE detection limit of 7-8 cycles; (2) IL-4 and strong TCR signals also contribute to division destiny but are not decomposed from the IL-2 contribution; and (3) the translation from naive murine CD4+ T cells in vitro to human tumor-infiltrating or lymph-node-resident CD4+ T cells in PDAC is uncertain. The prior on N_IL2_CD4 is therefore deliberately broad, and this submodel should be viewed as providing an order-of-magnitude anchor for the maximum number of IL-2-supported divisions rather than a tightly identified parameter. Additional data (e.g., quantitative division-destiny analyses with IL-2 titrations in CD4+ T cells, or human primary CD4+ T cell division tracking under clinically relevant cytokine conditions) would be required for sharper identification.

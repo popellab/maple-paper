@@ -110,7 +110,7 @@ inputs:
   uncertainty:
     ci95:
     sd: 0.0115
-  n:
+  n: 3
   input_type: direct_measurement
   role: target
   source_ref: Estaras2021_MelatoninPSC
@@ -118,6 +118,18 @@ inputs:
   extraction_method: manual
   value_snippet: |
     Figure 1. Effect of melatonin on cell viability and proliferation. (A) The bars show the effect of melatonin (1 mM, 100 uM, 10 uM or 1 uM) on the viability of PSCs incubated under hypoxia (in %: 86.77 +/- 1.15; 94.16 +/- 1.41; 97.38 +/- 1.39; 98.39 +/- 2.11; respectively for each concentration of melatonin vs. nontreated cells under hypoxia, which was considered 100%). Tps (1 uM) was used as control for cell death (in %: 63.67 +/- 2.21).
+- name: psc_viability_sem
+  value: 1.15
+  units: percent
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Estaras2021_MelatoninPSC
+  source_location: Figure 1A, 48 h hypoxia, 1 mM melatonin
+  extraction_method: manual
+  value_snippet: |
+    86.77 +/- 1.15
 - name: psc_hypoxia_duration_48h
   value: 48.0
   units: hour
@@ -167,29 +179,33 @@ calibration:
       upper:
       rationale: |
         PSC viability after 48 h under hypoxia with 1 mM melatonin is 86.77% (+/-1.15%), implying an effective first-order death rate of ~0.071 1/day (half-life ~10 days) if proliferation is neglected. Prior is centered on ln(0.071)=-2.65 with a broad sigma=0.7 to allow ~2-fold uncertainty in either direction and to accommodate differences between rat PSCs under pharmacologic melatonin and human aPSCs in PDAC tumors.
-  state_variables:
-  - name: aPSC_norm
-    units: dimensionless
-    initial_condition:
-      value: 1.0
+
+  forward_model:
+    # ODE model structure
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 2.0
       rationale: |
-        Activated PSC population normalized to 1 at start of hypoxic incubation; viability at later times is expressed as a fraction of this baseline.
-  model:
+        PSC cultures were exposed to hypoxia +/- melatonin for 48 h (2 days) before viability measurement; the decay model is integrated over this interval.
+    state_variables:
+    - name: aPSC_norm
+      units: dimensionless
+      initial_condition:
+        value: 1.0
+        rationale: |
+          Activated PSC population normalized to 1 at start of hypoxic incubation; viability at later times is expressed as a fraction of this baseline.
+    # Model specification
+    type: first_order_decay
+    rate_constant: k_apsc_death
     data_rationale: |
       Estaras et al. report normalized viability of activated rat PSCs after 48 h of hypoxia with or without melatonin, quantified by crystal violet absorbance. For a single treatment condition (1 mM melatonin), the decline from 100% to 86.77% viable cells over 48 h can be represented as first-order loss of viable PSCs when normalized to initial cell number.
     submodel_rationale: |
       In the full QSPIO-PDAC model, activated PSCs (aPSC) are removed via a first-order death reaction V_T.aPSC -> null with rate k_apsc_death·aPSC, in parallel with proliferation and activation inputs. This submodel isolates that death reaction by modeling a single normalized aPSC state obeying daPSC_norm/dt = -k_apsc_death·aPSC_norm, assuming activation and proliferation are approximately balanced or suppressed under pro-apoptotic, hypoxic conditions. Thus, the inferred k_apsc_death can be mapped directly to the same parameter in the full model.
-    type: first_order_decay
-    rate_constant: k_apsc_death
-  independent_variable:
-    name: time
-    units: day
-    span:
-    - 0.0
-    - 2.0
-    rationale: |
-      PSC cultures were exposed to hypoxia +/- melatonin for 48 h (2 days) before viability measurement; the decay model is integrated over this interval.
-  measurements:
+
+  error_model:
   - name: psc_viability_48h_mel_1mM
     observable:
       type: identity
@@ -200,15 +216,33 @@ calibration:
     units: dimensionless
     uses_inputs:
     - psc_viability_mel_1mM_48h
+    - psc_viability_sem
     evaluation_points:
     - 2.0
     sample_size: 3
     sample_size_rationale: |
       Figure 1 caption states that data are representative of three to four independent experiments; we conservatively assume n≈3 for viability under 1 mM melatonin.
-    distribution_code:
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for PSC viability.
+
+          The paper reports viability as 86.77 +/- 1.15% (mean +/- SEM).
+          SD = SEM * sqrt(n). Convert from percent to fraction.
+          """
+          import numpy as np
+          sem_pct = inputs['psc_viability_sem'].magnitude  # in percent
+          sem = sem_pct / 100  # convert to fraction
+          sd = sem * np.sqrt(sample_size)
+          return {
+              'sd': sd * ureg.dimensionless,
+              'sd_uncertain': True,  # n is approximate (3-4 experiments)
+              'n': sample_size,
+          }
     likelihood:
       distribution: normal
       rationale: |
         Normalized viability fractions are close to 1 with small SEM (≈0.0115), so a Normal likelihood on the fraction aPSC_norm(t=2 d) is adequate and numerically convenient.
+
   identifiability_notes: |
     With a single time point at 48 h and a known normalized initial condition (aPSC_norm(0)=1), the first-order decay model uniquely determines k_apsc_death in the absence of proliferation or additional sources. However, in reality activated PSCs can proliferate under hypoxia; using a death-only model means the inferred k_apsc_death effectively captures a net loss rate (death minus any residual proliferation) under 1 mM melatonin. The posterior for k_apsc_death will therefore reflect both true apoptotic death and any unmodeled proliferation, and should be interpreted as an upper-bound estimate for baseline aPSC death in PDAC tumors without melatonin or thapsigargin. Additional time points or explicit proliferation measurements would be required to separately identify death and proliferation rates.

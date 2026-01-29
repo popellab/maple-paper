@@ -105,26 +105,62 @@ calibration:
       upper:
       rationale: |
         Cellular-scale M2-to-M1 repolarization under strong IL-12 exposure occurs on a timescale <90 min in mouse tumor-associated macrophages; prior centered around ~20/day with wide uncertainty to allow for species and context differences and for mapping from functional reprogramming to phenotypic polarization.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: k_M1_pol = ln(2) / t_half_days
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_M1_pol, predict reprogramming half-time in minutes."""
+          import numpy as np
+          k = params['k_M1_pol']  # 1/day
+          t_half_days = np.log(2) / k
+          t_half_min = t_half_days * 24.0 * 60.0
+          return t_half_min * ureg.minute
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_M1_pol"]
+          t_half_days = log(2) / k
+          return t_half_days  # days
+      end
     data_rationale: |
       Watkins et al. (2007) report that IL-12 treatment of tumor-bearing mice and ex vivo tumor-associated macrophages induces a rapid (<90 min) loss of tumor-supportive cytokine production (IL-10, MCP-1, migration inhibitory factor, TGFbeta) and gain of proinflammatory cytokines (TNFalpha, IL-15, IL-18). This functional reprogramming time is used as a proxy for the half-life of the M2-to-M1 polarization process under strong IL-12 stimulation.
     submodel_rationale: |
       In the full QSPIO-PDAC model, M2-to-M1 polarization in the tumor compartment is modeled as a first-order transition V_T.Mac_M2 -> V_T.Mac_M1 with rate k_M1_pol*V_T.Mac_M2 multiplied by a Hill-type modulation of IL-12 and IFNg. Under strong IL-12 (and associated IFNg) exposure, this modulation term approaches 1, so the effective rate constant for M2-to-M1 conversion is k_M1_pol. The observed IL-12-induced rapid functional conversion of tumor-associated macrophages therefore constrains the magnitude of k_M1_pol assuming first-order kinetics at the cell level.
-    type: direct_conversion
-    formula: k_M1_pol = ln(2) / t_half_days
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: k_M1_pol_derived_from_90min
     observable:
-    units: 1/day
+    units: minute
     uses_inputs:
     - t_reprogram_max_90min
-    evaluation_points:
-    - 0.0
     sample_size:
     sample_size_rationale: |
       Not explicitly reported; the abstract summarizes consistent findings across multiple in vivo and in vitro experiments, so we treat the reported <90 min timescale as a single summarized observation.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_M1_pol derived from reprogramming timescale.
+
+          The paper reports <90 min reprogramming time. We model uncertainty
+          via a distribution over the polarization half-life and propagate to k.
+          """
+          import numpy as np
+          import math
+          t_max = inputs['t_reprogram_max_90min'].to('minute').magnitude
+          r_samples = np.random.beta(2.0, 2.0, size=10000)
+          r_samples = r_samples * 0.989 + 0.011
+          t_half_min = r_samples * t_max
+          t_half_days = t_half_min / (60.0 * 24.0)
+          k_samples = math.log(2.0) / t_half_days
+          log_k_sd = np.std(np.log(k_samples))
+          return {
+              'sd': log_k_sd * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 1,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -149,5 +185,6 @@ calibration:
       distribution: lognormal
       rationale: |
         We approximate the derived distribution over k_M1_pol (obtained by sampling possible half-lives less than 90 min) with a lognormal likelihood in log(k_M1_pol). This reflects positive support and multiplicative uncertainty in the rate constant.
+
   identifiability_notes: |
     This submodel constrains only the order of magnitude of k_M1_pol under conditions of strong IL-12 (and associated IFNg) stimulation, based on a single summarized timescale (<90 min) for TAM functional reprogramming. The mapping from functional cytokine profile shift to stable M1 phenotypic polarization is approximate, and the conversion from an upper bound on reprogramming time to an effective half-life introduces additional uncertainty (encoded via a Beta prior over the half-life fraction). In the full QSPIO-PDAC model, k_M1_pol will be correlated with IL12_50 and IFNg_50 (which determine how often the IL-12/IFNg modulation term is near 1) and with other macrophage turnover parameters (k_M2_pol, k_Mac_death, recruitment). Additional time-resolved measurements of M2-to-M1 marker expression (e.g., CD206 downregulation and iNOS/CD86 upregulation) under defined IL-12 and IFNg concentrations would be needed for tighter identification and for disentangling k_M1_pol from cytokine sensitivity parameters.

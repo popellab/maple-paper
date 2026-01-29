@@ -172,30 +172,90 @@ calibration:
       upper:
       rationale: |
         PrSC (benign human prostate stromal cells) secreted 1,888±631 pg/mL MCP-1 over 48 h from 1×10^5 cells in a 24-well plate. Assuming 1 mL medium per well, negligible degradation, and MCP-1 molecular weight ≈8.7 kDa, this corresponds to an approximate secretion rate of 1.1×10^{-9} nmol/cell/day. A wide lognormal prior (σ=1.5) allows for uncertainty in medium volume, cross-tissue extrapolation from prostate stroma to PDAC tumor cells, and potential chemokine degradation.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      k_CCL2_sec = f(CCL2_prsc_unstim_mean, CCL2_prsc_unstim_sd, n_cells_prsc, incubation_time_hours, V_medium_ml) converting pg/mL over 48 h in 1 mL from 1e5 cells to nmol/cell/day using MW≈8.7 kDa.
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_CCL2_sec, predict CCL2 concentration."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          k = params['k_CCL2_sec']  # nmol/cell/day
+          N_cells = _val(inputs['n_cells_prsc'])
+          t_h = _val(inputs['incubation_time_hours'])
+          V_ml = _val(inputs['V_medium_ml'])
+          MW = 8.7e3  # g/mol
+          days = t_h / 24.0
+          nmol = k * N_cells * days
+          mass_g = nmol * 1e-9 * MW
+          mass_pg = mass_g * 1e12
+          conc = mass_pg / V_ml
+          return conc * ureg('pg/milliliter')
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_CCL2_sec"]
+          N_cells = inputs["n_cells_prsc"]
+          t_h = inputs["incubation_time_hours"]
+          V_ml = inputs["V_medium_ml"]
+          MW = 8.7e3
+          days = t_h / 24.0
+          nmol = k * N_cells * days
+          mass_g = nmol * 1e-9 * MW
+          mass_pg = mass_g * 1e12
+          conc = mass_pg / V_ml
+          return conc  # pg/mL
+      end
     data_rationale: |
       Fujita et al. reported a single 48 h time point measurement of MCP-1 (CCL2) concentration in conditioned medium from a known number of human prostate stromal cells (PrSC). Because only an end-point concentration is available and secretion can be approximated as linear with time, the per-cell secretion rate can be computed analytically from the measured concentration, assuming negligible degradation and a known medium volume.
     submodel_rationale: |
       In the full PDAC QSP model, tumor CCL2 dynamics are given by d(CCL2)/dt = k_CCL2_sec·C_total − k_CCL2_deg·CCL2. In the PrSC experiment, CCL2 accumulates in a fixed medium volume V over time t from N_cells secreting at rate k_CCL2_sec. Neglecting degradation, the final concentration C_meas satisfies C_meas·V = k_CCL2_sec·N_cells·t (up to unit conversions). Thus k_CCL2_sec can be obtained by direct algebraic conversion from the measured concentration, using the same mechanistic production term (rate×cell number) as in the full model but omitting the degradation term over the short assay duration.
-    type: direct_conversion
-    formula: |
-      k_CCL2_sec = f(CCL2_prsc_unstim_mean, CCL2_prsc_unstim_sd, n_cells_prsc, incubation_time_hours, V_medium_ml) converting pg/mL over 48 h in 1 mL from 1e5 cells to nmol/cell/day using MW≈8.7 kDa.
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: derived_k_CCL2_sec_from_PrSC
     observable:
-    units: nanomole/cell/day
+    units: pg/milliliter
     uses_inputs:
     - CCL2_prsc_unstim_mean
     - CCL2_prsc_unstim_sd
     - n_cells_prsc
     - incubation_time_hours
     - V_medium_ml
-    evaluation_points:
-    - 0.0
     sample_size: 3
     sample_size_rationale: Same replicate number as the underlying ELISA measurement (assumed n=3).
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_CCL2_sec derived from PrSC secretion data.
+
+          SD propagated from the reported concentration SD through unit conversion.
+          """
+          import numpy as np
+          conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude
+          conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude
+          V_ml = inputs['V_medium_ml'].magnitude
+          N_cells = inputs['n_cells_prsc'].magnitude
+          t_h = inputs['incubation_time_hours'].magnitude
+          MW = 8.7e3
+          mu_log = np.log(conc_mean**2 / np.sqrt(conc_mean**2 + conc_sd**2))
+          sigma_log = np.sqrt(np.log(1 + conc_sd**2 / conc_mean**2))
+          samples = np.random.lognormal(mu_log, sigma_log, 10000)
+          mass_pg = samples * V_ml
+          mass_g = mass_pg * 1e-12
+          moles = mass_g / MW
+          nmol = moles * 1e9
+          days = t_h / 24.0
+          k_samples = nmol / (N_cells * days)
+          log_k_sd = np.std(np.log(k_samples))
+          return {
+              'sd': log_k_sd * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 3,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -232,5 +292,6 @@ calibration:
       distribution: lognormal
       rationale: |
         The derived secretion rate is positive and expected to vary over orders of magnitude due to experimental noise and biological/contextual uncertainty. A lognormal likelihood on k_CCL2_sec, informed by the distribution_code transformation of the measured concentration, is appropriate.
+
   identifiability_notes: |
     Because the algebraic relationship C_meas·V = k_CCL2_sec·N_cells·t (ignoring degradation) directly links the measured concentration to k_CCL2_sec, the parameter is structurally identifiable given known N_cells, t, medium volume, and molecular weight. However, uncertainty in the true medium volume, possible chemokine degradation, and biological differences between benign prostate stroma and PDAC tumor/stromal cells mean that the experimental data constrain only the order of magnitude of k_CCL2_sec. This is reflected in the wide lognormal prior and the stochastic propagation of measurement uncertainty in the distribution_code.

@@ -1,0 +1,252 @@
+study_interpretation: |
+  Yorty2007 shows that after adoptive transfer of Tag-immune donor lymphocytes into SV11 mice bearing advanced choroid plexus tumors, tumor-specific CD8+ T cells accumulate rapidly at the tumor site, reaching peak frequency in the brain within roughly one week (5-7 days). This rapid accumulation is contrasted with a much slower buildup over more than 3 weeks when naive donor cells are used or when fewer immune donor cells are transferred. Interpreted through the lens of the QSPIO-PDAC model, the 5-7 day time-to-peak for immune donor cells reflects the characteristic timescale for efficient extravasation and local expansion of effector CD8+ T cells from the circulation into a solid tumor bed under favorable homing and antigen conditions. By mapping this timescale to an effective first-order recruitment rate and explicitly preserving the dependence of influx on tumor volume, we obtain a mechanistically consistent prior constraint on the CD8+ T cell extravasation parameter q_CD8_T_in.
+
+key_assumptions:
+- |
+  The 5-7 day time window reported for peak tumor-site CD8+ T cell accumulation in SV11 mice primarily reflects the timescale of CD8+ T cell trafficking and early expansion in the tumor, and can be approximated by the time to reach ~95% of the asymptotic tumor-infiltrating population in a first-order approach-to-saturation model.
+- |
+  Under conditions of high-dose adoptive transfer of primed Tag-specific CD8+ T cells plus irradiation, the context-dependent recruitment and exclusion factors in the full QSP model (C_total^2/(C_total^2+Kc_rec) and 1-H_CXCL12_Texcl) can be approximated as unity (f_context ~ 1), so that k_in ~ q_CD8_T_in * V_T.
+- |
+  A reference tumor volume of 1 cm^3 is assumed for calibration, since the SV11 study does not report quantitative tumor volumes at the time of T cell transfer. This choice allows us to infer q_CD8_T_in from an effective first-order rate constant without overfitting unknown tumor-size-dependent effects.
+- |
+  We neglect CD8+ T cell death, exhaustion, and egress from the tumor over the first week post-transfer, treating net accumulation dynamics as dominated by influx and local expansion on the same timescale as trafficking.
+- |
+  We assume that the trafficking kinetics of highly activated, tumor-specific murine CD8+ T cells into SV11 brain tumors provide at least an approximate upper bound on the efficiency of CD8+ T cell extravasation into human PDAC lesions, despite substantial differences in stromal architecture and chemokine-driven exclusion.
+
+key_study_limitations:
+- |
+  The SV11 model involves autochthonus choroid plexus tumors in the brain, not PDAC, so tissue-specific vasculature, stromal barriers, and chemokine gradients are likely very different from those in pancreatic tumors.
+- |
+  The study uses whole-body irradiation and high-dose adoptive transfer of pre-primed donor cells, which enhance trafficking and expansion relative to untreated, endogenous T cell responses; thus, inferred rates may overestimate physiological CD8+ T cell infiltration into PDAC.
+- |
+  Only a coarse peak time window (5-7 days) is reported in the text for tumor-site accumulation; detailed time-course values, tumor volumes, and absolute cell counts in brain tissue are not given, limiting quantitative precision.
+- |
+  The measured endpoint is the frequency of epitope-specific CD8+ T cells among CD8+ cells in the brain, not an absolute influx rate or flux per vessel area; mapping this frequency-based readout to an extravasation rate assumes relatively stable total CD8+ cell numbers and negligible confounding by non-tumor brain regions.
+- |
+  Brain-specific barriers such as the blood-brain barrier and cerebrospinal fluid dynamics may alter trafficking kinetics in ways that are not captured in the PDAC QSP model, adding additional uncertainty to translation of q_CD8_T_in.
+
+experimental_context:
+  species: mouse
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: CD8 T cell
+    phenotype: |
+      Tag-specific effector CD8+ T cells from immunized C57BL/6 donors, adoptively transferred into tumor-bearing SV11 mice
+    isolation_method: |
+      Spleen and lymph node lymphocytes from immunized B6 mice, RBC-depleted, transferred i.v. as described in Materials and methods of Yorty2007
+  - name: choroid plexus tumor cell
+    phenotype: |
+      SV40 large T antigen-driven autochthonous choroid plexus papilloma cells in SV11 transgenic mice
+    isolation_method: |
+      In situ tumors in SV11 transgenic mice; not isolated ex vivo for the trafficking measurements
+  culture_conditions:
+  indication: SV40 Tag-driven autochthonus choroid plexus tumors in mice
+
+primary_data_source:
+  doi: 10.1007/s00262-007-0424-y
+  title: |
+    Rapid accumulation of adoptively transferred CD8+ T cells at the tumor site is associated with long-term control of SV40 T antigen-induced tumors
+  authors:
+  - Yorty JL
+  - Tevethia SS
+  - Schell TD
+  year: 2007
+  source_tag: Yorty2007
+
+secondary_data_sources:
+- doi: 10.1128/jvi.73.7.5981-5993.1999
+  url:
+  title: |
+    Cytotoxic T-lymphocyte epitope immunodominance in the control of choroid plexus tumors in simian virus 40 large T antigen transgenic mice
+  authors:
+  - Schell TD
+  - Tevethia SS
+  year: 1999
+  source_tag: Schell1999
+  contribution: |
+    Provides background on the SV11 transgenic model, tumor kinetics, and the role of epitope IV-specific CD8+ T cells in controlling choroid plexus tumors, supporting interpretation of trafficking data in Yorty2007.
+  source_quality: primary_animal_in_vivo
+
+target_id: q_CD8_T_in_yorty2007_sv11_brain_tumor
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c069f42a0bd82f2ad3f6d5ee62726
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: t_peak_immune_lower
+  value: 5.0
+  units: day
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yorty2007
+  source_location: Abstract and Introduction, lines 111-116
+  extraction_method: manual
+  value_snippet: |
+    "Following adoptive transfer of Tag-immune cells, epitope I- and IV-specific T_CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5-7 days" (Yorty et al., 2007 Cancer Immunol Immunother 57:883-895). The lower bound of this reported peak window is 5 days.
+- name: t_peak_immune_upper
+  value: 7.0
+  units: day
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yorty2007
+  source_location: Abstract and Introduction, lines 111-116
+  extraction_method: manual
+  value_snippet: |
+    "Following adoptive transfer of Tag-immune cells, epitope I- and IV-specific T_CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5-7 days" (Yorty et al., 2007 Cancer Immunol Immunother 57:883-895). The upper bound of this reported peak window is 7 days.
+- name: reference_tumor_volume
+  value: 1.0
+  units: centimeter^3
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: Yorty2007
+  source_location: Not reported in paper; assumption for calibration
+  extraction_method: manual
+  value_snippet: |
+    Tumor volume in SV11 mice at 80 days of age was not reported in Yorty2007; for calibration we assume a reference tumor volume of 1.0 cm^3 so that q_CD8_T_in has units 1/(cm^3*minute) consistent with the full QSP model.
+
+calibration:
+  parameters:
+  - name: q_CD8_T_in
+    units: 1/(centimeter^3*minute)
+    prior:
+      distribution: lognormal
+      mu: -8.0
+      sigma: 3.40
+      lower:
+      upper:
+      rationale: |
+        Wide prior for CD8 T cell extravasation rate per tumor volume, centered on order 1e-4 1/(cm^3*min). This is consistent with an effective infiltration half-time of several days for a 1 cm^3 tumor, as inferred from Yorty2007 kinetics. Sigma of 3.40 (ln(30)) reflects the 30-fold estimated translation uncertainty to accommodate cross-species (mouse to human) and cross-indication (brain tumor to PDAC) translation.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      q_CD8_T_in = (3.0 / t_peak) / V_ref, where t_peak ~ time to near-maximal tumor-site CD8+ T cell accumulation (5-7 days) and V_ref = 1 cm^3
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given q_CD8_T_in, predict peak accumulation time."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          q = params['q_CD8_T_in']
+          V_ref = _val(inputs['reference_tumor_volume'])  # cm^3
+          k_in_per_min = q * V_ref
+          t_peak_min = 3.0 / k_in_per_min
+          t_peak_days = t_peak_min / (24.0 * 60.0)
+          return t_peak_days * ureg.day
+    code_julia: |
+      function compute(params, inputs)
+          q = params["q_CD8_T_in"]
+          V_ref = inputs["reference_tumor_volume"]
+          k_in_per_min = q * V_ref
+          t_peak_min = 3.0 / k_in_per_min
+          t_peak_days = t_peak_min / (24.0 * 60.0)
+          return t_peak_days  # days
+      end
+    data_rationale: |
+      Yorty2007 reports that after adoptive transfer of Tag-immune CD8+ T cells into SV11 mice with advanced choroid plexus tumors, the frequency of tumor-specific CD8+ T cells in the brain peaks within 5-7 days. This time-to-peak accumulation reflects the characteristic timescale for trafficking and expansion of circulating effector CD8+ T cells into the tumor site. Approximating the peak time as the time to ~95% of the asymptotic tumor-infiltrating CD8+ population yields a direct relationship between the observed peak time window and the effective first-order recruitment rate constant.
+    submodel_rationale: |
+      In the full QSP model, CD8+ T cell influx from the central compartment into tumor is modeled by the reaction V_C.CD8 -> V_T.CD8 with rate q_CD8_T_in * V_T * V_C.CD8 * (C_total^2/(C_total^2+Kc_rec)) * (1-H_CXCL12_Texcl). For a given tumor and immune context (fixed C_total, Kc_rec, and CXCL12-mediated exclusion), this flux can be approximated as first-order in circulating CD8+ T cells with an effective rate constant k_in = q_CD8_T_in * V_T * f_context, where f_context combines the recruitment and exclusion Hill terms. In the Yorty2007 system, adoptively transferred effector CD8+ T cells experience strong homing and minimal exclusion, so f_context is approximated as ~1. Under these assumptions, the timescale for buildup of tumor-site CD8+ T cells is governed primarily by k_in, allowing us to relate the observed time to near-maximal accumulation (t_peak) to q_CD8_T_in via k_in ~ 3/t_peak (time to ~95% of asymptotic level for a first-order approach) and k_in = q_CD8_T_in * V_ref. Choosing V_ref = 1 cm^3 yields q_CD8_T_in = 3/(t_peak * V_ref), which preserves the mechanistic dependence on tumor volume used in the full model while collapsing other modulatory factors into the experimental context.
+
+  error_model:
+  - name: q_CD8_T_in_from_tpeak
+    observable:
+    units: day
+    uses_inputs:
+    - t_peak_immune_lower
+    - t_peak_immune_upper
+    - reference_tumor_volume
+    sample_size: 1
+    sample_size_rationale: |
+      Yorty2007 reports a single characteristic peak time window (5-7 days) for tumor-site accumulation of Tag-specific CD8+ T cells after transfer of a high dose of immune donor cells; no explicit n is given for this summary statement, so we treat it as one aggregated measurement with broad uncertainty captured by the 5-7 day range.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for q_CD8_T_in from peak accumulation time.
+
+          SD derived from the uniform distribution over the 5-7 day window.
+          """
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          t_lo = _val(inputs['t_peak_immune_lower'])  # days
+          t_hi = _val(inputs['t_peak_immune_upper'])  # days
+          t_samples = np.random.uniform(t_lo, t_hi, size=10000)
+          k_samples = 3.0 / (t_samples * 24.0 * 60.0)
+          log_k_sd = np.std(np.log(k_samples))
+          return {
+              'sd': log_k_sd * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 1,
+          }
+    distribution_code: |
+      def derive_distribution(inputs, ureg):
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+
+          # Extract peak time range in days
+          t_lo = _val(inputs['t_peak_immune_lower'])  # days
+          t_hi = _val(inputs['t_peak_immune_upper'])  # days
+
+          # Reference tumor volume in cm^3 (assumed experimental condition)
+          V_ref = _val(inputs['reference_tumor_volume'])  # cm^3
+
+          # Sample peak times uniformly over reported 5-7 day window
+          t_samples_days = np.random.uniform(t_lo, t_hi, size=20000)
+
+          # For a first-order approach to saturation y(t) = 1 - exp(-k t),
+          # time to ~95% of asymptotic level is t_peak ~ 3/k, so k_in ~ 3/t_peak.
+          # Convert k_in to units of 1/min.
+          k_in_per_min = 3.0 / (t_samples_days * 24.0 * 60.0)
+
+          # Map k_in to q_CD8_T_in via k_in = q * V_ref (with context factor ~1).
+          q_samples = k_in_per_min / V_ref  # units: 1/(cm^3*min)
+
+          # Use the sampled distribution to summarize median and 95% CI.
+          median = float(np.median(q_samples))
+          ci_lower = float(np.percentile(q_samples, 2.5))
+          ci_upper = float(np.percentile(q_samples, 97.5))
+
+          return {
+              'median': median,
+              'ci95_lower': ci_lower,
+              'ci95_upper': ci_upper,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        q_CD8_T_in is positive and expected to vary over orders of magnitude across tumor types and species. We therefore use a lognormal likelihood anchored on the median and 95% CI derived from the time-to-peak window, treating this as a relatively weak, multiplicative constraint on the parameter.
+
+  identifiability_notes: |
+    This submodel constrains only the combination q_CD8_T_in * V_T * f_context, inferred indirectly from the time required for tumor-specific CD8+ T cells to accumulate near their maximal level in the tumor. By assuming a reference tumor volume (1 cm^3) and f_context ~ 1 for strongly activated, homing-competent effector T cells in the SV11 model, we obtain an approximate distribution for q_CD8_T_in. However, q_CD8_T_in will remain only weakly identified due to: (1) uncertainty in the mapping from peak time to an effective first-order rate constant; (2) lack of explicit tumor volume measurements in the source study; and (3) biological differences between SV11 brain tumors in mice and human PDAC (including vasculature, stromal density, and chemokine fields). Additional data that simultaneously quantify circulating and tumor-infiltrating CD8+ T cell numbers over time in PDAC or closely related models, with known tumor volumes and CXCL12/ECM status, would be required for tighter identification.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The source study (Yorty2007) investigates adoptive transfer of Tag-specific CD8+ T cells into SV11 transgenic mice bearing spontaneous choroid plexus tumors in the brain. The QSPIO-PDAC model targets human pancreatic ductal adenocarcinoma, a distinct organ and disease context. We use the SV11 data only as a mechanistic proxy for the timescale of CD8+ effector T cell trafficking from blood to a solid tumor site under conditions of strong antigen recognition and homing receptor expression. Because brain tumors and PDAC differ substantially in vasculature, stromal architecture, chemokine fields, and immune exclusion, we expect at least an order-of-magnitude translation uncertainty when mapping this trafficking timescale to PDAC.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pharmacological
+  perturbation_relevance: |
+    The SV11 system includes whole-body irradiation and high-dose adoptive transfer of primed CD8+ T cells, which enhance T cell priming, homing receptor expression, and niche availability. As a result, the observed 5-7 day time-to-peak may represent a lower bound (faster-than-physiologic) on CD8+ T cell accumulation kinetics in untreated tumors. In the QSP PDAC model, we therefore treat the resulting q_CD8_T_in estimate as an upper-bound-leaning constraint, and combine it with a broad prior to allow substantially slower effective trafficking in non-irradiated, immunosuppressed PDAC.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    SV11 choroid plexus tumors arise in the brain and likely face blood-brain barrier and parenchymal constraints that differ markedly from the dense desmoplastic stroma, hypoxia, and CXCL12-rich exclusion zones characteristic of PDAC. Although both are solid tumors, the vascular permeability, stromal composition, and chemokine landscapes are not directly comparable. We therefore anticipate large differences in effective CD8+ T cell extravasation rates between SV11 brain tumors and human PDAC and model this as high (>=10-fold) translation uncertainty.
+  estimated_translation_uncertainty_fold: 30.0
+  validation_warnings:

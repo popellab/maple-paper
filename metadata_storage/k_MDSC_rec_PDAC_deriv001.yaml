@@ -179,36 +179,78 @@ calibration:
       upper:
       rationale: |
         Centered on approximate estimate from B16 tumor MDSC fraction at day 14 (Hong2015) combined with 1-2 day MDSC half-life (Baghbani2021). Wide sigma allows order-of-magnitude uncertainty due to assumptions on tumor cell density and steady state.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      k_MDSC_rec = ln(2) / MDSC_half_life * (B16_MDSC_fraction_control/100.0) * tumor_cell_density
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_MDSC_rec, predict MDSC fraction."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          k_rec = params['k_MDSC_rec']
+          cell_density = _val(inputs['tumor_cell_density'])
+          half_life = _val(inputs['MDSC_half_life'])
+          k_death = np.log(2) / half_life
+          frac = k_rec / (k_death * cell_density) * 100.0
+          return frac * ureg.percent
+    code_julia: |
+      function compute(params, inputs)
+          k_rec = params["k_MDSC_rec"]
+          cell_density = inputs["tumor_cell_density"]
+          half_life = inputs["MDSC_half_life"]
+          k_death = log(2) / half_life
+          frac = k_rec / (k_death * cell_density) * 100.0
+          return frac  # percent
+      end
     data_rationale: |
       Hong2015 reports that in subcutaneous B16 melanoma tumors resected two weeks after injection, CD11b+/Gr1+ MDSCs comprise 8.1% +/-2.4 of all viable tumor cells. We interpret this as an approximately steady-state intratumoral MDSC fraction after prolonged recruitment and turnover. A review on MDSCs (Baghbani2021) reports that M-MDSC and G-MDSC in blood and tumor have a lifespan of about one to two days, which we approximate with a fixed half-life of 1.5 days. Combining a steady-state assumption with a typical solid-tumor cell density of about 10^9 cells per milliliter (log cell kill model) allows analytical derivation of the recruitment rate constant.
     submodel_rationale: |
       In the full QSP PDAC model, intratumoral MDSCs obey d(MDSC)/dt = k_MDSC_rec * V_T * (CCL2/(CCL2 + CCL2_50)) * (1 + H_IL6_MDSC) - k_MDSC_death*MDSC - clearance. For a reference tumor with effectively constant volume and saturating CCL2 and negligible IL6 enhancement (so CCL2 term and (1+H_IL6_MDSC) approximate 1) and weak additional clearance, the steady-state MDSC density M_ss satisfies k_MDSC_rec * V_T ≈ k_MDSC_death * M_ss. Setting V_T = 1 milliliter (density per unit volume) and using k_MDSC_death = ln(2)/MDSC_half_life and M_ss = (B16_MDSC_fraction_control/100) * tumor_cell_density gives an analytical relationship k_MDSC_rec = (ln(2)/MDSC_half_life) * (B16_MDSC_fraction_control/100) * tumor_cell_density. This directly matches the mechanistic source term of the full model under clearly stated simplifying assumptions.
-    type: direct_conversion
-    formula: |
-      k_MDSC_rec = ln(2) / MDSC_half_life * (B16_MDSC_fraction_control/100.0) * tumor_cell_density
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: derived_k_MDSC_rec
     observable:
-    units: cell/(milliliter*day)
+    units: percent
     uses_inputs:
     - B16_MDSC_fraction_control
     - B16_MDSC_fraction_control_sd
     - tumor_cell_density
     - MDSC_half_life
-    evaluation_points:
-    - 0.0
     sample_size:
     sample_size_rationale: |
       Effective sample size taken as the number of tumors in the control B16 group (n = 10-15); used here only qualitatively since the model is an algebraic conversion.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_MDSC_rec from B16 MDSC fraction data.
+
+          SD propagated from the reported MDSC fraction SD.
+          """
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          mean_perc = _val(inputs['B16_MDSC_fraction_control'])
+          sd_perc = _val(inputs['B16_MDSC_fraction_control_sd'])
+          cv = sd_perc / mean_perc
+          sigma_log = np.sqrt(np.log(1 + cv**2))
+          return {
+              'sd': sigma_log * ureg.dimensionless,
+              'sd_uncertain': False,
+              'n': sample_size if sample_size else 10,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
           # B16_MDSC_fraction_control is reported as mean +/- SD in percent
-          mean_perc = inputs['B16_MDSC_fraction_control'].magnitude
-          sd_perc = inputs['B16_MDSC_fraction_control_sd'].magnitude
+          mean_perc = _val(inputs['B16_MDSC_fraction_control'])
+          sd_perc = _val(inputs['B16_MDSC_fraction_control_sd'])
           # Approximate measurement distribution as lognormal derived from mean and SD
           # Convert mean and SD of a lognormal to mu and sigma in log-space
           variance = sd_perc**2
@@ -218,8 +260,8 @@ calibration:
           perc_samples = np.random.lognormal(mu_log, sigma_log, n_samples)
           frac_samples = perc_samples / 100.0
           # Tumor cell density and half-life are treated as fixed for this conversion
-          cell_density = inputs['tumor_cell_density'].magnitude  # cells per mL
-          half_life = inputs['MDSC_half_life'].magnitude        # days
+          cell_density = _val(inputs['tumor_cell_density'])  # cells per mL
+          half_life = _val(inputs['MDSC_half_life'])        # days
           k_death = np.log(2.0) / half_life                     # 1/day
           k_rec_samples = frac_samples * cell_density * k_death # cell/(mL*day)
           return {
@@ -231,5 +273,6 @@ calibration:
       distribution: lognormal
       rationale: |
         Recruitment rate is positive and expected to span orders of magnitude; lognormal likelihood matches the multiplicative uncertainty structure introduced by converting from percentage, density, and half-life.
+
   identifiability_notes: |
     This target provides an informative but assumption-heavy constraint on k_MDSC_rec. The inferred value depends linearly on the assumed tumor cell density and inversely on the assumed MDSC half-life; both are only approximately known. Because the submodel uses a steady-state algebraic relationship with a single measurement of MDSC fraction, k_MDSC_rec is fully correlated with k_MDSC_death and with cell density. In the full QSP model, independent calibration of MDSC death kinetics and tumor cellularity is needed to disentangle these effects. This submodel should therefore be interpreted as defining a prior scale and uncertainty for k_MDSC_rec rather than as a tight posterior estimate.

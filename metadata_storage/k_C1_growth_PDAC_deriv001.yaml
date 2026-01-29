@@ -145,52 +145,61 @@ calibration:
       upper:
       rationale: |
         Clinical imaging study reports a mean tumor volume doubling time (VDT) of 132.3 +/- 132.1 days for untreated human PDAC (n=100). Converting via k = ln(2)/VDT gives typical net growth rates on the order of 10^-3 to 10^-2 1/day. A lognormal prior with mu = -5.0 and sigma = 1.0 on the log scale is chosen to be weakly informative while centered in this range, allowing for more than an order-of-magnitude variability to accommodate inter-patient heterogeneity.
-  state_variables:
-  model:
+
+  forward_model:
+    # For algebraic models, these are null
+    independent_variable:
+    state_variables:
+    # Model specification
+    type: algebraic
+    formula: VDT = ln(2) / k_C1_growth
     data_rationale: |
       Ahn et al. followed 100 patients with untreated pancreatic ductal adenocarcinoma using serial multi-detector CT and computed tumor volume doubling times (VDT) assuming exponential tumor growth between scans. The published summary (mean +/- SD VDT) directly characterizes net tumor expansion kinetics in human PDAC without treatment.
     submodel_rationale: |
       In the full QSPIO-PDAC model, viable cancer cells C1 in the tumor compartment grow according to dC1/dt = k_C1_growth * C1 * (1 - C_total/C_max). When total cancer cell burden C_total is well below the carrying capacity C_max, the logistic term (1 - C_total/C_max) ~ 1 and the dynamics reduce to exponential growth dC1/dt ~ k_C1_growth * C1. Under this regime, the tumor cell population has a doubling time VDT related to k_C1_growth by k_C1_growth = ln(2)/VDT. The clinical VDT measurements thus provide a mechanistically consistent way to infer k_C1_growth during early-to-intermediate tumor growth where saturation effects are modest.
-    type: direct_conversion
-    formula: k_C1_growth = ln(2) / VDT
-  independent_variable:
-  measurements:
-  - name: k_C1_growth_from_VDT
-    observable:
-    units: 1/day
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_C1_growth, predict VDT."""
+          import numpy as np
+          k = params['k_C1_growth']
+          vdt = np.log(2) / k  # VDT in days (since k is 1/day)
+          return vdt * ureg.day
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_C1_growth"]
+          vdt = log(2) / k
+          return vdt  # days
+      end
+
+  error_model:
+  - name: vdt_observation
+    observable:  # null for algebraic models
+    units: day
     uses_inputs:
     - vdtime_mean
     - vdtime_sd
-    evaluation_points:
-    - 0.0
+    # evaluation_points not needed for algebraic models
     sample_size: 100
     sample_size_rationale: |
       The imaging study included 100 patients with histologically confirmed PDAC and at least two untreated CT scans; all contributed to the reported VDT distribution.
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Mean and SD of tumor volume doubling time (VDT)
-          vdt_mean = inputs['vdtime_mean'].to('day').magnitude
-          vdt_sd = inputs['vdtime_sd'].to('day').magnitude
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for VDT observation.
 
-          # Approximate VDT distribution as lognormal based on reported mean and SD
-          # Standard lognormal moment-matching formulas
-          mu_log_vdt = np.log(vdt_mean**2 / np.sqrt(vdt_mean**2 + vdt_sd**2))
-          sigma_log_vdt = np.sqrt(np.log(1.0 + (vdt_sd**2) / (vdt_mean**2)))
-
-          # Sample VDT values, then transform to growth rate k = ln(2)/VDT
-          vdt_samples = np.random.lognormal(mu_log_vdt, sigma_log_vdt, 10000)
-          k_samples = np.log(2.0) / vdt_samples  # 1/day
-
-          # Return summary statistics for the implied distribution of k_C1_growth
+          The paper reports VDT = 132.3 ± 132.1 days (mean ± SD, n=100).
+          This SD reflects both measurement error and biological variability.
+          """
+          vdt_sd = inputs['vdtime_sd'].to('day')
           return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'sd': vdt_sd,
+              'sd_uncertain': False,  # SD is well-characterized
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        The clinical VDTs span nearly two orders of magnitude and are well-described by positively skewed distributions. Approximating VDT as lognormal and propagating uncertainty via k = ln(2)/VDT yields an approximately lognormal distribution for k_C1_growth. The derived lognormal for k_C1_growth (computed in distribution_code) is used as the observation model linking the literature-derived VDT summary to the QSP parameter.
+        The clinical VDTs span nearly two orders of magnitude (20-977 days) and are well-described by a lognormal distribution. Using lognormal likelihood respects the positivity constraint on VDT and matches the observed skewness in the data.
+
   identifiability_notes: |
     Because only net tumor volume doubling time is observed, this target constrains the combined effect of cancer cell proliferation and loss (necrosis, apoptosis) embedded in the clinical growth rate. The large coefficient of variation (CV ~100%) in the reported VDT data reflects substantial inter-patient heterogeneity in PDAC tumor growth rates, spanning from rapidly growing tumors (VDT ~20 days) to indolent ones (VDT >900 days). This biological variability is captured in the lognormal likelihood and propagates into wide uncertainty on k_C1_growth, which is appropriate given the known heterogeneity of PDAC. In the full QSPIO-PDAC model, k_C1_growth will be statistically correlated with separate death and immune-mediated killing parameters (k_C1_death, k_C_Tcell_eff, k_M1_phago). This submodel effectively identifies an effective net growth rate in the low-saturation regime; additional data (e.g., histologic proliferation indices, xenograft cell cycle measurements, or longitudinal volumetric data under varying microenvironmental conditions) would be needed to separately estimate intrinsic proliferation versus death terms and to refine how k_C1_growth changes with tumor size and stromal content.

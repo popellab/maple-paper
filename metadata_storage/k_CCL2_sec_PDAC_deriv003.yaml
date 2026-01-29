@@ -156,30 +156,71 @@ calibration:
       upper:
       rationale: |
         Wide prior centered near 10^-9 nmol/cell/day based on constitutive CCL2 secretion reported for human breast cancer cells (MDA-MB-231), inflated to account for inter-line variability and translation from breast cancer in vitro to PDAC in vivo tumor cells.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      k_CCL2_sec = (MDA_MB231_CCL2_mass_48h / CCL2_molecular_weight / MDA_MB231_cell_count / MDA_MB231_time_interval_48h)
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_CCL2_sec, predict CCL2 mass secreted."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          k = params['k_CCL2_sec']  # nmol/cell/day
+          cells = _val(inputs['MDA_MB231_cell_count'])
+          time_h = _val(inputs['MDA_MB231_time_interval_48h'])
+          time_days = time_h / 24.0
+          mw = _val(inputs['CCL2_molecular_weight'])
+          nmol = k * cells * time_days
+          mass_g = nmol * 1e-9 * mw
+          mass_ng = mass_g * 1e9
+          return mass_ng * ureg.nanogram
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_CCL2_sec"]
+          cells = inputs["MDA_MB231_cell_count"]
+          time_days = inputs["MDA_MB231_time_interval_48h"] / 24.0
+          mw = inputs["CCL2_molecular_weight"]
+          nmol = k * cells * time_days
+          mass_g = nmol * 1e-9 * mw
+          mass_ng = mass_g * 1e9
+          return mass_ng  # nanograms
+      end
     data_rationale: |
       Yoshimura 2023 summarizes Nam et al. measurements of cumulative CCL2 production by MDA-MB-231 breast cancer cells over 48 h, normalized per 10^6 cells. Under constant cell number and negligible degradation in conditioned medium, this directly determines the per-cell secretion rate.
     submodel_rationale: |
       In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment follow d(CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * CCL2. Integrating this ODE over a short interval with approximately constant cell number and ignoring degradation yields CCL2(t) - CCL2(0) ≈ k_CCL2_sec * C_total * t. The in vitro assay measures this cumulative production per cell over a fixed time, so an algebraic conversion from cumulative mass to moles per cell per day is a mechanistically consistent submodel for k_CCL2_sec.
-    type: direct_conversion
-    formula: |
-      k_CCL2_sec = (MDA_MB231_CCL2_mass_48h / CCL2_molecular_weight / MDA_MB231_cell_count / MDA_MB231_time_interval_48h)
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: k_CCL2_sec_observation
     observable:
-    units: nanomole/cell/day
+    units: nanogram
     uses_inputs:
     - MDA_MB231_CCL2_mass_48h
     - MDA_MB231_time_interval_48h
     - MDA_MB231_cell_count
     - CCL2_molecular_weight
-    evaluation_points:
-    - 0.0
     sample_size: 3
     sample_size_rationale: |
       Nam et al. likely used triplicate cultures, but the review summarizing their data did not report n; we assume a typical n=3 for ELISA-based secretion assays.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_CCL2_sec from breast cancer cell line data.
+
+          Point estimate with assumed 50% CV due to lack of reported variability.
+          """
+          import numpy as np
+          cv = 0.5  # Assumed coefficient of variation
+          sigma_log = np.sqrt(np.log(1 + cv**2))
+          return {
+              'sd': sigma_log * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 3,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -205,6 +246,7 @@ calibration:
       distribution: lognormal
       rationale: |
         Per-cell secretion rates are positive and typically vary over orders of magnitude across tumors and cell lines; a lognormal likelihood is appropriate for such scale parameters.
+
   identifiability_notes: |
     Given fixed molecular weight, cell count, and time interval, the algebraic conversion uniquely maps the measured cumulative CCL2 production to k_CCL2_sec; thus the parameter is structurally identifiable from this dataset. However, the experiment was performed in breast cancer cell lines rather than PDAC, and different studies report variable CCL2 levels even for the same line, so biological and experimental heterogeneity will introduce substantial practical uncertainty. When this submodel is embedded in the full PDAC QSP model, additional CCL2-related data (e.g., PDAC patient serum CCL2 levels vs. tumor burden or PDAC cell line secretion data) would further constrain k_CCL2_sec and help separate it from k_CCL2_deg.
 

@@ -129,28 +129,64 @@ calibration:
       upper:
       rationale: |
         Prior centered on order-of-magnitude estimate derived from Tremblay et al. 2017 MRI tracking of SPIO-labeled Tregs into cervical tumors, interpreting the 24 h time-to-visibility as an approximate trafficking half-time and allowing roughly a 10-fold uncertainty (95 percent CI) in either direction.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      q_Treg_T_in = (ln(2) / t_half) / V_T_ref, with t_half approximated from the observed 24 h time to MRI-visible Treg accumulation.
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given q_Treg_T_in, predict MRI visibility time."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          q = params['q_Treg_T_in']
+          V_ref = _val(inputs['V_T_ref'])
+          k_extrav_per_min = q * V_ref
+          t_half_min = np.log(2) / k_extrav_per_min
+          t_half_h = t_half_min / 60.0
+          return t_half_h * ureg.hour
+    code_julia: |
+      function compute(params, inputs)
+          q = params["q_Treg_T_in"]
+          V_ref = inputs["V_T_ref"]
+          k_extrav_per_min = q * V_ref
+          t_half_min = log(2) / k_extrav_per_min
+          t_half_h = t_half_min / 60.0
+          return t_half_h  # hours
+      end
     data_rationale: |
       Tremblay et al. 2017 report that SPIO-labeled CD4+CD25+FoxP3+ regulatory T cells become MRI-visible in HPV-driven cervical tumors at 24 h post intravenous injection, with labeled cells largely cleared by 72 h. These timings constrain the characteristic time scale of Treg recruitment from blood to tumor but do not provide a full time course suitable for ODE fitting.
     submodel_rationale: |
       In the full QSPIO-PDAC model, Treg and Th extravasation from the central compartment into the tumor is modeled as q_Treg_T_in * V_T * V_C.Treg * (C_total^2 / (C_total^2 + Kc_rec)). For established tumors (C_total >> sqrt(Kc_rec)), the recruitment factor approaches 1 and the flux reduces to q_Treg_T_in * V_T * V_C.Treg. Under this saturated-recruitment approximation and for a reference tumor volume V_T_ref, the effective first-order rate constant for loss of circulating Tregs into tumor is k_extrav = q_Treg_T_in * V_T_ref. The MRI-derived trafficking time scale can therefore be mapped analytically to q_Treg_T_in via k_extrav, without explicitly simulating the rest of the QSP network.
-    type: direct_conversion
-    formula: |
-      q_Treg_T_in = (ln(2) / t_half) / V_T_ref, with t_half approximated from the observed 24 h time to MRI-visible Treg accumulation.
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: q_Treg_T_in_estimate
     observable:
-    units: 1/(centimeter^3*minute)
+    units: hour
     uses_inputs:
     - t_vis_Treg
     - V_T_ref
-    evaluation_points:
-    - 0.0
     sample_size: 1
     sample_size_rationale: |
       Not a direct experimental sample distribution; a synthetic distribution over q_Treg_T_in is derived from the single reported trafficking time scale using Monte Carlo propagation of heuristic uncertainty.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for q_Treg_T_in from MRI cell tracking.
+
+          SD derived from the broad uncertainty in mapping MRI visibility time to half-life.
+          """
+          import numpy as np
+          import math
+          sigma_log = math.log(3.0) / 1.96  # ~3-fold 95% CI
+          return {
+              'sd': sigma_log * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 1,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -190,5 +226,6 @@ calibration:
       distribution: lognormal
       rationale: |
         q_Treg_T_in is a positive rate parameter spanning orders of magnitude; the synthetic data distribution derived from MRI timing is therefore compared to model predictions on the log scale.
+
   identifiability_notes: |
     This submodel constrains only the order-of-magnitude of the product q_Treg_T_in * V_T_ref under conditions of saturated T cell recruitment (C_total >> sqrt(Kc_rec)). The mapping from the observed 24 h time-to-visibility to an effective half-time is heuristic and encoded with a very broad lognormal uncertainty, so the resulting information on q_Treg_T_in is weak and should be treated as a soft prior informed by in vivo trafficking times for adoptively transferred Tregs in a non-PDAC tumor model rather than a precise estimate.

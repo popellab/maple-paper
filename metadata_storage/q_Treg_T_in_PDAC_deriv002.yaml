@@ -1,0 +1,324 @@
+study_interpretation: |
+  Tang et al. demonstrate that in human PDAC, regulatory T cells are markedly enriched within tumor-infiltrating lymphocytes compared to both normal pancreatic tissue and peripheral blood, with mean Treg fractions of approximately 17.8% of CD4+ T cells in TILs versus 5.8% in PBMCs. This roughly three-fold enrichment, together with the observation that peripheral Treg frequencies are similar in PDAC patients and healthy controls, indicates a strong net recruitment and/or retention of Tregs into the PDAC tumor microenvironment. Vukmanovic-Stejic et al. show that human CD4+CD25hiFoxp3+ Tregs in peripheral blood have a rapid in vivo turnover with a doubling time of about 8 days, implying substantial ongoing proliferation and death. Assuming that resectable PDAC tumors are in a quasi-steady state with respect to Treg numbers, the intratumoral Treg pool must be replenished at a rate that balances this turnover while maintaining a three-fold higher fraction than in blood. The submodel therefore interprets the PDAC tumor-to-blood Treg enrichment as arising from a constant influx proportional to q_Treg_T_in acting against a first-order Treg loss rate set by the turnover timescale, and uses a direct analytical mapping to derive an effective distribution for q_Treg_T_in consistent with these observations.
+
+key_assumptions:
+- |
+  Resected PDAC tumors in Tang et al. represent a quasi-steady state for intratumoral Treg numbers, such that net Treg influx balances death and egress over the timescale of days to weeks.
+- |
+  The PDAC tumor burden at resection is sufficiently large that the cancer-cell-dependent recruitment term C_total^2/(C_total^2+Kc_rec) in the full QSP model is effectively saturated (approximately 1), so it can be treated as constant in this submodel.
+- |
+  Treg fractions among CD4+ T cells in PBMCs and in tumor-infiltrating lymphocytes can be used as proxies for relative Treg concentrations in blood versus tumor, i.e. differences in total CD4+ T cell density between compartments are second-order for estimating the Treg enrichment ratio.
+- |
+  Peripheral blood Treg turnover kinetics (doubling time ~8 days) measured in healthy donors are representative of systemic Treg turnover in PDAC patients and provide an appropriate timescale for Treg loss in the absence of tumor-specific effects.
+- |
+  Other tumor-local mechanisms that affect intratumoral Treg abundance (CCR5/CCL5-dependent recruitment, local Th-to-Treg conversion, differential survival) are implicitly lumped into the effective extravasation rate q_Treg_T_in in this reduced model.
+- |
+  A reference tumor volume of 1 cm^3 is used implicitly to translate from a dimensionless enrichment ratio and a turnover rate (1/day) to q_Treg_T_in units of 1/(cm^3*minute); variation in actual lesion size is absorbed into parameter uncertainty.
+
+key_study_limitations:
+- |
+  Tang et al. provide cross-sectional data at the time of surgery rather than time-resolved kinetics of Treg accumulation, so the mapping to a dynamic trafficking rate relies on a steady-state assumption rather than directly measured time courses.
+- |
+  The use of Treg turnover data from healthy volunteers (Vukmanovic-Stejic et al.) neglects potential changes in Treg survival or proliferation induced by cancer, chronic inflammation, or therapies in PDAC patients.
+- |
+  Flow cytometry reports percentages of Tregs among CD4+ T cells rather than absolute Treg concentrations per unit tissue volume, so the conversion from fraction enrichment to an extravasation rate assumes that CD4+ T cell densities in blood and tumor are comparable up to a compartment-independent scaling factor.
+- |
+  Intratumoral Treg abundance in PDAC reflects the combined effects of trafficking, local proliferation, conversion of conventional CD4+ T cells to Tregs, and differential survival; the present submodel attributes the excess tumor Treg fraction primarily to trafficking via q_Treg_T_in, potentially overestimating its contribution relative to in situ generation.
+- |
+  Heterogeneity in PDAC stromal architecture, vascularization, and local chemokine gradients across patients is not captured; a single effective q_Treg_T_in is inferred from population-averaged data.
+
+experimental_context:
+  species: human
+  system: human_clinical_tumor_and_peripheral_blood
+  cell_lines:
+  cell_types:
+  - name: CD4+CD25+Foxp3+ regulatory T cell
+    phenotype: |
+      regulatory T cell (Treg) from PDAC tumor-infiltrating lymphocytes and peripheral blood
+    isolation_method: |
+      TILs isolated from resected PDAC tissue; PBMCs isolated from peripheral blood using density-gradient separation, followed by multicolor flow cytometry gating on CD3+CD4+CD25+Foxp3+ cells.
+  - name: CD4+ T cell
+    phenotype: |
+      conventional CD4+ T cells in tumor and blood, used as denominator for Treg fractions
+    isolation_method: Same TIL and PBMC preparations, gated as CD3+CD4+ T cells by flow cytometry.
+  culture_conditions:
+  indication: pancreatic_ductal_adenocarcinoma
+
+primary_data_source:
+  doi: 10.1371/journal.pone.0091551
+  title: |
+    An increased abundance of tumor-infiltrating regulatory T cells is correlated with the progression and prognosis of pancreatic ductal adenocarcinoma
+  authors:
+  - Tang Y
+  - Xu X
+  - Guo S
+  - Zhang C
+  - Tang Y
+  - Tian Y
+  - Ni B
+  - Lu B
+  - Wang H
+  year: 2014
+  source_tag: Tang2014_PDA_Tregs
+
+secondary_data_sources:
+- doi: 10.1172/JCI28941
+  url:
+  title: |
+    Human CD4+ CD25hi Foxp3+ regulatory T cells are derived by rapid turnover of memory populations in vivo
+  authors:
+  - Vukmanovic-Stejic M
+  - Zhang Y
+  - Cook JE
+  - Fletcher JM
+  - McQuaid A
+  - Masters JE
+  - Rustin MHA
+  - Taams LS
+  - Beverley PC
+  - Macallan DC
+  - Akbar AN
+  year: 2006
+  source_tag: Vukmanovic-Stejic2006_TregTurnover
+  contribution: |
+    Provides in vivo doubling time for human CD4+CD25hiFoxp3+ regulatory T cells from deuterium-labeling kinetics, used to set the systemic Treg turnover timescale in the mapping from tumor-to-blood enrichment to q_Treg_T_in.
+  source_quality: primary_human_clinical
+
+target_id: q_Treg_T_in_PDAC_Tang2014
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c066462ff18efea69e0f5d763bf24
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: PDAC_TIL_Treg_fraction_mean
+  value: 0.178
+  units: dimensionless
+  uncertainty:
+  n: 45
+  input_type: direct_measurement
+  role: target
+  source_ref: Tang2014_PDA_Tregs
+  source_location: Results, Up-regulation of CD4+T, CD8+T and Treg cells in PDA tissue; Figure 1D
+  extraction_method: manual
+  value_snippet: |
+    We also observed that the proportions of CD4+ T cells (PDA-TIL vs. C-PT: 59.47±0.5974% vs. 12.6±1.343%) and Tregs (PDA-TIL vs. C-PT: 17.8±0.7075% vs. 0.01±0.005%) in TILs were markedly increased compared to C-PTLs (both P<0.001).
+- name: PDAC_TIL_Treg_fraction_sem
+  value: 0.007075
+  units: dimensionless
+  uncertainty:
+  n: 45
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Tang2014_PDA_Tregs
+  source_location: Results, Up-regulation of CD4+T, CD8+T and Treg cells in PDA tissue; Figure 1D
+  extraction_method: manual
+  value_snippet: |
+    the proportions of CD4+ T cells (PDA-TIL vs. C-PT: 59.47±0.5974% vs. 12.6±1.343%) and Tregs (PDA-TIL vs. C-PT: 17.8±0.7075% vs. 0.01±0.005%) in TILs were markedly increased compared to C-PTLs
+  notes: |
+    Value reported as mean±SEM in the paper. SD = SEM × sqrt(n) = 0.007075 × sqrt(45) ≈ 0.0475.
+- name: PBMC_Treg_fraction_mean
+  value: 0.05755
+  units: dimensionless
+  uncertainty:
+  n: 45
+  input_type: direct_measurement
+  role: target
+  source_ref: Tang2014_PDA_Tregs
+  source_location: Results, Up-regulation of CD4+T, CD8+T and Treg cells in PDA tissue; Figure 1D
+  extraction_method: manual
+  value_snippet: |
+    the percentages of CD8+ T cells (PDA-PBMC vs. C-PBMC: 34.28±0.8431% vs. 30.94±0.8405%), CD4+ T cells (PDA-PBMC vs. C-PBMC: 54.51±0.9725% vs. 57.17±0.6233%) and Tregs (PDA-PBMC vs. C-PBMC: 5.755±0.145% vs. 5.772±0.2105%) in PBMCs were not markedly different between PDA patients and healthy volunteers.
+- name: PBMC_Treg_fraction_sem
+  value: 0.00145
+  units: dimensionless
+  uncertainty:
+  n: 45
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Tang2014_PDA_Tregs
+  source_location: Results, Up-regulation of CD4+T, CD8+T and Treg cells in PDA tissue; Figure 1D
+  extraction_method: manual
+  value_snippet: |
+    the percentages of CD8+ T cells (PDA-PBMC vs. C-PBMC: 34.28±0.8431% vs. 30.94±0.8405%), CD4+ T cells (PDA-PBMC vs. C-PBMC: 54.51±0.9725% vs. 57.17±0.6233%) and Tregs (PDA-PBMC vs. C-PBMC: 5.755±0.145% vs. 5.772±0.2105%) in PBMCs were not markedly different between PDA patients and healthy volunteers.
+  notes: |
+    Value reported as mean±SEM in the paper. SD = SEM × sqrt(n) = 0.00145 × sqrt(45) ≈ 0.00973.
+- name: Treg_doubling_time_mean
+  value: 8.0
+  units: day
+  uncertainty:
+  n: 8
+  input_type: direct_measurement
+  role: fixed_parameter
+  source_ref: Vukmanovic-Stejic2006_TregTurnover
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    We found that CD4+ CD45RO+ Foxp3+ CD25hi T lymphocytes were highly proliferative, with a doubling time of 8 days, compared with memory CD4+ CD45RO+ Foxp3- CD25- (24 days) or naive CD4+ CD45RA+ Foxp3- CD25- populations (199 days).
+- name: n_patients
+  value: 45
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Tang2014_PDA_Tregs
+  source_location: Methods, Patients and tissue samples
+  extraction_method: manual
+  value_snippet: |
+    Forty-five PDA patients who underwent pancreatic resection at our institution between 2010 and 2012 were enrolled in this study.
+
+calibration:
+  parameters:
+  - name: q_Treg_T_in
+    units: 1/(centimeter^3*minute)
+    prior:
+      distribution: lognormal
+      mu: -8.52
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Center prior at the value implied by PDAC patient tumor vs blood Treg enrichment (~3-fold) combined with human Treg turnover (doubling time ~8 days). The sigma of 1.0 accounts for inter-patient variability (population SD in Treg fractions is ~27% CV for TIL and ~17% CV for PBMC based on SEM-to-SD conversion), modeling simplifications, and uncertainty in mapping steady-state enrichment to a trafficking rate.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      q_Treg_T_in = (PDAC_TIL_Treg_fraction_mean / PBMC_Treg_fraction_mean) * (ln(2) / Treg_doubling_time_mean) / (1 centimeter**3)
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given q_Treg_T_in, predict tumor Treg fraction."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          q = params['q_Treg_T_in']
+          t_doubling = _val(inputs['Treg_doubling_time_mean'])
+          f_pbmc = _val(inputs['PBMC_Treg_fraction_mean'])
+          k_per_day = np.log(2) / t_doubling
+          k_per_min = k_per_day / (24.0 * 60.0)
+          V_ref = 1.0
+          ratio = q * V_ref / k_per_min
+          f_tumor = ratio * f_pbmc
+          return f_tumor * ureg.dimensionless
+    code_julia: |
+      function compute(params, inputs)
+          q = params["q_Treg_T_in"]
+          t_doubling = inputs["Treg_doubling_time_mean"]
+          k_per_day = log(2) / t_doubling
+          k_per_min = k_per_day / (24.0 * 60.0)
+          V_ref = 1.0
+          ratio = q * V_ref / k_per_min
+          return ratio
+      end
+    data_rationale: |
+      Tang et al. provide paired measurements of regulatory T cell (Treg) fractions in peripheral blood and PDAC tumor-infiltrating lymphocytes across 45 patients, which constrains the steady-state enrichment of Tregs in tumor relative to blood. Vukmanovic-Stejic et al. provide an in vivo doubling time for human CD4+CD25hiFoxp3+ Tregs, characterizing their peripheral turnover rate. Assuming that in resectable PDAC the intratumoral Treg pool is near steady state, these data together constrain the net influx rate required to maintain the observed intratumoral Treg fraction against turnover.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, q_Treg_T_in multiplies tumor volume, central-compartment Treg number, and a cancer-burden dependent recruitment term (C_total^2/(C_total^2+Kc_rec)) to give the flux of Tregs (and Th cells) from blood into tumor. For established PDAC lesions at surgical resection, tumor burden is high so C_total>>sqrt(Kc_rec) and the recruitment term is effectively 1. The central Treg pool and tumor volume change slowly compared to trafficking, allowing their product to be treated as approximately constant over the timescale of Treg turnover. Under these conditions, the tumor Treg pool obeys a first-order balance between a constant influx proportional to q_Treg_T_in and a first-order loss due to death/turnover. The direct_conversion model analytically maps the observed steady-state tumor-to-blood Treg ratio and an externally measured Treg turnover rate to an effective q_Treg_T_in that is mechanistically consistent with the full trafficking term in the saturated, steady-state limit.
+
+  error_model:
+  - name: q_Treg_T_in_derived
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - PDAC_TIL_Treg_fraction_mean
+    - PDAC_TIL_Treg_fraction_sem
+    - PBMC_Treg_fraction_mean
+    - PBMC_Treg_fraction_sem
+    - Treg_doubling_time_mean
+    - n_patients
+    sample_size: 45
+    sample_size_rationale: |
+      Tang et al. report flow cytometry data from 45 PDAC patients with paired PBMC and tumor TIL measurements. The Treg turnover estimate is based on 8 healthy donors, but is treated as a fixed auxiliary parameter here.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for q_Treg_T_in derived from PDAC Treg enrichment.
+
+          SD propagated from Treg fraction SEMs through the ratio calculation.
+          """
+          import numpy as np
+          f_tumor = inputs['PDAC_TIL_Treg_fraction_mean'].magnitude
+          sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem'].magnitude
+          f_pbmc = inputs['PBMC_Treg_fraction_mean'].magnitude
+          sem_pbmc = inputs['PBMC_Treg_fraction_sem'].magnitude
+          n_patients = int(inputs['n_patients'].magnitude)
+          sd_tumor = sem_tumor * np.sqrt(n_patients)
+          sd_pbmc = sem_pbmc * np.sqrt(n_patients)
+          # Propagate error through ratio using delta method approximation
+          cv_tumor = sd_tumor / f_tumor
+          cv_pbmc = sd_pbmc / f_pbmc
+          cv_ratio = np.sqrt(cv_tumor**2 + cv_pbmc**2)
+          sigma_log = np.sqrt(np.log(1 + cv_ratio**2))
+          return {
+              'sd': sigma_log * ureg.dimensionless,
+              'sd_uncertain': False,
+              'n': sample_size if sample_size else n_patients,
+          }
+    distribution_code: |
+      def derive_distribution(inputs, ureg):
+          import numpy as np
+          # Extract means and SEMs for Treg fractions
+          f_tumor = inputs['PDAC_TIL_Treg_fraction_mean'].magnitude
+          sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem'].magnitude
+          f_pbmc = inputs['PBMC_Treg_fraction_mean'].magnitude
+          sem_pbmc = inputs['PBMC_Treg_fraction_sem'].magnitude
+          # Doubling time for human peripheral blood Tregs (days)
+          t_doubling_days = inputs['Treg_doubling_time_mean'].to('day').magnitude
+
+          # Convert SEM to SD: SD = SEM × sqrt(n)
+          n_patients = int(inputs['n_patients'].magnitude)
+          sd_tumor = sem_tumor * np.sqrt(n_patients)
+          sd_pbmc = sem_pbmc * np.sqrt(n_patients)
+
+          n_samples = 10000
+          tumor_samples = np.random.normal(f_tumor, sd_tumor, n_samples)
+          pbmc_samples = np.random.normal(f_pbmc, sd_pbmc, n_samples)
+          # Prevent non-physical negative fractions
+          tumor_samples = np.clip(tumor_samples, 1e-6, None)
+          pbmc_samples = np.clip(pbmc_samples, 1e-6, None)
+
+          ratio_samples = tumor_samples / pbmc_samples
+
+          # First-order turnover rate from doubling time
+          k_per_day = np.log(2.0) / t_doubling_days
+          k_per_min = k_per_day / (24.0 * 60.0)
+
+          # Reference tumor volume of 1 cm^3 to recover units 1/(cm^3*min)
+          V_ref = 1.0
+
+          q_samples = ratio_samples * k_per_min / V_ref
+
+          return {
+              'median': float(np.median(q_samples)),
+              'ci95_lower': float(np.percentile(q_samples, 2.5)),
+              'ci95_upper': float(np.percentile(q_samples, 97.5)),
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        The derived q_Treg_T_in distribution represents uncertainty in mapping from measured tumor vs blood Treg enrichment and Treg turnover into an effective extravasation rate. A lognormal likelihood is appropriate for this positive, multiplicative quantity.
+
+  identifiability_notes: |
+    This submodel constrains q_Treg_T_in primarily through the steady-state ratio of intratumoral to peripheral Treg fractions and an external estimate of peripheral Treg turnover. Under the saturated-recruitment, quasi-steady-state assumptions, q_Treg_T_in is effectively proportional to the product of the tumor-to-blood Treg enrichment ratio and the Treg turnover rate. Because we treat the Treg doubling time as fixed rather than inferring it jointly, q_Treg_T_in is identifiable in this reduced model up to the modeling assumptions about equal Treg fractions tracking relative concentrations. If k_Treg_death or the effective tumor volume scale were also free, only the combination q_Treg_T_in/k_Treg_death (per unit tumor volume) would be identifiable; additional dynamic data on Treg accumulation or independent estimates of Treg death in PDAC tumors would be needed to disentangle these effects.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The primary dataset comes from PDAC patients undergoing surgical resection, measuring CD4+CD25+Foxp3+ regulatory T cell frequencies in tumor-infiltrating lymphocytes and matched peripheral blood by flow cytometry. This directly matches the PDAC indication and tumor compartment structure in the QSPIO-PDAC model, so the observed enrichment of Tregs in PDAC tumor tissue is highly informative for calibrating the tumor-directed Treg extravasation rate. The auxiliary Treg turnover data are from healthy human volunteers, providing systemic Treg kinetics in the same species without tumor-specific confounding; these are used only to set an overall turnover timescale.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Tang et al. analyze Tregs in human PDAC tumor tissue and adjacent normal pancreas, capturing the desmoplastic, immunosuppressive microenvironment characteristic of PDAC, including juxtatumoral stromal localization of Foxp3+ cells and reduced CD8+ T cell density near tumor epithelium. This microenvironment closely matches that represented in the QSPIO-PDAC model. The Treg turnover data from Vukmanovic-Stejic et al. are derived from peripheral blood in healthy donors rather than tumor, so they characterize systemic Treg homeostasis rather than tumor-specific survival; this mainly affects the mapping from turnover to extravasation rate rather than the relative enrichment between tumor and blood.
+  estimated_translation_uncertainty_fold: 2.0
+  validation_warnings:

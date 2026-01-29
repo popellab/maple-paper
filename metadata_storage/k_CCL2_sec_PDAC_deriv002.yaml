@@ -123,28 +123,61 @@ calibration:
       upper:
       rationale: |
         Centered on the log-transformed median CCL2 (MCP-1) secretion rate per cell per day derived from Steube1999 leukemia cell line data, with a wide sigma (1.0 in natural-log space) to capture cross-cell-type, cross-indication, and in vitro to in vivo translation uncertainty.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      k_CCL2_sec = (MCP1_pg_per_ml_per_1e6cells * 1e-12 g/pg / MW_CCL2_g_per_mol * 1e9 nmol/mol) / (1e6 cells * 1 day)
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_CCL2_sec, predict MCP-1 secretion."""
+          import numpy as np
+          k = params['k_CCL2_sec']  # nmol/cell/day
+          MW = 8700.0  # g/mol
+          mcp1_pg = k * 1e6 * 1.0 / (1e-12 / MW * 1e9)
+          return mcp1_pg * ureg('pg/milliliter')
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_CCL2_sec"]
+          MW = 8700.0
+          mcp1_pg = k * 1e6 * 1.0 / (1e-12 / MW * 1e9)
+          return mcp1_pg  # pg/mL per 1e6 cells
+      end
     data_rationale: |
       Steube1999 measured constitutive MCP-1 (CCL2) secretion by several human myelomonocytic leukemia cell lines using ELISA, reporting that culture supernatants contained 440 to 1400 pg/ml MCP-1 per 10^6 cells, and that the highest stimulated level exceeded 80 ng/ml within 24 h. These measurements correspond to mass of CCL2 secreted per cell over approximately 1 day in a well-mixed medium, which can be analytically converted into a per-cell, per-day secretion rate.
     submodel_rationale: |
       In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment V_T follow d(V_T.CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * V_T.CCL2. In an in vitro setting without appreciable extracellular degradation or clearance, the increase in CCL2 concentration over 24 h reflects the production term alone. Therefore, the measured mass of CCL2 secreted per 10^6 cells per 24 h can be converted directly into k_CCL2_sec (nanomole per cell per day), assuming a representative distribution volume per cell. This preserves the mechanistic usage of k_CCL2_sec as a per-cell secretion rate driving accumulation of CCL2 in a well-mixed compartment.
-    type: direct_conversion
-    formula: |
-      k_CCL2_sec = (MCP1_pg_per_ml_per_1e6cells * 1e-12 g/pg / MW_CCL2_g_per_mol * 1e9 nmol/mol) / (1e6 cells * 1 day)
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: k_CCL2_sec_from_LeukemiaCellLines
     observable:
-    units: nanomole / cell / day
+    units: pg/milliliter
     uses_inputs:
     - mcp1_constitutive_min_pg_per_ml_per_millioncells
     - mcp1_constitutive_max_pg_per_ml_per_millioncells
-    evaluation_points:
-    - 0.0
     sample_size: 4
     sample_size_rationale: |
       Four human myelomonocytic leukemia cell lines (HL-60, ML-2, MONO-MAC-6, MUTZ-3) were assayed for constitutive MCP-1 secretion; the reported range 440 to 1400 pg/ml per 10^6 cells reflects variability across these lines.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_CCL2_sec from leukemia cell lines.
+
+          SD derived from the reported range of constitutive secretion values.
+          """
+          import numpy as np
+          min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells'].magnitude
+          max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells'].magnitude
+          log_min = np.log(min_pg)
+          log_max = np.log(max_pg)
+          sigma = (log_max - log_min) / (2.0 * 1.96)
+          return {
+              'sd': sigma * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 4,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -177,6 +210,7 @@ calibration:
       distribution: lognormal
       rationale: |
         Chemokine secretion rates are positive and typically span orders of magnitude across cell lines, making a lognormal likelihood appropriate. The variability across the four leukemia lines is treated as observational plus biological heterogeneity.
+
   identifiability_notes: |
     This submodel analytically converts an experimentally measured CCL2 (MCP-1) secretion range per 10^6 cells per 24 h into a per-cell, per-day secretion rate k_CCL2_sec. Given the direct proportionality between secreted mass and k_CCL2_sec under the assumption of negligible extracellular degradation over 24 h, k_CCL2_sec is structurally identifiable from these data alone within the context of the in vitro system. However, translation to the in vivo PDAC tumor microenvironment introduces substantial uncertainty due to differences in cell type (myelomonocytic leukemia vs pancreatic cancer cells), stromal and immune contributions to CCL2, and possible feedback regulation, so the inferred value should be treated as providing an order-of-magnitude constraint rather than a precise estimate.
 

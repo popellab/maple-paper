@@ -140,26 +140,55 @@ calibration:
       upper:
       rationale: |
         Centre on ~0.5/day corresponding to an activation timescale of ~2 days (48 h) as observed for primary rat PSCs on plastic, but allow ~10-fold uncertainty to account for species and context differences between in vitro culture and PDAC tumour stroma.
-  state_variables:
-  model:
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: t_activation = 1 / k_psc_activation
+    code: |
+      def compute(params, inputs, ureg):
+          """Forward model: given k_psc_activation, predict activation time."""
+          k = params['k_psc_activation']
+          t_days = 1.0 / k
+          t_hours = t_days * 24.0
+          return t_hours * ureg.hour
+    code_julia: |
+      function compute(params, inputs)
+          k = params["k_psc_activation"]
+          t_days = 1.0 / k
+          t_hours = t_days * 24.0
+          return t_hours  # hours
+      end
     data_rationale: |
       Apte et al. 1998 report that primary rat pancreatic stellate cells cultured on plastic are negative for alpha-smooth muscle actin (alpha-SMA) at 24 h but positive at 48 h, indicating that the quiescent-to-activated transition occurs on a timescale of order 2 days under strong activation conditions in vitro.
     submodel_rationale: |
       In the full QSPIO-PDAC model, the rate of quiescent PSC activation to myofibroblast-like activated PSCs (CAF phenotype) in the tumour compartment is governed by k_psc_activation multiplied by saturable TGFbetab- and PDGF-dependent Hill terms. In early primary cultures, PSC activation on plastic is driven by autocrine/paracrine cytokines and mechanical cues that are expected to produce near-saturating activation signals. Under this assumption, the in vitro activation timescale (~48 h) approximates the inverse of k_psc_activation in the full model when the TGFbetab and PDGF Hill terms are near 1.
-    type: direct_conversion
-    formula: t_activation = 1 / k_psc_activation
-  independent_variable:
-  measurements:
+
+  error_model:
   - name: psc_activation_time_constraint
     observable:
     units: hour
     uses_inputs:
     - psc_activation_time_48h
-    evaluation_points:
-    - 0.0
     sample_size: 1
     sample_size_rationale: |
       Single primary culture timing estimate for onset of alpha-SMA positivity from Apte 1998 Gut.
+    measurement_error_code: |
+      def derive_error(inputs, sample_size, ureg):
+          """
+          Measurement error for k_psc_activation from PSC activation time.
+
+          SD derived from assumed 25% CV on activation time.
+          """
+          import numpy as np
+          cv = 0.25
+          sigma_log = np.sqrt(np.log(1.0 + cv**2))
+          return {
+              'sd': sigma_log * ureg.dimensionless,
+              'sd_uncertain': True,
+              'n': sample_size if sample_size else 1,
+          }
     distribution_code: |
       def derive_distribution(inputs, ureg):
           import numpy as np
@@ -184,5 +213,6 @@ calibration:
       distribution: lognormal
       rationale: |
         Activation time is positive and likely subject to multiplicative biological and experimental variability; we therefore represent uncertainty in the observed ~48 h activation time with a lognormal distribution over t_activation, which is then mapped to k_psc_activation via t_activation = 1/k_psc_activation.
+
   identifiability_notes: |
     This submodel provides only an order-of-magnitude constraint on k_psc_activation based on a single qualitative timing observation (onset of alpha-SMA positivity at ~48 h). The inferred k_psc_activation conflates effects of TGFbetab, PDGF, mechanical cues, and other stimuli present during primary culture and should be interpreted as an effective activation rate under strong profibrotic signaling. Additional time-course data quantifying the fraction of PSCs that are alpha-SMA+ over multiple time points, ideally under defined TGFbetab and PDGF concentrations and in human PSCs, would be required for tighter and more mechanistically specific identification.
