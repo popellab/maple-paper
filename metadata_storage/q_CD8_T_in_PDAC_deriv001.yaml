@@ -139,7 +139,7 @@ inputs:
   uncertainty:
   n:
   input_type: direct_measurement
-  role: auxiliary
+  role: target
   source_ref: Boissonnas2007
   source_location: |
     Results, OT1-GFP cells infiltrate and reject OVA-expressing tumors; Figure 1B, late phase (day 6)
@@ -260,92 +260,40 @@ calibration:
     sample_size: 1
     sample_size_rationale: |
       Analytical conversion of pooled literature values into an implied distribution for q_CD8_T_in; treated as a single composite measurement.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for q_CD8_T_in from OT1 infiltration data.
+          Derive observation from OT1 infiltration data.
 
-          SD propagated from density SD through the analytical conversion.
+          The forward model predicts OT1 density (cells/mm^2), so we provide
+          the observed density with uncertainty propagated from reported SD
+          and half-life uncertainty.
           """
           import numpy as np
+
           def _val(name):
               v = inputs[name]
               return float(getattr(v, 'magnitude', v))
+
           d_mean = _val('OT1_density_day6')
           d_sd = _val('OT1_density_day6_sd')
           t_half_mean = _val('CD8_eff_half_life')
           t_half_sd = _val('CD8_eff_half_life_sd')
+
+          # Point estimate: observed OT1 density
+          observed_value = d_mean * ureg('cell/millimeter**2')
+
+          # Propagate uncertainty from density SD and half-life SD
           cv_d = d_sd / d_mean
           cv_t = t_half_sd / t_half_mean
           cv_combined = np.sqrt(cv_d**2 + cv_t**2)
           sigma_log = np.sqrt(np.log(1 + cv_combined**2))
-          return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-
-          def _val(name):
-              v = inputs[name]
-              return float(getattr(v, 'magnitude', v))
-
-          # OT1 density in EG7 at day 6 (cells per mm^2)
-          d_mean = _val('OT1_density_day6')
-          d_sd = _val('OT1_density_day6_sd')
-
-          # Lognormal approximation for positive densities
-          mu_log = np.log(d_mean**2 / np.sqrt(d_mean**2 + d_sd**2))
-          sigma_log = np.sqrt(np.log(1.0 + (d_sd**2) / (d_mean**2)))
-          d_samples = np.random.lognormal(mu_log, sigma_log, 20000)
-
-          # Section thickness: convert from μm to mm for consistent units
-          thickness_um = _val('section_thickness_um')
-          thickness_mm = thickness_um / 1000.0  # 5 μm = 0.005 mm
-
-          # Tumor volume range (500-1000 mm^3)
-          V_min = _val('EG7_tumor_volume_min')      # mm^3
-          V_max = _val('EG7_tumor_volume_max')      # mm^3
-          V_samples = np.random.uniform(V_min, V_max, 20000)
-
-          # Convert 2D density (cells/mm^2) to 3D density (cells/mm^3)
-          # by dividing by section thickness in mm
-          rho_samples = d_samples / thickness_mm   # cells/mm^3
-          N_tumor_samples = rho_samples * V_samples  # total cells
-
-          # CD8 effector half-life (hours) from De Boer et al. (2003)
-          t_half_mean = _val('CD8_eff_half_life')
-          t_half_sd = _val('CD8_eff_half_life_sd')
-
-          # Lognormal distribution for half-life
-          mu_h = np.log(t_half_mean**2 / np.sqrt(t_half_mean**2 + t_half_sd**2))
-          sigma_h = np.sqrt(np.log(1.0 + (t_half_sd**2) / (t_half_mean**2)))
-          t_half_samples_h = np.random.lognormal(mu_h, sigma_h, 20000)  # hours
-
-          # Convert half-life to per-minute loss rate k = ln(2) / (t_half * 60)
-          k_samples = np.log(2.0) / (t_half_samples_h * 60.0)  # 1/min
-
-          # Circulating OT1 pool approximated by number injected
-          CD8_C = _val('OT1_injected')
-
-          # Analytical relation: q = k * N_Tumor / (V_T * CD8_C)
-          # Since N_tumor = rho * V_T, this simplifies to: q = k * rho / CD8_C
-          # Result is in 1/(mm^3 * min)
-          q_samples_per_mm3 = k_samples * rho_samples / CD8_C
-
-          # Convert from 1/(mm^3 * min) to 1/(cm^3 * min)
-          # 1 cm^3 = 1000 mm^3, so multiply by 1000
-          q_samples = q_samples_per_mm3 * 1000.0  # 1/(cm^3 * min)
-
-          # Filter out any non-positive or extreme values for numerical robustness
-          q_samples = q_samples[np.isfinite(q_samples) & (q_samples > 0)]
 
           return {
-              'median': float(np.median(q_samples)),
-              'ci95_lower': float(np.percentile(q_samples, 2.5)),
-              'ci95_upper': float(np.percentile(q_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD derived from reported values
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

@@ -236,69 +236,41 @@ calibration:
     sample_size: 45
     sample_size_rationale: |
       Tang et al. report flow cytometry data from 45 PDAC patients with paired PBMC and tumor TIL measurements. The Treg turnover estimate is based on 8 healthy donors, but is treated as a fixed auxiliary parameter here.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for q_Treg_T_in derived from PDAC Treg enrichment.
+          Derive observation from PDAC Treg enrichment data.
 
-          SD propagated from Treg fraction SEMs through the ratio calculation.
+          The forward model predicts the tumor/blood Treg fraction ratio,
+          so we provide that ratio with uncertainty propagated from SEMs.
           """
           import numpy as np
+
           f_tumor = inputs['PDAC_TIL_Treg_fraction_mean'].magnitude
           sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem'].magnitude
           f_pbmc = inputs['PBMC_Treg_fraction_mean'].magnitude
           sem_pbmc = inputs['PBMC_Treg_fraction_sem'].magnitude
           n_patients = int(inputs['n_patients'].magnitude)
+
+          # Point estimate: ratio of tumor to blood Treg fractions
+          ratio = f_tumor / f_pbmc
+          observed_value = ratio * ureg.dimensionless
+
+          # Convert SEM to SD: SD = SEM × sqrt(n)
           sd_tumor = sem_tumor * np.sqrt(n_patients)
           sd_pbmc = sem_pbmc * np.sqrt(n_patients)
-          # Propagate error through ratio using delta method approximation
+
+          # Propagate error through ratio using delta method
           cv_tumor = sd_tumor / f_tumor
           cv_pbmc = sd_pbmc / f_pbmc
           cv_ratio = np.sqrt(cv_tumor**2 + cv_pbmc**2)
           sigma_log = np.sqrt(np.log(1 + cv_ratio**2))
-          return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': False,
-              'n': sample_size if sample_size else n_patients,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Extract means and SEMs for Treg fractions
-          f_tumor = inputs['PDAC_TIL_Treg_fraction_mean'].magnitude
-          sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem'].magnitude
-          f_pbmc = inputs['PBMC_Treg_fraction_mean'].magnitude
-          sem_pbmc = inputs['PBMC_Treg_fraction_sem'].magnitude
-          # Doubling time for human peripheral blood Tregs (days)
-          t_doubling_days = inputs['Treg_doubling_time_mean'].to('day').magnitude
-
-          # Convert SEM to SD: SD = SEM × sqrt(n)
-          n_patients = int(inputs['n_patients'].magnitude)
-          sd_tumor = sem_tumor * np.sqrt(n_patients)
-          sd_pbmc = sem_pbmc * np.sqrt(n_patients)
-
-          n_samples = 10000
-          tumor_samples = np.random.normal(f_tumor, sd_tumor, n_samples)
-          pbmc_samples = np.random.normal(f_pbmc, sd_pbmc, n_samples)
-          # Prevent non-physical negative fractions
-          tumor_samples = np.clip(tumor_samples, 1e-6, None)
-          pbmc_samples = np.clip(pbmc_samples, 1e-6, None)
-
-          ratio_samples = tumor_samples / pbmc_samples
-
-          # First-order turnover rate from doubling time
-          k_per_day = np.log(2.0) / t_doubling_days
-          k_per_min = k_per_day / (24.0 * 60.0)
-
-          # Reference tumor volume of 1 cm^3 to recover units 1/(cm^3*min)
-          V_ref = 1.0
-
-          q_samples = ratio_samples * k_per_min / V_ref
 
           return {
-              'median': float(np.median(q_samples)),
-              'ci95_lower': float(np.percentile(q_samples, 2.5)),
-              'ci95_upper': float(np.percentile(q_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # derived from reported SEMs
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

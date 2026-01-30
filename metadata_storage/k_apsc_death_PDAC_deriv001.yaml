@@ -222,21 +222,25 @@ calibration:
     sample_size: 3
     sample_size_rationale: |
       Figure 1 caption states that data are representative of three to four independent experiments; we conservatively assume n≈3 for viability under 1 mM melatonin.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for PSC viability.
+          Derive observation from PSC viability data.
 
           The paper reports viability as 86.77 +/- 1.15% (mean +/- SEM).
-          SD = SEM * sqrt(n). Convert from percent to fraction.
+          SD = SEM * sqrt(n). Return value as fraction.
           """
           import numpy as np
-          sem_pct = inputs['psc_viability_sem'].magnitude  # in percent
-          sem = sem_pct / 100  # convert to fraction
+
+          viability = inputs['psc_viability_mel_1mM_48h'].magnitude
+          # Convert SEM from percent to fraction using ureg
+          sem = inputs['psc_viability_sem'].to('').magnitude
           sd = sem * np.sqrt(sample_size)
+
           return {
-              'sd': sd * ureg.dimensionless,
-              'sd_uncertain': True,  # n is approximate (3-4 experiments)
+              'value': viability * ureg.dimensionless,
+              'sd': sd,  # dimensional for normal likelihood
+              'sd_uncertain': False,  # SD derived from reported SEM
               'n': sample_size,
           }
     likelihood:

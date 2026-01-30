@@ -228,7 +228,6 @@ calibration:
 
   error_model:
   - name: k_Mac_rec_literature
-    observable:
     units: cell
     uses_inputs:
     - M1_per_HPF_primary_PDAC
@@ -239,63 +238,37 @@ calibration:
     sample_size: 42
     sample_size_rationale: |
       Number of primary PDAC tumors in which CD86+ M1 macrophages were quantified (Gu 2023, Table 2).
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_Mac_rec from PDAC M1 macrophage density.
+          Derive observation from PDAC M1 macrophage density.
 
-          SD derived from uniform distribution over macrophage half-life range.
+          The forward model predicts M1 macrophages per HPF, so we return
+          the observed count with log-scale SD derived from half-life range.
           """
           import numpy as np
           def _val(x):
               return getattr(x, 'magnitude', x)
-          t_min = _val(inputs['macrophage_half_life_min'])  # days
-          t_max = _val(inputs['macrophage_half_life_max'])  # days
-          half_life_samples = np.random.uniform(t_min, t_max, size=10000)
-          k_death = np.log(2.0) / half_life_samples
-          log_k_sd = np.std(np.log(k_death))
-          return {
-              'sd': log_k_sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 42,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          # Extract inputs and convert to base units
-          M1_per_HPF = _val(inputs['M1_per_HPF_primary_PDAC'])  # cells per 400x field
-          A = _val(inputs['HPF_area_400x_microscope'])  # mm^2
-          thickness = _val(inputs['section_thickness_histology']) / 1000.0  # um -> mm
+
+          M1_per_HPF = _val(inputs['M1_per_HPF_primary_PDAC'])
           t_min = _val(inputs['macrophage_half_life_min'])  # days
           t_max = _val(inputs['macrophage_half_life_max'])  # days
 
-          # Volume of tissue represented in one 400x high-power field (in mL)
-          # V_field = A [mm^2] * thickness [mm] * (1 mL / 1000 mm^3)
-          V_mm3 = A * thickness
-          V_mL = V_mm3 / 1000.0
+          observed_value = M1_per_HPF * ureg.cell
 
-          # M1 macrophage density in cells/mL
-          density = M1_per_HPF / V_mL
-
-          # Sample macrophage half-life uniformly between reported bounds
-          N = 10000
-          half_life_samples = np.random.uniform(t_min, t_max, size=N)
-          k_death = np.log(2.0) / half_life_samples  # 1/day
-
-          # Recruitment rate at steady state (cells/(mL*day))
-          k_rec_samples = k_death * density
+          # Log-scale SD from the half-life range (treat as ~95% CI)
+          sigma_log = (np.log(t_max) - np.log(t_min)) / (2.0 * 1.96)
 
           return {
-              'median': float(np.median(k_rec_samples)),
-              'ci95_lower': float(np.percentile(k_rec_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_rec_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD derived from half-life range
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        Treat the literature-derived steady-state estimate of k_Mac_rec as a lognormal observation on the parameter scale, with uncertainty captured via the Monte Carlo distribution from distribution_code.
+        Treat the literature-derived steady-state estimate of k_Mac_rec as a lognormal observation on the parameter scale, with uncertainty captured via the half-life range.
 
   identifiability_notes: |
     This submodel constrains k_Mac_rec primarily through a single steady-state relation using cross-sectional human PDAC data. The estimate is sensitive to assumptions about macrophage half-life, the fraction of macrophages that are recently recruited versus tissue-resident or locally proliferating, and the exact area of the 400x high-power field. Because M1 counts are modest compared to M2, and polarization and clearance processes are neglected, k_Mac_rec should be interpreted as an effective recruitment rate into the M1 compartment under high-CCL2 conditions rather than a precise biophysical flux. Joint calibration with k_Mac_death and polarization parameters in the full QSP model will be required for full structural identifiability.

@@ -164,68 +164,41 @@ calibration:
 
   error_model:
   - name: q_CD8_T_in_from_tpeak
-    observable:
     units: day
     uses_inputs:
     - t_peak_immune_lower
     - t_peak_immune_upper
-    - reference_tumor_volume
     sample_size: 1
     sample_size_rationale: |
       Yorty2007 reports a single characteristic peak time window (5-7 days) for tumor-site accumulation of Tag-specific CD8+ T cells after transfer of a high dose of immune donor cells; no explicit n is given for this summary statement, so we treat it as one aggregated measurement with broad uncertainty captured by the 5-7 day range.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for q_CD8_T_in from peak accumulation time.
+          Derive observation from peak CD8+ T cell accumulation time.
 
-          SD derived from the uniform distribution over the 5-7 day window.
+          The forward model predicts t_peak (days), so we provide the geometric
+          mean of the reported 5-7 day range with uncertainty from that range.
           """
           import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          t_lo = _val(inputs['t_peak_immune_lower'])  # days
-          t_hi = _val(inputs['t_peak_immune_upper'])  # days
-          t_samples = np.random.uniform(t_lo, t_hi, size=10000)
-          k_samples = 3.0 / (t_samples * 24.0 * 60.0)
-          log_k_sd = np.std(np.log(k_samples))
-          return {
-              'sd': log_k_sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
+
           def _val(x):
               return getattr(x, 'magnitude', x)
 
-          # Extract peak time range in days
           t_lo = _val(inputs['t_peak_immune_lower'])  # days
           t_hi = _val(inputs['t_peak_immune_upper'])  # days
 
-          # Reference tumor volume in cm^3 (assumed experimental condition)
-          V_ref = _val(inputs['reference_tumor_volume'])  # cm^3
+          # Point estimate: geometric mean of the time range
+          t_geomean = np.sqrt(t_lo * t_hi)
+          observed_value = t_geomean * ureg.day
 
-          # Sample peak times uniformly over reported 5-7 day window
-          t_samples_days = np.random.uniform(t_lo, t_hi, size=20000)
-
-          # For a first-order approach to saturation y(t) = 1 - exp(-k t),
-          # time to ~95% of asymptotic level is t_peak ~ 3/k, so k_in ~ 3/t_peak.
-          # Convert k_in to units of 1/min.
-          k_in_per_min = 3.0 / (t_samples_days * 24.0 * 60.0)
-
-          # Map k_in to q_CD8_T_in via k_in = q * V_ref (with context factor ~1).
-          q_samples = k_in_per_min / V_ref  # units: 1/(cm^3*min)
-
-          # Use the sampled distribution to summarize median and 95% CI.
-          median = float(np.median(q_samples))
-          ci_lower = float(np.percentile(q_samples, 2.5))
-          ci_upper = float(np.percentile(q_samples, 97.5))
+          # Log-scale SD from the range (treat as ~95% CI)
+          sigma_log = (np.log(t_hi) - np.log(t_lo)) / (2.0 * 1.96)
 
           return {
-              'median': median,
-              'ci95_lower': ci_lower,
-              'ci95_upper': ci_upper,
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # derived from reported range
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

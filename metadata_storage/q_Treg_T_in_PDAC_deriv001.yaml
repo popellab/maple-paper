@@ -98,7 +98,7 @@ inputs:
   uncertainty:
   n:
   input_type: direct_measurement
-  role: auxiliary
+  role: target
   source_ref: Tremblay2017
   source_location: Abstract and Results
   extraction_method: manual
@@ -116,6 +116,18 @@ inputs:
   extraction_method: other
   value_snippet: |
     Assumed reference tumor volume V_T_ref = 1 cm^3 for scaling q_Treg_T_in; not directly measured in Tremblay et al. 2017.
+- name: assumed_fold_uncertainty
+  value: 3.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Tremblay2017
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 3-fold 95% CI to capture the broad uncertainty in mapping MRI visibility time (24h) to an effective trafficking half-time.
 
 calibration:
   parameters:
@@ -168,59 +180,34 @@ calibration:
     units: hour
     uses_inputs:
     - t_vis_Treg
-    - V_T_ref
+    - assumed_fold_uncertainty
     sample_size: 1
     sample_size_rationale: |
       Not a direct experimental sample distribution; a synthetic distribution over q_Treg_T_in is derived from the single reported trafficking time scale using Monte Carlo propagation of heuristic uncertainty.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for q_Treg_T_in from MRI cell tracking.
+          Derive observation from MRI cell tracking data.
 
-          SD derived from the broad uncertainty in mapping MRI visibility time to half-life.
+          The forward model predicts trafficking half-time (hours), so we provide
+          the observed MRI visibility time as the observation with broad uncertainty.
           """
-          import numpy as np
-          import math
-          sigma_log = math.log(3.0) / 1.96  # ~3-fold 95% CI
-          return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
           import math
 
-          # Observed time at which MRI-visible accumulation of Tregs in tumor is first apparent
-          t_vis = inputs['t_vis_Treg'].to('hour').magnitude
+          t_vis = inputs['t_vis_Treg'].magnitude  # hours
+          fold_unc = inputs['assumed_fold_uncertainty'].magnitude
 
-          # Assume trafficking half-time t_half is of the same order as t_vis, with large uncertainty.
-          # Model t_half as lognormal with median = t_vis and ~3-fold 95% CI (very broad).
-          median_t_half = t_vis
-          sigma_log = math.log(3.0) / 1.96  # gives about a 3-fold 95% interval
-          mu_log = math.log(median_t_half)
+          # Point estimate: observed visibility time as proxy for half-time
+          observed_value = t_vis * ureg.hour
 
-          # Sample half-times (hours)
-          t_half_samples_h = np.random.lognormal(mean=mu_log, sigma=sigma_log, size=20000)
-
-          # Convert to first-order extravasation rate constant k_extrav (1/min)
-          k_extrav_per_h = math.log(2.0) / t_half_samples_h
-          k_extrav_per_min = k_extrav_per_h / 60.0
-
-          # Map to q_Treg_T_in using reference tumor volume V_T_ref (in cm^3)
-          V_T_ref = inputs['V_T_ref'].to('centimeter**3').magnitude
-          q_samples = k_extrav_per_min / V_T_ref  # units: 1/(cm^3*min)
-
-          # Summarize distribution
-          median = float(np.median(q_samples))
-          ci95_lower = float(np.percentile(q_samples, 2.5))
-          ci95_upper = float(np.percentile(q_samples, 97.5))
+          # Log-scale SD from assumed fold uncertainty (fold = exp(1.96*sigma))
+          sigma_log = math.log(fold_unc) / 1.96
 
           return {
-              'median': median,
-              'ci95_lower': ci95_lower,
-              'ci95_upper': ci95_upper,
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # assumed uncertainty, treat as fixed
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

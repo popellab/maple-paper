@@ -83,14 +83,10 @@ extraction_model: gpt-5.1
 extraction_reasoning_effort: medium
 
 inputs:
-- name: m2_to_m1_repol_time
+- name: m2_to_m1_repol_time_low
   value: 24.0
   units: hour
   uncertainty:
-    ci95:
-    - 24.0
-    - 48.0
-    sd:
   n: 2
   input_type: inferred_estimate
   role: target
@@ -100,6 +96,19 @@ inputs:
   extraction_method: manual
   value_snippet: |
     As a first validation, we performed qPCR analysis of selected genes of the literature signature at three time points after transfection. The highest impact of the knockdown on the gene expression of M1-like and M2-like associated genes was observed at 24 h and 48 h after transfection with the combined siRNA pool (Fig 5, S5 Table). Ten and eight out of fourteen M1- and M2-associated genes, respectively, switched their gene expression as expected at 24 h and 48 h after transfection. [...] At 24 h after transfection of the M2-like macrophages with the siRNA pool, the cytokine profile had already shifted to an M1-like phenotype in the transfected group compared to the control group (mock treated M2-like macrophages) (Fig 6A).
+- name: m2_to_m1_repol_time_high
+  value: 48.0
+  units: hour
+  uncertainty:
+  n: 2
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Hörhold2020
+  source_location: |
+    Results, qPCR and cytokine secretion time course after siRNA knockdown; text around Fig 5 and Fig 6
+  extraction_method: manual
+  value_snippet: |
+    The highest impact of the knockdown on the gene expression of M1-like and M2-like associated genes was observed at 24 h and 48 h after transfection.
 
 calibration:
   parameters:
@@ -140,51 +149,38 @@ calibration:
 
   error_model:
   - name: k_M1_pol_from_M2_repolarization_horhold2020
-    observable:
-    units: hour
+    units: day
     uses_inputs:
-    - m2_to_m1_repol_time
+    - m2_to_m1_repol_time_low
+    - m2_to_m1_repol_time_high
     sample_size: 2
     sample_size_rationale: |
       Hörhold et al. report biological duplicate experiments for gene expression and cytokine secretion (two biological replicates with technical replicates). We treat n=2 biological replicates as the effective sample size for the repolarization time scale.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_M1_pol derived from repolarization timescale.
+          Derive observation from repolarization timescale range.
 
-          The paper reports 24-48 h repolarization window. SD derived from
-          propagating this range through the rate constant calculation.
+          The forward model predicts half-time in days, so we return
+          the geometric mean of the range with log-scale SD from the range.
           """
           import numpy as np
-          low_h = 24.0
-          high_h = 48.0
-          samples_h = np.random.uniform(low_h, high_h, 10000)
-          samples_d = samples_h / 24.0
-          k_samples = np.log(2.0) / samples_d
-          log_k_sd = np.std(np.log(k_samples))
+          # Convert to days using ureg
+          low_d = inputs['m2_to_m1_repol_time_low'].to('day').magnitude
+          high_d = inputs['m2_to_m1_repol_time_high'].to('day').magnitude
+
+          # Geometric mean as point estimate
+          t_half_days = np.sqrt(low_d * high_d)
+          observed_value = t_half_days * ureg.day
+
+          # Log-scale SD from the range (treat as ~95% CI)
+          sigma_log = (np.log(high_d) - np.log(low_d)) / (2.0 * 1.96)
+
           return {
-              'sd': log_k_sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 2,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Reported time scale for strong M2-to-M1 reprogramming is 24–48 h.
-          # We model the effective half-time t_half as uniformly distributed between
-          # 24 h and 48 h, then convert to a first-order rate constant in 1/day.
-          t_half_hours = inputs['m2_to_m1_repol_time'].to('hour').magnitude
-          # Use the reported 95% interval [24, 48] h directly rather than the point value.
-          low_h = 24.0
-          high_h = 48.0
-          samples_h = np.random.uniform(low_h, high_h, 10000)
-          # Convert to days
-          samples_d = samples_h / 24.0
-          k_samples = np.log(2.0) / samples_d  # 1/day
-          return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD derived from reported range
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

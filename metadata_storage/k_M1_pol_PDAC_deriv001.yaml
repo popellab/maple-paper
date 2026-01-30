@@ -86,12 +86,36 @@ inputs:
   uncertainty:
   n:
   input_type: direct_measurement
-  role: target
+  role: auxiliary
   source_ref: Watkins2007
   source_location: Abstract
   extraction_method: manual
   value_snippet: |
     IL-12, both in vivo and in vitro, induced a rapid (<90 min) reduction of tumor supportive macrophage activities and a concomitant increase in proinflammatory and proimmunogenic activities.
+- name: assumed_half_life_fraction
+  value: 0.5
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Watkins2007
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed that polarization half-life is approximately 50% of the upper bound (<90 min), i.e., ~45 min, with broad uncertainty.
+- name: assumed_fold_uncertainty
+  value: 3.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Watkins2007
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 3-fold 95% CI to capture uncertainty in mapping "<90 min" to an effective half-life.
 
 calibration:
   parameters:
@@ -113,12 +137,11 @@ calibration:
     formula: k_M1_pol = ln(2) / t_half_days
     code: |
       def compute(params, inputs, ureg):
-          """Forward model: given k_M1_pol, predict reprogramming half-time in minutes."""
+          """Forward model: given k_M1_pol, predict reprogramming half-time in days."""
           import numpy as np
           k = params['k_M1_pol']  # 1/day
           t_half_days = np.log(2) / k
-          t_half_min = t_half_days * 24.0 * 60.0
-          return t_half_min * ureg.minute
+          return t_half_days * ureg.day
     code_julia: |
       function compute(params, inputs)
           k = params["k_M1_pol"]
@@ -132,54 +155,40 @@ calibration:
 
   error_model:
   - name: k_M1_pol_derived_from_90min
-    observable:
-    units: minute
+    units: day
     uses_inputs:
     - t_reprogram_max_90min
-    sample_size:
+    - assumed_half_life_fraction
+    - assumed_fold_uncertainty
+    sample_size: 1
     sample_size_rationale: |
       Not explicitly reported; the abstract summarizes consistent findings across multiple in vivo and in vitro experiments, so we treat the reported <90 min timescale as a single summarized observation.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_M1_pol derived from reprogramming timescale.
+          Derive observation from reprogramming timescale.
 
-          The paper reports <90 min reprogramming time. We model uncertainty
-          via a distribution over the polarization half-life and propagate to k.
+          The forward model predicts t_half in days, so we compute the
+          estimated half-life from the upper bound and assumed fraction.
           """
-          import numpy as np
           import math
-          t_max = inputs['t_reprogram_max_90min'].to('minute').magnitude
-          r_samples = np.random.beta(2.0, 2.0, size=10000)
-          r_samples = r_samples * 0.989 + 0.011
-          t_half_min = r_samples * t_max
-          t_half_days = t_half_min / (60.0 * 24.0)
-          k_samples = math.log(2.0) / t_half_days
-          log_k_sd = np.std(np.log(k_samples))
+
+          fraction = inputs['assumed_half_life_fraction'].magnitude
+          fold_unc = inputs['assumed_fold_uncertainty'].magnitude
+
+          # Point estimate: half-life is fraction of upper bound, convert to days via ureg
+          t_max = inputs['t_reprogram_max_90min']
+          t_half = fraction * t_max
+          observed_value = t_half.to('day')
+
+          # Log-scale SD from assumed fold uncertainty
+          sigma_log = math.log(fold_unc) / 1.96
+
           return {
-              'sd': log_k_sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          import math
-          # Upper bound on the time required to observe strong functional reprogramming
-          t_max = inputs['t_reprogram_max_90min']  # Pint quantity
-          t_max_min = t_max.to('minute').magnitude
-          # Assume the polarization half-life is a fraction r of this upper bound
-          # r ~ Beta(2, 2) on (0, 1) gives values centered around 0.5 with support (0, 1)
-          # Shift to avoid zero: use truncated Beta with floor at 1/90 (~1 min out of 90 min)
-          r_samples = np.random.beta(2.0, 2.0, size=10000)
-          r_samples = r_samples * 0.989 + 0.011  # Map (0,1) to (0.011, 1) to ensure t_half >= 1 min
-          t_half_min = r_samples * t_max_min
-          t_half_days = t_half_min / (60.0 * 24.0)
-          k_samples = math.log(2.0) / t_half_days
-          return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # assumed uncertainty
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

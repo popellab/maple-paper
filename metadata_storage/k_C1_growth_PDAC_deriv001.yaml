@@ -173,27 +173,43 @@ calibration:
 
   error_model:
   - name: vdt_observation
-    observable:  # null for algebraic models
     units: day
     uses_inputs:
     - vdtime_mean
     - vdtime_sd
-    # evaluation_points not needed for algebraic models
     sample_size: 100
     sample_size_rationale: |
       The imaging study included 100 patients with histologically confirmed PDAC and at least two untreated CT scans; all contributed to the reported VDT distribution.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for VDT observation.
+          Derive observation (point estimate + uncertainty) from literature data.
 
           The paper reports VDT = 132.3 ± 132.1 days (mean ± SD, n=100).
-          This SD reflects both measurement error and biological variability.
+          For lognormal likelihood, we need:
+          - value: the observed VDT (arithmetic mean)
+          - sd: log-scale SD (dimensionless)
+
+          The coefficient of variation (CV = SD/mean ≈ 1.0) indicates high
+          variability. For lognormal data, σ_log = sqrt(ln(1 + CV²)).
           """
-          vdt_sd = inputs['vdtime_sd'].to('day')
+          import numpy as np
+
+          vdt_mean = inputs['vdtime_mean'].magnitude  # days
+          vdt_sd = inputs['vdtime_sd'].magnitude  # days
+
+          # Point estimate: use arithmetic mean as observed value
+          observed_value = vdt_mean * ureg('day')
+
+          # Convert to log-scale SD for lognormal likelihood
+          # σ_log = sqrt(ln(1 + CV²)) where CV = SD/mean
+          cv = vdt_sd / vdt_mean
+          sigma_log = np.sqrt(np.log(1 + cv**2))
+
           return {
-              'sd': vdt_sd,
-              'sd_uncertain': False,  # SD is well-characterized
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD is well-characterized (n=100)
               'n': sample_size,
           }
     likelihood:

@@ -99,6 +99,18 @@ inputs:
   extraction_method: manual
   value_snippet: |
     Day 1 PSCs were incubated with or without RA at different doses (0, 0.5, 1, 2 micromol/L) as described previously. Day 5 PSCs were collected and cell proliferation analyzed with CCK-8, a sensitive colorimetric assay. As presented in Fig 5E, addition of RA suppressed PSC proliferation. In addition, we investigated the effects of RA on PSC apoptosis via Annexin-V/PI staining. Treatment with RA induced a marked increase in the rate of apoptosis (Fig 6A).
+- name: assumed_sigma_log
+  value: 1.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Xiao2015
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed log-scale SD of 1.0 (about order-of-magnitude 95% CI) to capture broad uncertainty in the half-life estimate.
 
 calibration:
   parameters:
@@ -138,41 +150,30 @@ calibration:
 
   error_model:
   - name: k_apsc_death_from_half_life
-    observable:
     units: day
     uses_inputs:
     - half_life_apsc
-    sample_size:
-    sample_size_rationale:
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    - assumed_sigma_log
+    sample_size: 1
+    sample_size_rationale: |
+      Single inferred half-life estimate from the 5-day culture period.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_apsc_death from PSC half-life estimate.
+          Derive observation from PSC half-life estimate.
 
-          SD derived from broad uncertainty in the half-life estimate.
+          The forward model predicts half-life in days, so we return
+          the observed half-life with log-scale SD.
           """
-          sigma_log = 1.0  # About order-of-magnitude 95% interval
-          return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Half-life in days (assumed characteristic timescale for substantial PSC apoptosis
-          # in the RA-treated culture system of Xiao et al. 2015)
           t_half = inputs['half_life_apsc'].magnitude
-          # Place a broad lognormal distribution on t_half centered at the nominal value,
-          # with sigma_log = 1 (about an order-of-magnitude 95% interval).
-          mu_log = np.log(t_half)
-          sigma_log = 1.0
-          t_samples = np.random.lognormal(mu_log, sigma_log, size=10000)
-          k_samples = np.log(2.0) / t_samples
+          sigma_log = inputs['assumed_sigma_log'].magnitude
+          observed_value = t_half * ureg.day
+
           return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD is assumed
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

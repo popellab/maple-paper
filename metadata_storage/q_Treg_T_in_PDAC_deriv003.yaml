@@ -163,6 +163,42 @@ inputs:
   extraction_method: manual
   value_snippet: |
     Under these conditions, 30-100 ng/ml SDF-1 induced a rapid and efficient migration of CD34(+) cells (+/- 46% migration in 4 h).
+- name: assumed_cv_migration_fraction
+  value: 0.20
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Voermans2000
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 20% CV for base CD34+ migration fraction to capture assay variability and proxy cell type uncertainty.
+- name: assumed_cv_transmigration_ratio
+  value: 0.25
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Nummer2007
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 25% CV for Treg/conventional transmigration ratio to capture in vitro assay variability.
+- name: max_migration_fraction
+  value: 0.99
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Voermans2000
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Cap migration fraction at 0.99 to avoid numerical issues with ln(1-f) when f approaches 1.
 
 calibration:
   parameters:
@@ -213,77 +249,54 @@ calibration:
 
   error_model:
   - name: q_Treg_T_in_derived_from_migration
-    observable:
     units: dimensionless
     uses_inputs:
     - cd34_migration_fraction_4h
-    - migration_time_4h_hr
     - treg_transmigration_conventional_invitro_cells
     - treg_transmigration_treg_invitro_cells
-    sample_size:
+    - assumed_cv_migration_fraction
+    - assumed_cv_transmigration_ratio
+    - max_migration_fraction
+    sample_size: 1
     sample_size_rationale: |
       The CD34+ migration fraction and PDAC Treg transmigration counts are summary values from in vitro assays; replicate numbers are not clearly specified in the abstracts, so we treat them as point estimates and reflect uncertainty via broad assumed coefficients of variation in the distribution code rather than explicit n.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for q_Treg_T_in from transendothelial migration data.
+          Derive observation from transendothelial migration data.
 
-          SD derived from propagating CVs through the migration fraction calculation.
+          The forward model predicts Treg migration fraction, so we compute
+          the effective f_Treg from CD34+ migration scaled by Treg/conventional ratio.
           """
           import numpy as np
-          cv_f = 0.20
-          cv_r = 0.25
-          cv_combined = np.sqrt(cv_f**2 + cv_r**2)
-          sigma_log = np.sqrt(np.log(1 + cv_combined**2))
-          return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 3,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
+
           def _val(x):
               return getattr(x, 'magnitude', x)
-          # Base CD34+ migration fraction over 4 h
-          f_hpc = _val(inputs['cd34_migration_fraction_4h'])  # ~0.46
 
-          # PDAC-specific fold-increase of Treg transmigration vs conventional CD4+ T cells
+          # Base CD34+ migration fraction
+          f_hpc = _val(inputs['cd34_migration_fraction_4h'])
+
+          # Treg/conventional CD4+ transmigration ratio
           n_conv = _val(inputs['treg_transmigration_conventional_invitro_cells'])
           n_treg = _val(inputs['treg_transmigration_treg_invitro_cells'])
-          r_mean = float(n_treg / n_conv)  # ~1.49
+          r = n_treg / n_conv
 
-          # Calculate effective Treg migration fraction mean and variance
-          # Using propagation of uncertainty for product of two variables with CVs
-          cv_f = 0.20  # 20% CV for base fraction (proxy cell type and assay)
-          cv_r = 0.25  # 25% CV for ratio (experimental & biological variability)
-          f_treg_mean = f_hpc * r_mean  # ~0.69
-          # Combined CV for product: cv_product = sqrt(cv_f^2 + cv_r^2)
+          # Effective Treg migration fraction (cap for numerical stability)
+          max_f = _val(inputs['max_migration_fraction'])
+          f_treg = min(f_hpc * r, max_f)
+          observed_value = f_treg * ureg.dimensionless
+
+          # Propagate CVs through the product
+          cv_f = _val(inputs['assumed_cv_migration_fraction'])
+          cv_r = _val(inputs['assumed_cv_transmigration_ratio'])
           cv_combined = np.sqrt(cv_f**2 + cv_r**2)
-          f_treg_var = (f_treg_mean * cv_combined)**2
-
-          # Use beta distribution for fraction (naturally bounded to [0,1])
-          # Method of moments: given mean mu and variance sigma^2,
-          # nu = mu*(1-mu)/sigma^2 - 1; alpha = mu*nu; beta = (1-mu)*nu
-          nu = f_treg_mean * (1 - f_treg_mean) / f_treg_var - 1
-          alpha = f_treg_mean * nu
-          beta_param = (1 - f_treg_mean) * nu
-          f_treg_samples = np.random.beta(alpha, beta_param, size=10000)
-
-          # 4 h migration time in hours, convert to minutes
-          tau_hr = _val(inputs['migration_time_4h_hr'])
-          tau_min = tau_hr * 60.0
-          # Nominal tumor volume of 1 cm^3 is absorbed into q units (1/(cm^3*min)), so V_T_ref = 1
-          V_T_ref = 1.0
-
-          # First-order relation: f = 1 - exp(-k_in * tau_min), with k_in = q_Treg_T_in * V_T_ref
-          k_in_samples = -np.log(1.0 - f_treg_samples) / tau_min
-          q_samples = k_in_samples / V_T_ref
+          sigma_log = np.sqrt(np.log(1 + cv_combined**2))
 
           return {
-              'median': float(np.median(q_samples)),
-              'ci95_lower': float(np.percentile(q_samples, 2.5)),
-              'ci95_upper': float(np.percentile(q_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # assumed CVs, treat as fixed
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

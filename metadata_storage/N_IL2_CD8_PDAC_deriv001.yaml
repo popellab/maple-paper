@@ -172,7 +172,6 @@ calibration:
 
   error_model:
   - name: N_IL2_CD8_estimate_from_OTI_memory_fold
-    observable:
     units: dimensionless
     uses_inputs:
     - fold_increase_memory_day10_min
@@ -180,47 +179,30 @@ calibration:
     sample_size: 3
     sample_size_rationale: |
       Castro et al. report data as mean +/- SE from 3-9 mice per time point; we conservatively take n=3 as the effective sample size for the 40- to 70-fold increase in OT-I memory cells.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for N_IL2_CD8 from fold expansion data.
+          Derive observation from fold expansion data.
 
-          SD derived from the reported 40-70 fold range.
+          The forward model predicts fold increase (2^N), so we provide the
+          geometric mean of the reported 40-70x range with uncertainty.
           """
           import numpy as np
-          f_low = inputs['fold_increase_memory_day10_min'].magnitude
-          f_high = inputs['fold_increase_memory_day30_max'].magnitude
-          sigma_log_fold = (np.log(f_high) - np.log(f_low)) / (2.0 * 1.96)
-          # SD on log2 scale: sigma_N = sigma_log_fold / ln(2)
-          sigma_N = sigma_log_fold / np.log(2)
-          return {
-              'sd': sigma_N * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 3,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Extract lower and upper reported fold-changes in OT-I memory cells
+
           f_low = inputs['fold_increase_memory_day10_min'].magnitude
           f_high = inputs['fold_increase_memory_day30_max'].magnitude
 
-          # Treat f_low and f_high as approximate 95 percent interval bounds
-          # for a lognormal distribution of the IL-2-driven fold increase.
-          mu_log = 0.5 * (np.log(f_low) + np.log(f_high))
+          # Point estimate: geometric mean of the fold increase range
+          observed_value = np.sqrt(f_low * f_high) * ureg.dimensionless
+
+          # Log-scale SD from the range (treat as ~95% CI)
           sigma_log = (np.log(f_high) - np.log(f_low)) / (2.0 * 1.96)
 
-          # Sample fold-increase values on the original scale
-          fold_samples = np.random.lognormal(mean=mu_log, sigma=sigma_log, size=10000)
-
-          # Map fold increase to additional IL-2-driven generations
-          # assuming each division doubles cell number: fold = 2^N.
-          N_samples = np.log2(fold_samples)
-
           return {
-              'median': float(np.median(N_samples)),
-              'ci95_lower': float(np.percentile(N_samples, 2.5)),
-              'ci95_upper': float(np.percentile(N_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # derived from reported range
+              'n': sample_size,
           }
     likelihood:
       distribution: normal

@@ -214,60 +214,41 @@ calibration:
 
   error_model:
   - name: derived_k_MDSC_rec
-    observable:
     units: percent
     uses_inputs:
     - B16_MDSC_fraction_control
     - B16_MDSC_fraction_control_sd
     - tumor_cell_density
     - MDSC_half_life
-    sample_size:
+    sample_size: 10
     sample_size_rationale: |
       Effective sample size taken as the number of tumors in the control B16 group (n = 10-15); used here only qualitatively since the model is an algebraic conversion.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_MDSC_rec from B16 MDSC fraction data.
+          Derive observation from B16 MDSC fraction data.
 
-          SD propagated from the reported MDSC fraction SD.
+          The forward model predicts MDSC fraction in percent, so we return
+          the observed fraction with log-scale SD derived from reported SD.
           """
           import numpy as np
           def _val(x):
               return getattr(x, 'magnitude', x)
+
           mean_perc = _val(inputs['B16_MDSC_fraction_control'])
           sd_perc = _val(inputs['B16_MDSC_fraction_control_sd'])
+
+          observed_value = mean_perc * ureg.percent
+
+          # Convert reported mean and SD to log-scale SD
           cv = sd_perc / mean_perc
           sigma_log = np.sqrt(np.log(1 + cv**2))
+
           return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': False,
-              'n': sample_size if sample_size else 10,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          # B16_MDSC_fraction_control is reported as mean +/- SD in percent
-          mean_perc = _val(inputs['B16_MDSC_fraction_control'])
-          sd_perc = _val(inputs['B16_MDSC_fraction_control_sd'])
-          # Approximate measurement distribution as lognormal derived from mean and SD
-          # Convert mean and SD of a lognormal to mu and sigma in log-space
-          variance = sd_perc**2
-          mu_log = np.log((mean_perc**2) / np.sqrt(variance + mean_perc**2))
-          sigma_log = np.sqrt(np.log(1.0 + variance / (mean_perc**2)))
-          n_samples = 10000
-          perc_samples = np.random.lognormal(mu_log, sigma_log, n_samples)
-          frac_samples = perc_samples / 100.0
-          # Tumor cell density and half-life are treated as fixed for this conversion
-          cell_density = _val(inputs['tumor_cell_density'])  # cells per mL
-          half_life = _val(inputs['MDSC_half_life'])        # days
-          k_death = np.log(2.0) / half_life                     # 1/day
-          k_rec_samples = frac_samples * cell_density * k_death # cell/(mL*day)
-          return {
-              'median': float(np.median(k_rec_samples)),
-              'ci95_lower': float(np.percentile(k_rec_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_rec_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD derived from reported SD
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

@@ -109,7 +109,7 @@ inputs:
   uncertainty:
   n:
   input_type: direct_measurement
-  role: auxiliary
+  role: target
   source_ref: Meng2023_SciTM
   source_location: Abstract
   extraction_method: manual
@@ -168,7 +168,6 @@ calibration:
 
   error_model:
   - name: tumor_reactive_clones_per_tumor
-    observable:
     units: dimensionless
     uses_inputs:
     - total_TR_clonotypes_Meng2023
@@ -176,47 +175,43 @@ calibration:
     sample_size: 9
     sample_size_rationale: |
       Meng et al. 2023 report 93 tumor-reactive TCR clonotypes identified across 3 genetically unstable and 6 genetically stable PDAC tumors (9 tumors total). We treat these 9 tumors as independent samples for the average number of tumor-reactive clones per tumor.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for n_CD8_clones from PDAC tumor-reactive clonotypes.
+          Derive observation (point estimate + uncertainty) from clonotype data.
 
-          SD derived from Poisson statistics of clonotype counts.
+          The paper reports 93 tumor-reactive TCR clonotypes across 9 PDAC tumors.
+          The forward model predicts: total_clonotypes = n_CD8_clones * n_tumors
+
+          For lognormal likelihood on count data:
+          - value: total observed clonotypes (93)
+          - sd: log-scale SD from Poisson counting statistics
+
+          Poisson SD = sqrt(count), so CV = 1/sqrt(count) ≈ 0.104 for count=93
+          σ_log = sqrt(ln(1 + CV²)) ≈ 0.104
           """
           import numpy as np
+
           total_tr = inputs['total_TR_clonotypes_Meng2023'].magnitude
-          n_tumors = inputs['n_PDAC_tumors_Meng2023'].magnitude
-          # Poisson SD = sqrt(lambda), then divide by n_tumors
-          sd_per_tumor = np.sqrt(total_tr) / n_tumors
-          mean_per_tumor = total_tr / n_tumors
-          cv = sd_per_tumor / mean_per_tumor
+
+          # Point estimate: total observed clonotypes
+          observed_value = total_tr * ureg.dimensionless
+
+          # Uncertainty from Poisson counting statistics
+          # CV = sqrt(count) / count = 1 / sqrt(count)
+          cv = 1.0 / np.sqrt(total_tr)
           sigma_log = np.sqrt(np.log(1 + cv**2))
+
           return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else int(n_tumors),
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Total number of tumor-reactive clonotypes identified across all tumors
-          total_tr = inputs['total_TR_clonotypes_Meng2023'].magnitude
-          # Number of PDAC tumors profiled
-          n_tumors = inputs['n_PDAC_tumors_Meng2023'].magnitude
-          # Assume the total number of tumor-reactive clonotypes follows Poisson statistics
-          # with mean equal to the observed total (93), and derive the distribution of
-          # mean tumor-reactive clones per tumor. With lambda=93, P(X=0) is negligible.
-          total_samples = np.random.poisson(lam=total_tr, size=10000)
-          clones_per_tumor = total_samples / float(n_tumors)
-          return {
-              'median': float(np.median(clones_per_tumor)),
-              'ci95_lower': float(np.percentile(clones_per_tumor, 2.5)),
-              'ci95_upper': float(np.percentile(clones_per_tumor, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD from Poisson counting statistics
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        The derived observable is the average number of tumor-reactive CD8 T cell clonotypes per PDAC tumor, which is positive and can vary over orders of magnitude between patients. A lognormal likelihood, with its parameters informed by the distribution returned from distribution_code, is appropriate for such multiplicative biological variability.
+        Count data (total tumor-reactive clonotypes) is positive and well-modeled by lognormal likelihood when uncertainty arises from Poisson counting statistics. The log-scale SD captures the multiplicative uncertainty in the observation.
 
   identifiability_notes: |
     This submodel constrains n_CD8_clones primarily through the average number of experimentally identified tumor-reactive CD8 TCR clonotypes per PDAC tumor from Meng et al. 2023. Because the underlying dataset is small (9 tumors) and subject to detection limits (only clonotypes recovered and functionally tested are counted), the resulting constraint on n_CD8_clones is moderate. In the full QSP model, n_CD8_clones will be correlated with other parameters that scale antigen-driven T cell priming, such as P1_C1 (antigen per cancer cell), k_T_activation_per_APC, and n_T_expansion_burst. Additional data linking the absolute abundance of tumor-reactive CD8 T cells (e.g., tetramer frequencies or functional ELISPOT counts per tumor) to clinical responses in PDAC would help break these correlations and more tightly identify n_CD8_clones.

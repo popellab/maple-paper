@@ -217,81 +217,47 @@ calibration:
 
   error_model:
   - name: derived_k_CCL2_sec_from_PrSC
-    observable:
     units: pg/milliliter
     uses_inputs:
     - CCL2_prsc_unstim_mean
     - CCL2_prsc_unstim_sd
-    - n_cells_prsc
-    - incubation_time_hours
-    - V_medium_ml
     sample_size: 3
     sample_size_rationale: Same replicate number as the underlying ELISA measurement (assumed n=3).
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_CCL2_sec derived from PrSC secretion data.
+          Derive observation (point estimate + uncertainty) from PrSC secretion data.
 
-          SD propagated from the reported concentration SD through unit conversion.
+          The paper reports CCL2 concentration = 1888 ± 631 pg/mL (mean ± SD, n=3).
+          For lognormal likelihood, we need:
+          - value: the observed concentration
+          - sd: log-scale SD (dimensionless)
+
+          The CV = 631/1888 ≈ 0.33, so σ_log = sqrt(ln(1 + CV²)) ≈ 0.32
           """
           import numpy as np
-          conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude
-          conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude
-          V_ml = inputs['V_medium_ml'].magnitude
-          N_cells = inputs['n_cells_prsc'].magnitude
-          t_h = inputs['incubation_time_hours'].magnitude
-          MW = 8.7e3
-          mu_log = np.log(conc_mean**2 / np.sqrt(conc_mean**2 + conc_sd**2))
-          sigma_log = np.sqrt(np.log(1 + conc_sd**2 / conc_mean**2))
-          samples = np.random.lognormal(mu_log, sigma_log, 10000)
-          mass_pg = samples * V_ml
-          mass_g = mass_pg * 1e-12
-          moles = mass_g / MW
-          nmol = moles * 1e9
-          days = t_h / 24.0
-          k_samples = nmol / (N_cells * days)
-          log_k_sd = np.std(np.log(k_samples))
-          return {
-              'sd': log_k_sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 3,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
 
-          conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude
-          conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude
+          conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude  # pg/mL
+          conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude  # pg/mL
 
-          V_ml = inputs['V_medium_ml'].magnitude
-          N_cells = inputs['n_cells_prsc'].magnitude
-          t_h = inputs['incubation_time_hours'].magnitude
+          # Point estimate: use arithmetic mean as observed value
+          observed_value = conc_mean * ureg('pg/milliliter')
 
-          # Use lognormal sampling for positive concentration values
-          # Convert mean+/-SD to lognormal parameters
-          mu_log = np.log(conc_mean**2 / np.sqrt(conc_mean**2 + conc_sd**2))
-          sigma_log = np.sqrt(np.log(1 + conc_sd**2 / conc_mean**2))
-          samples = np.random.lognormal(mu_log, sigma_log, 10000)
-
-          MW = 8.7e3  # g/mol for MCP-1/CCL2
-
-          mass_pg = samples * V_ml
-          mass_g = mass_pg * 1e-12
-          moles = mass_g / MW
-          nmol = moles * 1e9
-
-          days = t_h / 24.0
-          k_samples = nmol / (N_cells * days)
+          # Convert to log-scale SD for lognormal likelihood
+          # σ_log = sqrt(ln(1 + CV²)) where CV = SD/mean
+          cv = conc_sd / conc_mean
+          sigma_log = np.sqrt(np.log(1 + cv**2))
 
           return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from reported mean±SD
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        The derived secretion rate is positive and expected to vary over orders of magnitude due to experimental noise and biological/contextual uncertainty. A lognormal likelihood on k_CCL2_sec, informed by the distribution_code transformation of the measured concentration, is appropriate.
+        The measured CCL2 concentration is positive and the forward model predicts concentration from the secretion rate parameter. A lognormal likelihood respects positivity and is appropriate for biological concentration data with multiplicative error structure.
 
   identifiability_notes: |
     Because the algebraic relationship C_meas·V = k_CCL2_sec·N_cells·t (ignoring degradation) directly links the measured concentration to k_CCL2_sec, the parameter is structurally identifiable given known N_cells, t, medium volume, and molecular weight. However, uncertainty in the true medium volume, possible chemokine degradation, and biological differences between benign prostate stroma and PDAC tumor/stromal cells mean that the experimental data constrain only the order of magnitude of k_CCL2_sec. This is reflected in the wide lognormal prior and the stochastic propagation of measurement uncertainty in the distribution_code.

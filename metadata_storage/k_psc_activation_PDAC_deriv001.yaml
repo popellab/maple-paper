@@ -127,6 +127,18 @@ inputs:
   extraction_method: manual
   value_snippet: |
     Cells cultured for 24 hours had an angular appearance, contained lipid droplets manifesting positive vitamin A autofluorescence, and stained positively for desmin but negatively for alpha-SMA. At 48 hours, cells were positive for alpha-SMA.
+- name: assumed_cv
+  value: 0.25
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Apte1998
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 25% coefficient of variation on activation time (not reported in the paper).
 
 calibration:
   parameters:
@@ -167,52 +179,37 @@ calibration:
 
   error_model:
   - name: psc_activation_time_constraint
-    observable:
     units: hour
     uses_inputs:
     - psc_activation_time_48h
+    - assumed_cv
     sample_size: 1
     sample_size_rationale: |
       Single primary culture timing estimate for onset of alpha-SMA positivity from Apte 1998 Gut.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_psc_activation from PSC activation time.
+          Derive observation from PSC activation time.
 
-          SD derived from assumed 25% CV on activation time.
+          The forward model predicts activation time in hours, so we return
+          the observed activation time with log-scale SD based on assumed CV.
           """
           import numpy as np
-          cv = 0.25
+          t_hours = inputs['psc_activation_time_48h'].magnitude
+          cv = inputs['assumed_cv'].magnitude
+          observed_value = t_hours * ureg.hour
           sigma_log = np.sqrt(np.log(1.0 + cv**2))
+
           return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 1,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Observed activation time (onset of alpha-SMA positivity)
-          t_obs = inputs['psc_activation_time_48h']
-          # Convert to days for consistency with k_psc_activation units
-          t_days = t_obs.to('day').magnitude
-          # Assume a 25% coefficient of variation on activation time (not reported in the paper)
-          cv = 0.25
-          sigma = np.sqrt(np.log(1.0 + cv**2))
-          mu = np.log(t_days) - 0.5 * sigma**2
-          # Draw a lognormal distribution for activation time
-          t_samples = np.random.lognormal(mu, sigma, 10000)
-          # Map to implied k_psc_activation samples via t_activation = 1 / k
-          k_samples = 1.0 / t_samples
-          return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD derived from assumed CV
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        Activation time is positive and likely subject to multiplicative biological and experimental variability; we therefore represent uncertainty in the observed ~48 h activation time with a lognormal distribution over t_activation, which is then mapped to k_psc_activation via t_activation = 1/k_psc_activation.
+        Activation time is positive and likely subject to multiplicative biological and experimental variability; we therefore represent uncertainty in the observed ~48 h activation time with a lognormal distribution over t_activation.
 
   identifiability_notes: |
     This submodel provides only an order-of-magnitude constraint on k_psc_activation based on a single qualitative timing observation (onset of alpha-SMA positivity at ~48 h). The inferred k_psc_activation conflates effects of TGFbetab, PDGF, mechanical cues, and other stimuli present during primary culture and should be interpreted as an effective activation rate under strong profibrotic signaling. Additional time-course data quantifying the fraction of PSCs that are alpha-SMA+ over multiple time points, ideally under defined TGFbetab and PDGF concentrations and in human PSCs, would be required for tighter and more mechanistically specific identification.

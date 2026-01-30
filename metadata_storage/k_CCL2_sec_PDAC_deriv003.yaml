@@ -143,6 +143,18 @@ inputs:
   source_location: DrugBank polypeptide entry for C-C motif chemokine 2 (P13500)
   extraction_method: manual
   value_snippet: Molecular Weight 11024.87
+- name: assumed_cv
+  value: 0.5
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yoshimura2023
+  source_location: Table 2 shows inter-study variability but no within-study SD reported
+  extraction_method: other
+  value_snippet: |
+    No uncertainty reported for Nam et al. value; 50% CV assumed based on typical inter-study variability in CCL2 secretion measurements across breast cancer cell lines.
 
 calibration:
   parameters:
@@ -200,47 +212,34 @@ calibration:
     units: nanogram
     uses_inputs:
     - MDA_MB231_CCL2_mass_48h
-    - MDA_MB231_time_interval_48h
-    - MDA_MB231_cell_count
-    - CCL2_molecular_weight
+    - assumed_cv
     sample_size: 3
     sample_size_rationale: |
       Nam et al. likely used triplicate cultures, but the review summarizing their data did not report n; we assume a typical n=3 for ELISA-based secretion assays.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_CCL2_sec from breast cancer cell line data.
+          Derive observation from breast cancer cell line CCL2 secretion data.
 
-          Point estimate with assumed 50% CV due to lack of reported variability.
+          The forward model predicts CCL2 mass secreted (ng), so we provide that
+          as the observed value with uncertainty from assumed CV.
           """
           import numpy as np
-          cv = 0.5  # Assumed coefficient of variation
+
+          mass_ng = inputs['MDA_MB231_CCL2_mass_48h'].magnitude
+          cv = inputs['assumed_cv'].magnitude
+
+          # Point estimate: observed CCL2 mass
+          observed_value = mass_ng * ureg.nanogram
+
+          # Log-scale SD from assumed CV
           sigma_log = np.sqrt(np.log(1 + cv**2))
+
           return {
-              'sd': sigma_log * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 3,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          mass = inputs['MDA_MB231_CCL2_mass_48h']
-          time = inputs['MDA_MB231_time_interval_48h']
-          cells = inputs['MDA_MB231_cell_count']
-          mw = inputs['CCL2_molecular_weight']
-          # Convert to base units
-          mass_g = mass.to('gram').magnitude
-          mw_g_per_mol = mw.to('gram/mole').magnitude
-          moles = mass_g / mw_g_per_mol
-          time_days = time.to('day').magnitude
-          cell_number = cells.magnitude
-          k_mol_per_cell_per_day = moles / (cell_number * time_days)
-          k_nmol_per_cell_per_day = k_mol_per_cell_per_day * 1e9
-          samples = np.array([k_nmol_per_cell_per_day])
-          return {
-              'median': float(np.median(samples)),
-              'ci95_lower': float(np.percentile(samples, 2.5)),
-              'ci95_upper': float(np.percentile(samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # assumed CV, treat as fixed
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

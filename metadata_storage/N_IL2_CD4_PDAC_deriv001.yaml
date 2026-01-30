@@ -121,6 +121,18 @@ inputs:
   extraction_method: manual
   value_snippet: |
     The limit of detection is seven or eight division cycles caused by compression of peaks as the CFSE intensity approaches autofluorescent levels (Fig. 1B). Thus, divisions beyond seven cycles are indistinguishable and are collectively referred to as divisions 8+.
+- name: assumed_cv
+  value: 0.25
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Gett1998
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 25% coefficient of variation to capture biological variability and CFSE peak compression beyond 7-8 divisions.
 
 calibration:
   parameters:
@@ -157,51 +169,36 @@ calibration:
 
   error_model:
   - name: N_IL2_CD4_estimate
-    observable:
     units: dimensionless
     uses_inputs:
     - max_divisions_cd4_antiCD3_IL2_IL4
+    - assumed_cv
     sample_size: 5
     sample_size_rationale: |
       Approximate number of independent cultures implied by "two experiments" and multiple replicate wells; exact n is not specified, so n=5 is treated as an approximate effective sample size for uncertainty calibration.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for N_IL2_CD4 from CFSE division tracking.
+          Derive observation from CFSE division tracking.
 
-          SD set to approximately 2 divisions based on CFSE detection limit uncertainty.
+          The forward model predicts max divisions directly, so we return
+          the observed max divisions with SD based on assumed CV.
           """
           max_div = inputs['max_divisions_cd4_antiCD3_IL2_IL4'].magnitude
-          sd = 0.25 * max_div  # ~2 divisions for max_div=8
+          cv = inputs['assumed_cv'].magnitude
+          sd = cv * max_div  # ~2 divisions for max_div=8, CV=0.25
+          observed_value = max_div * ureg.dimensionless
+
           return {
-              'sd': sd * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 5,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Extract proxy measurement of maximum divisions
-          max_div = inputs['max_divisions_cd4_antiCD3_IL2_IL4'].magnitude
-          # Treat this as an approximate mean with ~25 percent coefficient of variation,
-          # reflecting biological variability and CFSE peak compression beyond 7-8 divisions.
-          sd = 0.25 * max_div
-          samples = np.random.normal(loc=max_div, scale=sd, size=20000)
-          # Constrain to positive values (>= 1 division)
-          samples = samples[samples > 0.5]
-          if samples.size < 1000:
-              # Fallback in unlikely case of heavy truncation
-              samples = np.abs(np.random.normal(loc=max_div, scale=sd, size=20000))
-              samples[samples < 0.5] = 0.5
-          return {
-              'median': float(np.median(samples)),
-              'ci95_lower': float(np.percentile(samples, 2.5)),
-              'ci95_upper': float(np.percentile(samples, 97.5)),
+              'value': observed_value,
+              'sd': sd,  # dimensional for normal likelihood
+              'sd_uncertain': False,  # SD derived from assumed CV
+              'n': sample_size,
           }
     likelihood:
       distribution: normal
       rationale: |
-        We treat the experimental proxy (max_divisions_cd4_antiCD3_IL2_IL4) as a noisy observation of the latent division-destiny parameter N_IL2_CD4 with approximately one division of experimental and biological scatter. The distribution_code above is used to map the proxy input into an effective prior/posterior over N_IL2_CD4.
+        We treat the experimental proxy (max_divisions_cd4_antiCD3_IL2_IL4) as a noisy observation of the latent division-destiny parameter N_IL2_CD4 with approximately two divisions of experimental and biological scatter based on 25% CV.
 
   identifiability_notes: |
     This calibration uses a single in vitro proxy measurement of the maximum resolvable division number for naive murine CD4+ T cells under strong anti-CD3, IL-2 and IL-4 stimulation. As a result, N_IL2_CD4 is only weakly constrained: (1) the true biological division destiny may exceed the CFSE detection limit of 7-8 cycles; (2) IL-4 and strong TCR signals also contribute to division destiny but are not decomposed from the IL-2 contribution; and (3) the translation from naive murine CD4+ T cells in vitro to human tumor-infiltrating or lymph-node-resident CD4+ T cells in PDAC is uncertain. The prior on N_IL2_CD4 is therefore deliberately broad, and this submodel should be viewed as providing an order-of-magnitude anchor for the maximum number of IL-2-supported divisions rather than a tightly identified parameter. Additional data (e.g., quantitative division-destiny analyses with IL-2 titrations in CD4+ T cells, or human primary CD4+ T cell division tracking under clinically relevant cytokine conditions) would be required for sharper identification.

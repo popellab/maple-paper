@@ -152,7 +152,6 @@ calibration:
 
   error_model:
   - name: k_CCL2_sec_from_LeukemiaCellLines
-    observable:
     units: pg/milliliter
     uses_inputs:
     - mcp1_constitutive_min_pg_per_ml_per_millioncells
@@ -160,51 +159,34 @@ calibration:
     sample_size: 4
     sample_size_rationale: |
       Four human myelomonocytic leukemia cell lines (HL-60, ML-2, MONO-MAC-6, MUTZ-3) were assayed for constitutive MCP-1 secretion; the reported range 440 to 1400 pg/ml per 10^6 cells reflects variability across these lines.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_CCL2_sec from leukemia cell lines.
+          Derive observation (point estimate + uncertainty) from literature data.
 
-          SD derived from the reported range of constitutive secretion values.
+          The reported range 440-1400 pg/mL is interpreted as a 95% CI for a
+          lognormal distribution. We compute:
+          - value: geometric mean as the point estimate
+          - sd: log-scale standard deviation for lognormal likelihood
           """
           import numpy as np
-          min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells'].magnitude
-          max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells'].magnitude
-          log_min = np.log(min_pg)
-          log_max = np.log(max_pg)
-          sigma = (log_max - log_min) / (2.0 * 1.96)
-          return {
-              'sd': sigma * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 4,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
-          import numpy as np
-          # Extract measured range of MCP-1 (CCL2) secretion in pg/ml per 10^6 cells over ~24 h
+
           min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells'].magnitude
           max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells'].magnitude
 
-          # Assume these represent the 2.5th and 97.5th percentiles of a lognormal distribution
+          # Point estimate: geometric mean for lognormal data
+          observed_value = np.sqrt(min_pg * max_pg) * ureg('pg/milliliter')
+
+          # Uncertainty: derive log-scale SD from the range (assumed 95% CI)
           log_min = np.log(min_pg)
           log_max = np.log(max_pg)
-          mu = (log_min + log_max) / 2.0
           sigma = (log_max - log_min) / (2.0 * 1.96)
 
-          # Sample secretion amounts in pg/ml per 10^6 cells per 24 h
-          samples_pg = np.random.lognormal(mean=mu, sigma=sigma, size=10000)
-
-          # Convert pg of CCL2 to nmol using an approximate molecular weight of 8.7 kDa
-          mw_ccl2 = 8700.0  # g/mol, approximate molar mass of CCL2 (MCP-1)
-          pg_to_nmol = 1e-12 / mw_ccl2 * 1e9  # (g/pg) / (g/mol) * (nmol/mol)
-
-          # Per-cell, per-day secretion rate: divide by 1e6 cells and 1 day
-          samples_k = samples_pg * pg_to_nmol / 1e6
-
           return {
-              'median': float(np.median(samples_k)),
-              'ci95_lower': float(np.percentile(samples_k, 2.5)),
-              'ci95_upper': float(np.percentile(samples_k, 97.5)),
+              'value': observed_value,
+              'sd': sigma,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from reported range
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal

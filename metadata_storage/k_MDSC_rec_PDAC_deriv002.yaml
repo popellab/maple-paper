@@ -174,6 +174,30 @@ inputs:
   extraction_method: manual
   value_snippet: |
     BM cells (0.5 × 10^6) suspended in serum-free α-MEM (300 μL) were placed into the upper inserts with a pore size of 8 μm.
+- name: assumed_cv_migrated
+  value: 0.30
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 30% coefficient of variation on migrated cell counts (not reported explicitly in paper).
+- name: imaging_volume_uncertainty_fold
+  value: 10.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed one order-of-magnitude geometric uncertainty in the effective imaging volume per field.
 
 calibration:
   parameters:
@@ -222,66 +246,49 @@ calibration:
 
   error_model:
   - name: k_MDSC_rec_from_PDS1_Transwell
-    observable:
     units: cell
     uses_inputs:
     - bm_cells_migrated_PDS1_9h_per_field
     - migration_time_9h
     - imaging_volume_per_field
+    - assumed_cv_migrated
+    - imaging_volume_uncertainty_fold
     sample_size: 3
     sample_size_rationale: |
       Oo2022 reports Transwell migration data as mean ± SD over n = 3 independent experiments, with 5 fields per group.
-    measurement_error_code: |
-      def derive_error(inputs, sample_size, ureg):
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
           """
-          Measurement error for k_MDSC_rec from Transwell migration data.
+          Derive observation from Transwell migration data.
 
-          SD combines assumed CV on migrated cells with geometric uncertainty.
+          The forward model predicts migrated cells per field, so we return
+          the observed migrated cells with combined log-scale SD.
           """
-          import numpy as np
-          cv_migrated = 0.30
-          sigma_V = np.log(10.0) / 1.96
-          sigma_combined = np.sqrt(np.log(1 + cv_migrated**2) + sigma_V**2)
-          return {
-              'sd': sigma_combined * ureg.dimensionless,
-              'sd_uncertain': True,
-              'n': sample_size if sample_size else 3,
-          }
-    distribution_code: |
-      def derive_distribution(inputs, ureg):
           import numpy as np
           def _val(x):
               return getattr(x, 'magnitude', x)
-          # Mean migrated BM cells per field at 9 h in HSC-2 + PDS1 coculture
+
           migrated_mean = _val(inputs['bm_cells_migrated_PDS1_9h_per_field'])
-          # Assume biological and counting variability with coefficient of variation ~30% (not reported explicitly)
-          cv_migrated = 0.30
+          cv_migrated = _val(inputs['assumed_cv_migrated'])
+          fold_unc = _val(inputs['imaging_volume_uncertainty_fold'])
+
+          observed_value = migrated_mean * ureg.cell
+
+          # Combine CV on migrated cells with geometric uncertainty on volume
           sigma_m = np.sqrt(np.log(1.0 + cv_migrated**2))
-          mu_m = np.log(migrated_mean) - 0.5 * sigma_m**2
-          migrated_samples = np.random.lognormal(mu_m, sigma_m, 10000)
-
-          # Effective imaging volume per field (mL). We treat the nominal value as median of a lognormal
-          V_eff = _val(inputs['imaging_volume_per_field'])
-          # Encode one order-of-magnitude geometric uncertainty (0.1x to 10x) around this median
-          sigma_V = np.log(10.0) / 1.96  # so that ~95% CI spans 10-fold
-          mu_V = np.log(V_eff)
-          V_samples = np.random.lognormal(mu_V, sigma_V, 10000)
-
-          # Migration time: 9 hours converted to days
-          t_hours = _val(inputs['migration_time_9h'])
-          t_days = t_hours / 24.0
-
-          k_samples = migrated_samples / (V_samples * t_days)
+          sigma_V = np.log(fold_unc) / 1.96  # so that ~95% CI spans fold_unc
+          sigma_combined = np.sqrt(sigma_m**2 + sigma_V**2)
 
           return {
-              'median': float(np.median(k_samples)),
-              'ci95_lower': float(np.percentile(k_samples, 2.5)),
-              'ci95_upper': float(np.percentile(k_samples, 97.5)),
+              'value': observed_value,
+              'sd': sigma_combined,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from assumed values
+              'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        k_MDSC_rec is strictly positive and expected to vary over orders of magnitude. The derived distribution from the Transwell assay (via derive_distribution) is treated as an informative lognormal likelihood for this parameter, incorporating experimental variability and geometric uncertainty in the effective imaging volume.
+        k_MDSC_rec is strictly positive and expected to vary over orders of magnitude. The derived distribution from the Transwell assay is treated as an informative lognormal likelihood for this parameter, incorporating experimental variability and geometric uncertainty in the effective imaging volume.
 
   identifiability_notes: |
     This submodel constrains k_MDSC_rec under conditions of high stromal CCL2 and baseline IL-6, effectively providing an estimate of the maximal CCL2-driven MDSC recruitment rate. The absolute value of k_MDSC_rec depends on the assumed effective imaging volume per microscope field, which is uncertain by roughly an order of magnitude; this uncertainty is explicitly propagated in the distribution_code and reflected by a wide prior (sigma = 2 on the log scale). In the context of the full QSP PDAC model, k_MDSC_rec will be correlated with the CCL2_50 parameter and any IL-6-dependent modulation (H_IL6_MDSC). Additional in vivo PDAC data on MDSC accumulation kinetics and CCL2 levels would be needed to separately identify k_MDSC_rec, CCL2_50, and IL-6 effects.
