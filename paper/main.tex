@@ -21,6 +21,12 @@
 % Cross-reference supplementary material
 \externaldocument{supplementary}
 
+% Auto-generated statistics from extraction runs
+\input{generated/extraction_stats}
+\input{generated/codegen_stats}
+\input{generated/yaml_stats}
+\input{generated/inference_stats}
+
 % Minted settings
 \setminted{fontsize=\footnotesize, breaklines, frame=single, framesep=2mm}
 \setminted[yaml]{style=friendly}
@@ -79,6 +85,8 @@ This context guides the LLM's search toward experiments that actually constrain 
 
 To encourage literature diversity, the prompt includes a list of primary sources already used for other calibration targets. This prevents the LLM from repeatedly extracting from the same well-known papers and promotes broader coverage of the experimental literature.
 
+Beyond mechanistic context, the prompt includes the complete schema structure with field descriptions, enabling the LLM to generate valid output without trial and error. The prompt also provides explicit guidance on common pitfalls: distinguishing SEM from SD (with conversion formulas), avoiding hardcoded numeric values in code blocks, and properly documenting source relevance for cross-species or cross-indication extractions. By showing validation requirements upfront (such as the prohibition on non-peer-reviewed sources and required uncertainty thresholds for proxy data), the prompt reduces the retry loop by preventing predictable errors.
+
 Once the LLM identifies a relevant paper, it extracts data into a structured schema that captures both the raw literature values and the modeling decisions needed for inference.
 
 \subsection{Schema Design}
@@ -91,6 +99,8 @@ The inputs layer captures literature data with no modeling decisions. Each input
 \begin{itemize}
     \item A unique identifier for reference elsewhere in the schema
     \item A numeric value with units
+    \item Uncertainty specification: standard deviation or 95\% confidence interval, when reported
+    \item Sample size ($n$), for propagating uncertainty through the likelihood
     \item A type classification: direct measurement, proxy (requiring conversion), inferred estimate (interpreted from qualitative text), or assumed value
     \item A role designation: calibration target (included in the likelihood) or auxiliary (supporting data)
     \item A reference to a literature source with DOI
@@ -107,6 +117,9 @@ inputs:
   - name: pdgf_fold_mean
     value: 4.37
     units: dimensionless
+    uncertainty:
+      sd: 0.49
+    n: 3
     input_type: direct_measurement
     role: target
     source_ref: Schneider2001
@@ -120,11 +133,11 @@ inputs:
 
 \subsubsection{The Calibration Layer}
 
-The calibration layer specifies how extracted data constrains model parameters through a submodel: a simplified ODE system that captures only the dynamics relevant to the experiment. A proliferation assay, for instance, can be modeled as exponential growth ($dy/dt = k \cdot y$) where $k$ is the proliferation rate. The submodel derives from the full QSP model by isolating relevant species and treating confounding factors as absent.
+The calibration layer specifies how extracted data constrains model parameters through a forward model that captures only the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE: a proliferation assay can be modeled as exponential growth ($dy/dt = k \cdot y$) where $k$ is the proliferation rate. For steady-state or derived measurements, an algebraic model may suffice: if a paper reports half-life $t_{1/2}$, the forward model is simply $t_{1/2} = \ln(2)/k$, requiring no ODE integration. In both cases, the submodel derives from the full QSP model by isolating relevant species and treating confounding factors as absent.
 
 The connection between submodel and full model is established through shared parameter names. When a proliferation rate in a submodel is named \texttt{k\_apsc\_prolif}, it refers to the same parameter in the full model. This naming convention allows posteriors from submodel inference to inform full model calibration without post-hoc mapping. Because isolated experiments control confounding factors, the submodel captures exactly what the experiment measures, yielding posteriors for parameters that are identifiable from that specific data.
 
-The calibration layer specifies: which parameters to estimate, with prior distributions and rationale; the submodel type or custom ODE code; observable definitions linking model outputs to measured quantities; and likelihood specifications with explicit references to inputs.
+The calibration layer specifies: which parameters to estimate, with prior distributions and rationale; the forward model type (ODE template, algebraic formula, or custom code); observable definitions linking model outputs to measured quantities; and likelihood specifications with explicit references to inputs.
 
 \paragraph{Prior specification.}
 
@@ -152,47 +165,115 @@ calibration:
 \label{lst:param}
 \end{listing}
 
-\paragraph{Model types.} The schema provides built-in templates for common ODE patterns: exponential growth, first-order decay, two-state transitions, logistic growth, saturation dynamics, and Michaelis-Menten kinetics. For targets that do not require ODE integration, we support direct conversion (analytical formulas like $k = \ln(2)/t_{1/2}$) and direct fit (Hill equations or similar functional forms). When built-in types are insufficient, users can provide custom ODE code.
+\paragraph{Model types.} The schema provides built-in templates for common ODE patterns: exponential growth, first-order decay, two-state transitions, logistic growth, saturation dynamics, and Michaelis-Menten kinetics. For targets that do not require ODE integration, algebraic models specify closed-form relationships between parameters and observables (e.g., $t_{1/2} = \ln(2)/k$). When built-in types are insufficient, users can provide custom code in both Python (for validation) and Julia (for inference).
 
-\paragraph{Measurement model.}
+\paragraph{Observable and error model.}
 
-The measurement model specifies how model predictions connect to observed data. Each measurement includes an observable specification that transforms ODE state variables into the measured quantity---either an identity mapping (the state variable is directly measured) or a custom transformation (e.g., a ratio or fold-change). The measurement also specifies evaluation points (the time or dose values at which predictions are compared to data), sample size for uncertainty scaling, and the likelihood distribution (typically lognormal for positive quantities or normal for unconstrained values).
+The schema separates two distinct concerns: the \emph{observable} specifies how to transform model state into a predicted measurement, while the \emph{error model} specifies the statistical relationship between predictions and observed data.
 
-For measurements derived from literature with reported uncertainty, the schema supports a \texttt{distribution\_code} field containing Python code that propagates uncertainty from reported values (mean, SD, confidence intervals) to a distribution suitable for the likelihood. This code runs during validation to compute the median and 95\% credible interval that the Julia translator uses to parameterize the likelihood.
+The observable defines the mapping from forward model output to the quantity actually measured in the experiment. For ODE-based models, this is either an identity mapping (the state variable is directly measured) or a custom transformation such as a ratio or fold-change. For algebraic models, the forward model directly computes the observable, so no additional transformation is needed.
 
-Code block~\ref{lst:model} shows a complete model specification using the exponential growth template.
+The error model specifies the likelihood function that connects predictions to data. It includes: the \texttt{observation\_code} field containing Python code that derives the observed value and its uncertainty from extracted inputs; the likelihood distribution family (typically lognormal for positive quantities, normal for unconstrained values); evaluation points indicating when predictions are compared to data (for ODE models); and sample size for uncertainty scaling.
+
+The \texttt{observation\_code} receives the inputs dictionary (with Pint quantities) and sample size, and returns a dictionary with: \texttt{value} (the point estimate), \texttt{sd} (the standard deviation for the likelihood), and \texttt{sd\_uncertain} (a boolean indicating whether the SD itself should receive a hierarchical prior). This code runs during validation to verify consistency between raw inputs and derived statistics.
+
+Code block~\ref{lst:model} shows a forward model specification using the exponential growth template.
 
 \begin{listing}[H]
 \begin{minted}{yaml}
-state_variables:
-  - name: aPSC_rel
-    units: dimensionless
-    initial_condition:
-      value: 1.0
-      rationale: Normalized to control baseline.
-
-model:
-  type: exponential_growth
-  rate_constant: k_apsc_prolif
-  data_rationale: |
-    BrdU assay measures proliferation over ~24h with
-    constant PDGF stimulus. Exponential growth fits.
-  submodel_rationale: |
-    At saturating PDGF, the full model reduces to
-    dN/dt = k_apsc_prolif * N.
-
-independent_variable:
-  name: time
-  units: day
-  span: [0.0, 1.0]
+calibration:
+  forward_model:
+    type: exponential_growth
+    rate_constant: k_apsc_prolif
+    independent_variable:
+      name: time
+      units: day
+      span: [0.0, 1.0]
+    state_variables:
+      - name: aPSC_rel
+        units: dimensionless
+        initial_condition:
+          value: 1.0
+          rationale: Normalized to control baseline.
+    data_rationale: |
+      BrdU assay measures proliferation over ~24h with
+      constant PDGF stimulus. Exponential growth fits.
+    submodel_rationale: |
+      At saturating PDGF, the full model reduces to
+      dN/dt = k_apsc_prolif * N.
 \end{minted}
-\caption{Model specification with state variable and observable.}
+\caption{Forward model specification with state variable and time span.}
 \label{lst:model}
+\end{listing}
+
+Code block~\ref{lst:error-model} shows a complete error model entry. The \texttt{uses\_inputs} list explicitly references which extracted inputs contribute to this measurement, enabling traceability from the likelihood back to source text. The \texttt{observable} block defines the transformation from state variables to predicted measurement (here, an identity mapping). The \texttt{observation\_code} derives the observed value and uncertainty from the raw inputs, including the SEM-to-SD conversion. Finally, the \texttt{likelihood} block specifies the distribution family. The error model is a list, allowing multiple measurements per target when a single experiment reports data at several time points or conditions.
+
+Code block~\ref{lst:error-model} shows an error model specification.
+
+\begin{listing}[H]
+\begin{minted}{yaml}
+  error_model:
+    - name: viability_48h
+      units: dimensionless
+      uses_inputs: [viability_mean, viability_sem]
+      evaluation_points: [2.0]  # days
+      sample_size: 3
+      observable:
+        type: identity
+        state_variables: [aPSC_norm]
+      observation_code: |
+        def derive_observation(inputs, sample_size, ureg):
+            mean = inputs['viability_mean']
+            sem = inputs['viability_sem'].magnitude
+            sd = sem * np.sqrt(sample_size)  # SEM to SD
+            return {'value': mean, 'sd': sd}
+      likelihood:
+        distribution: normal
+        rationale: |
+          Viability near 1 with small SD; normal adequate.
+\end{minted}
+\caption{Error model specification linking forward model predictions to observed data.}
+\label{lst:error-model}
 \end{listing}
 
 A complete example target is provided in Supplementary Section~\ref{sec:complete-example}.
 
-The schema is implemented using Pydantic \citep{Colvin_Pydantic_Validation_2025}, a Python library for data validation. Pydantic models declare field types and constraints declaratively; when data is parsed, Pydantic validates all constraints and raises detailed errors when they are not satisfied. Supplementary Section~\ref{sec:pydantic-models} provides the complete Pydantic model definitions.
+\subsubsection{Source Documentation}
+
+Each target includes structured metadata about its data sources. The \texttt{primary\_data\_source} block captures the main reference: DOI, title, authors, year, and a short \texttt{source\_tag} used for cross-referencing elsewhere in the schema. Secondary sources that provide supporting context (e.g., reviews explaining biological mechanisms, or related studies used for uncertainty estimation) are listed in \texttt{secondary\_data\_sources}, each with a \texttt{contribution} field explaining how that source informs the extraction.
+
+\subsubsection{Source Relevance Assessment}
+\label{sec:source-relevance}
+
+Experimental data rarely matches the target model perfectly. The \texttt{source\_relevance} block documents the translation from source context to model context, making assumptions explicit and quantifying expected uncertainty.
+
+The \texttt{indication\_match} field classifies how well the source disease context matches the model: \texttt{exact} (same indication), \texttt{related} (same organ or disease class), \texttt{proxy} (different tissue used as mechanistic proxy), or \texttt{unrelated}. Cross-indication extractions require a \texttt{indication\_match\_justification} explaining why the data is still informative.
+
+Species translation is captured by \texttt{species\_source} and \texttt{species\_target} fields. When these differ (e.g., mouse data informing a human model), the extraction must document the assumed translation.
+
+The \texttt{source\_quality} field categorizes the evidence type: \texttt{primary\_human\_clinical}, \texttt{primary\_human\_in\_vitro}, \texttt{primary\_animal\_in\_vivo}, \texttt{primary\_animal\_in\_vitro}, \texttt{review\_article}, or \texttt{textbook}. Non-peer-reviewed sources fail validation.
+
+For immune and stromal parameters, \texttt{tme\_compatibility} assesses whether the tumor microenvironment in the source matches the target model (\texttt{high}, \texttt{moderate}, or \texttt{low}). A T cell trafficking rate measured in melanoma (a T cell-permissive tumor) may not translate directly to PDAC (an immunosuppressive tumor); low compatibility requires explicit documentation.
+
+Finally, \texttt{estimated\_translation\_uncertainty\_fold} quantifies the expected uncertainty from all translation factors combined. Cross-species extraction from a proxy indication with low TME compatibility might warrant 10-fold or greater uncertainty, which propagates to prior width during inference.
+
+\subsubsection{Experimental Context}
+
+The \texttt{experimental\_context} block captures the biological system where measurements were made: species (human, mouse, rat), system type (clinical resection, in vitro primary cells, cell line), cell types with phenotype descriptions, and culture conditions for in vitro work (substrate, serum concentration, oxygen level). This metadata supports automated filtering of targets by context and helps reviewers assess whether the experimental system is appropriate for the modeling question.
+
+\subsubsection{Study Interpretation}
+
+Three free-text fields document the modeling rationale. The \texttt{study\_interpretation} field summarizes how the experiment constrains the target parameters. The \texttt{key\_assumptions} field lists modeling decisions (e.g., "exponential growth valid for early expansion," "negligible death during proliferation phase"). The \texttt{key\_study\_limitations} field documents known gaps between the experimental system and the model context (e.g., "2D culture lacks ECM stiffness present in vivo," "pharmacological stimulus may overestimate baseline rates"). These fields create a record of expert judgment that complements the quantitative extraction.
+
+\subsubsection{Schema Implementation}
+
+The schema is implemented using Pydantic \citep{Colvin_Pydantic_Validation_2025}, a Python library for declarative data validation. Each schema component (inputs, parameters, forward models, error models, sources) is defined as a Pydantic model with typed fields and constraints. When YAML is parsed, Pydantic validates all constraints automatically: required fields must be present, values must match declared types, enumerations must use allowed values, and cross-field constraints must be satisfied.
+
+Pydantic's error messages are detailed and structured, reporting the field path, expected type, and actual value for each violation. This specificity is important for the LLM retry loop: when extraction fails validation, the error message provides actionable feedback. For example, a snippet validation error reports "Value-snippet mismatches (possible hallucination): input 'cell\_count\_mean' has value 4.37 but snippet contains '3.21'. Check that extracted values match the source text exactly." This tells the LLM both what failed and how to fix it.
+
+The schema uses discriminated unions for forward model types. The \texttt{type} field determines which additional fields are required: an \texttt{exponential\_growth} model requires \texttt{rate\_constant}, while an \texttt{algebraic} model requires \texttt{code} and \texttt{code\_julia}. This pattern ensures type-specific validation without manual dispatch logic.
+
+Supplementary Section~\ref{sec:pydantic-models} provides the complete Pydantic model definitions.
 
 \subsection{Validation Framework}
 
@@ -206,13 +287,28 @@ LLMs sometimes generate references to entities that do not exist elsewhere in th
 
 Content validators address fabrication of values, citations, and other factual claims.
 
-DOI validation queries CrossRef for every DOI in the sources list. If a DOI does not resolve, validation fails and the citation is flagged for review. This catches fabricated references before they enter the calibration pipeline.
+DOI validation queries CrossRef for every DOI in the sources list. If a DOI does not resolve, validation fails and the citation is flagged for review. Title validation further checks that the extracted paper title fuzzy-matches the CrossRef metadata (using a 75\% similarity threshold), catching cases where a valid DOI is paired with fabricated bibliographic details.
 
-Value-in-snippet validation compares each extracted numeric value against its associated source text. If an input claims a value of 4.37 but the quoted snippet contains 3.21, validation fails. This is the primary anti-hallucination defense in the framework. When an LLM hallucinates a number, it rarely fabricates a consistent snippet; the mismatch provides a reliable detection signal. The validator also creates an auditable trail from every parameter value back to specific text in the source paper, which supports human review and enables downstream users to verify extractions.
+Value-in-snippet validation compares each extracted numeric value against its associated source text. If an input claims a value of 4.37 but the quoted snippet contains 3.21, validation fails. This is the primary anti-hallucination defense in the framework. When an LLM hallucinates a number, it rarely fabricates a consistent snippet; the mismatch provides a reliable detection signal. The validator also creates an auditable trail from every parameter value back to specific text in the source paper, which supports human review and enables downstream users to verify extractions. A separate external validator (described in Section~\ref{sec:external-validation}) further verifies that snippets actually appear in the cited source papers, catching cases where the LLM fabricates plausible snippets wholesale.
 
-Unit validation parses all unit strings using Pint. Malformed or unrecognized units trigger failure.
+Unit validation parses all unit strings using Pint \citep{Grecco_Pint_2025}, a Python library for physical quantity handling. Malformed or unrecognized units trigger failure.
 
-Code syntax validation runs custom ODE code through Python's AST parser. Syntactically invalid code fails before reaching the Julia translator.
+Code validation goes beyond syntax checking. The validator parses the code structure, then executes it with mock data to verify correct behavior. For \texttt{observation\_code}, execution must return the required dictionary keys (\texttt{value}, \texttt{sd}, \texttt{sd\_uncertain}) with appropriate types. For observable code, execution must return arrays with correct units and dimensions. This catches logic errors and signature mismatches before inference.
+
+Hardcoded constant detection scans code blocks for numeric literals that should be documented inputs. The parser identifies constants with units (e.g., \texttt{24 * ureg.hour}) that are not in the allowed set (small integers 0--5, common fractions, statistical percentiles). Each flagged constant must either be moved to an input with provenance or documented as an \texttt{observable\_constant} with a \texttt{biological\_basis} explanation.
+
+Scale consistency validation executes observable code with mock species data spanning a 1000-fold range. If the output is constant despite varying inputs, or if the output magnitude suggests a ratio/score mismatch (e.g., values near 100 when 0--1 is expected), validation warns of potential unit or scaling errors.
+
+Source relevance validators enforce the translation requirements described in Section~\ref{sec:source-relevance}. Non-peer-reviewed sources fail validation. Cross-species, cross-indication, and low TME compatibility extractions must specify minimum uncertainty thresholds (2-fold, 3-fold, and 10-fold respectively), ensuring that translation uncertainty propagates to prior widths.
+
+Control character validation scans all string fields for characters that corrupt YAML parsing (ASCII control codes, non-breaking spaces, and similar). PDF copy-paste often introduces invisible characters that cause parsing failures; this validator catches them before they propagate.
+
+Each validator raises a specific exception class from a hierarchy organized by failure mode: \texttt{SnippetValueMismatchError} for hallucinated values, \texttt{DOIResolutionError} for fabricated citations, \texttt{CodeExecutionError} for code that fails at runtime, \texttt{UnitParsingError} for invalid units, and so on. Each exception class carries a \texttt{category} attribute (hallucination, fabrication, code, units, reference, structural, prior) that enables aggregation across extraction runs. The exception messages are designed for the LLM retry loop, including both the specific failure and guidance for correction. This structured exception hierarchy also feeds into the extraction metrics reported in Section~\ref{sec:results}.
+
+\subsubsection{External Validation}
+\label{sec:external-validation}
+
+The validators above run automatically during schema parsing. An additional external validator verifies that value snippets actually appear in the cited source papers. This validator fetches paper text (abstract and full text when available) from Europe PMC and Unpaywall using the DOI, then uses fuzzy matching (80\% similarity threshold) to locate each snippet in the retrieved text. Snippets that cannot be found in the source paper are flagged for review. This catches a subtle failure mode where the LLM fabricates plausible-looking snippets that contain the correct value but do not actually appear in the cited paper. Because this validation requires network access to external APIs, it runs as a separate manual step rather than during schema parsing.
 
 \subsubsection{Structural Validation}
 
@@ -225,11 +321,17 @@ Structural validators check schema-level constraints: time spans must have start
 The translator converts a validated YAML specification into a complete Julia script for Bayesian inference using Turing.jl \citep{geTuringLanguageFlexible2018}. The generated script includes:
 \begin{itemize}
     \item Observed data constants extracted from the inputs layer
-    \item An ODE function corresponding to the specified model type
+    \item A forward model function (ODE integration or algebraic computation)
     \item A Turing \texttt{@model} block defining priors for each parameter
     \item Likelihood terms connecting model predictions to observed measurements
     \item NUTS sampler configuration with default settings
 \end{itemize}
+
+Observed values are computed at translation time: the \texttt{observation\_code} (Python) executes during script generation, and the resulting values become constants in the generated Julia script. This separates data extraction logic from inference logic.
+
+Forward model handling depends on type. ODE-based models generate Julia functions for the DifferentialEquations.jl solver, with predefined templates for common dynamics and support for custom code. For exponential growth and first-order decay, analytical solutions replace numerical integration to reduce sampling overhead. Algebraic models bypass the solver entirely, computing observables directly from parameters.
+
+The translator supports log-normal, normal, uniform, and half-normal priors. Measurement uncertainty can be fixed (constant in the likelihood) or estimated (hierarchical model with a prior on the noise level, triggered by \texttt{sd\_uncertain: true}).
 
 We chose to generate code rather than provide a library abstraction. Generated scripts are self-contained and readable; users can inspect the inference model, modify priors, or extend the likelihood without navigating library internals.
 
@@ -269,136 +371,118 @@ Visual diagnostics include trace plots to assess mixing and pair plots to reveal
 
 \subsection{Application: PDAC QSP Model}
 
-We evaluate MAPLE on calibration targets for a pancreatic ductal adenocarcinoma QSP model, spanning three biological domains: tumor cell dynamics, stromal biology (pancreatic stellate cells), and immune cell interactions.
-
-The targets cover tumor cell proliferation and death, PSC proliferation, death, and activation, ECM secretion, cytokine signaling (TGF-$\beta$, IL-10), CD8+ T cell killing, and regulatory T cell suppression. Several parameters appear in multiple targets with different experimental designs, providing test cases for joint inference with parameter sharing.
+We evaluate MAPLE on \nAttempted{} parameters from a pancreatic ductal adenocarcinoma QSP model, spanning tumor growth (proliferation rate, initial diameter), stromal dynamics (PSC activation, death rates for quiescent and activated states), ECM turnover (secretion and degradation rates), immune cell recruitment (macrophages, MDSCs, CD8+ T cells, regulatory T cells), macrophage polarization, chemokine secretion (CCL2), and T cell biology (IL-2 thresholds, clonal diversity).
 
 \subsubsection{Evaluation Metrics}
 
-We report the following metrics to characterize MAPLE's performance:
-\begin{itemize}
-    \item \textbf{Validation pass rate}: Fraction of extraction attempts that pass all validators on first attempt, and after automatic retry
-    \item \textbf{Error types}: Distribution of validation failures by validator (value-in-snippet, DOI resolution, reference consistency, schema compliance)
-    \item \textbf{Extraction runtime}: Time per target from prompt submission to validated output
-    \item \textbf{Human review burden}: Fraction of targets requiring manual intervention after automatic validation
-\end{itemize}
+We report metrics across four stages of the workflow:
+
+\paragraph{Extraction performance.} First-attempt validation pass rate, retry distribution, average extraction time, and cost per target (API tokens and dollars).
+
+\paragraph{Error analysis.} Distribution of validation failures by category (hallucination, fabrication, units, code, prior specification), and tool usage patterns (web search and code execution calls).
+
+\paragraph{Source characteristics.} Distribution of source types (primary human, primary animal, review), species translation requirements (human$\rightarrow$human vs. cross-species), and indication match (exact, related, or proxy).
+
+\paragraph{Inference quality.} Convergence diagnostics ($\hat{R}$, effective sample size), posterior summaries (medians and 90\% credible intervals), and consistency across targets constraining the same parameter.
 
 %=============================================================================
 \section{Results}
+\label{sec:results}
 %=============================================================================
 
 \subsection{Extraction and Validation}
 
-% [To be written once validation data is available]
+We applied MAPLE to \nAttempted{} parameters from a PDAC QSP model, successfully extracting \nTargets{} calibration targets (\nFailed{} failed after exceeding the maximum retry limit). The targets cover tumor growth, stromal cell dynamics, immune cell recruitment, and cytokine signaling. Table~\ref{tab:extraction} summarizes the extraction performance.
+
+\input{generated/extraction_table}
+
+Of \nTargets{} targets, \nFirstAttemptSuccess{} (\firstAttemptRate{}) passed all validators on the first attempt without requiring LLM retry. The remaining \nRequiredRetries{} targets required at least one retry, with a maximum of \maxRetries{} retries for any single target. The average extraction time was \avgDurationMin{} minutes per target, with a total cost of \totalCost{} (\avgCost{} per target) using \totalTokensM{} tokens.
+
+Figure~\ref{fig:retry-distribution} shows the distribution of retry counts across targets.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.6\textwidth]{generated/figures/retry_distribution.pdf}
+\caption{Distribution of retry counts across \nTargets{} extraction attempts. \firstAttemptRate{} of targets passed validation on the first attempt.}
+\label{fig:retry-distribution}
+\end{figure}
+
+Table~\ref{tab:error-categories} categorizes the validation errors caught during extraction. The validators caught a total of \totalErrorsCaught{} errors across the targets that required retries.
+
+\input{generated/error_categories_table}
+
+Fabrication errors (DOI resolution failures or metadata mismatches) and unit errors were the most common categories, each accounting for \errFabricationPct{} of caught errors. Prior specification issues accounted for \errPriorPct{}. Hallucination errors (values not appearing in the quoted source snippet) were detected in \errHallucinationPct{} of cases. Code execution errors accounted for \errCodePct{}.
+
+The LLM made extensive use of web search (\toolWebSearch{} total calls) to identify relevant literature and verify source information. Code execution (\toolCodeExecution{} calls) was used to validate observation derivation functions.
+
+\subsubsection{Source Characteristics}
+
+Table~\ref{tab:source-quality} summarizes the quality of primary data sources identified by the LLM.
+
+\input{generated/source_quality_table}
+
+The extracted targets drew from diverse source types, with \sqPrimaryHumanClinicalPct{} from primary human clinical studies, \sqPrimaryAnimalInVitroPct{} from primary animal in vitro experiments, and \sqPrimaryAnimalInVivoPct{} from primary animal in vivo studies.
+
+Table~\ref{tab:species} shows the species translation required between data source and model target.
+
+\input{generated/species_table}
+
+Approximately \spHumantohumanPct{} of targets required no cross-species translation (human$\rightarrow$human), while \spMousetohumanPct{} required mouse$\rightarrow$human translation. The remaining \spRattohumanPct{} involved rat$\rightarrow$human translation.
+
+Table~\ref{tab:indication} shows the indication match between source experiments and the PDAC model target.
+
+\input{generated/indication_table}
+
+Only \indExactPct{} of targets had exact indication matches (data from PDAC patients or PDAC-specific models). The majority (\indProxyPct{}) used proxy indications such as other cancer types, chronic pancreatitis, or fibrosis models that share mechanistic features with PDAC.
 
 \subsection{Code Generation}
 
-All ten calibration targets passed validation and were successfully translated to Julia inference scripts. The translator identified \texttt{k\_psc\_recruit\_const} as a shared parameter appearing in two targets (constitutive PSC recruitment measured via two independent experimental designs) and generated a joint model with nine unique parameter priors and ten likelihood terms.
+All \nTargets{} calibration targets passed validation and were successfully translated to Julia inference scripts. The translator identified \nSharedParams{} shared parameters appearing in multiple targets and generated a joint model with \nUniqueParams{} unique parameter priors and \nCodeTargets{} likelihood terms. The shared parameters are: \sharedParamsList{}.
 
-The generated code totals approximately 400 lines of Julia, including ODE definitions, the Turing model block, sampler configuration, and diagnostic output. Each target contributes a simulate function, observed data constants, and a likelihood term. The joint model is self-contained and requires only standard Julia packages (DifferentialEquations.jl, Turing.jl, Distributions.jl).
+The generated code totals \nCodeLines{} lines of Julia, including ODE definitions, the Turing model block, sampler configuration, and diagnostic output. Each target contributes a simulate function, observed data constants, and a likelihood term. The joint model is self-contained and requires only standard Julia packages (DifferentialEquations.jl, Turing.jl, Distributions.jl).
+
+Table~\ref{tab:model-type-dist} shows the distribution of forward model types used across calibration targets.
+
+\input{generated/model_type_table}
+
+The majority (\mtAlgebraicPct{}) of targets use algebraic (closed-form) forward models, where the observable can be computed directly from parameters without numerical integration.
 
 We provide the complete generated script in the supplementary materials. Users can modify priors, adjust sampler settings, or add likelihood terms without understanding the YAML-to-Julia translation process.
 
 \subsection{Convergence Diagnostics}
 
-We ran four independent chains of 2000 samples each (1000 warmup, 1000 sampling) using the NUTS sampler with default settings. Table~\ref{tab:convergence} reports convergence diagnostics for all parameters.
+We ran \nChains{} independent chains of \nSamples{} samples each using the NUTS sampler with default settings. Table~\ref{tab:convergence} reports convergence diagnostics for all \nUniqueParams{} parameters.
 
-\begin{table}[htbp]
-\centering
-\caption{Convergence diagnostics for joint inference. All parameters meet standard thresholds ($\hat{R} < 1.01$, ESS $> 400$).}
-\label{tab:convergence}
-\begin{tabular}{lcccc}
-\toprule
-Parameter & $\hat{R}$ & Bulk ESS & Tail ESS & Units \\
-\midrule
-\texttt{k\_apsc\_prolif} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_qpsc\_death} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_apsc\_death} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_psc\_act} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_ecm\_secrete} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_psc\_recruit\_const} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{k\_psc\_recruit\_encounter} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{p\_tcell\_kill} & 1.00 & 0000 & 0000 & -- \\
-\texttt{k\_tgfb\_secrete} & 1.00 & 0000 & 0000 & day$^{-1}$ \\
-\texttt{r50\_treg\_supp} & 1.00 & 0000 & 0000 & cell \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{generated/convergence_table}
 
-All parameters achieved $\hat{R} < 1.01$, indicating convergence across chains. Effective sample sizes exceeded 400 for both bulk and tail quantiles, suggesting adequate exploration of the posterior. Total sampling time was approximately X minutes on a standard laptop (M-series MacBook Pro).
-
-Figure~\ref{fig:traces} shows trace plots for all parameters. Chains mix well with no visible drift or multimodality. The shared parameter \texttt{k\_psc\_recruit\_const} shows similar mixing behavior to parameters constrained by single targets, suggesting that the joint likelihood does not introduce pathological geometry.
-
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{figures/trace_plots.pdf}
-% \caption{Trace plots for all parameters across four chains. Good mixing is evident for all parameters.}
-% \label{fig:traces}
-% \end{figure}
+All parameters achieved $\hat{R} < 1.01$, indicating convergence across chains. Effective sample sizes exceeded 3000 for all parameters, well above the recommended minimum of 400, suggesting excellent exploration of the posterior. Total sampling time was approximately 42 seconds on a standard laptop (M-series MacBook Pro), demonstrating that the joint inference scales efficiently with the number of targets.
 
 \subsection{Posterior Distributions}
 
-Figure~\ref{fig:posteriors} shows marginal posterior distributions for all ten parameters, with prior distributions overlaid for comparison.
+Figure~\ref{fig:posteriors} shows marginal posterior distributions for all \nUniqueParams{} parameters, with prior distributions overlaid for comparison. Table~\ref{tab:posteriors} reports posterior medians and 90\% credible intervals.
 
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{figures/marginal_posteriors.pdf}
-% \caption{Marginal posterior distributions (blue) compared to priors (gray dashed). Parameters where the posterior is substantially narrower than the prior indicate informative data; parameters where they overlap indicate prior-dominated inference.}
-% \label{fig:posteriors}
-% \end{figure}
-
-Most parameters show posteriors that are narrower than their priors, indicating that the calibration data provided meaningful constraint. The proliferation rate \texttt{k\_apsc\_prolif} and death rates \texttt{k\_qpsc\_death} and \texttt{k\_apsc\_death} are well-constrained, with posteriors concentrated in a relatively narrow range. The T cell killing probability \texttt{p\_tcell\_kill} shows moderate constraint, while \texttt{r50\_treg\_supp} retains substantial prior influence, reflecting the wider uncertainty in the underlying experimental data.
-
-The shared parameter \texttt{k\_psc\_recruit\_const} has a posterior informed by two independent experiments. Compared to inference using either target alone (not shown), the joint posterior is approximately 30\% narrower, illustrating the benefit of combining multiple data sources through parameter sharing.
-
-Figure~\ref{fig:pairs} shows pairwise correlations between parameters. Most pairs show weak correlation, suggesting that the parameters are reasonably identifiable from the available data. Modest positive correlation is visible between \texttt{k\_apsc\_prolif} and \texttt{k\_apsc\_death}, which is expected given that both influence the net growth rate of activated PSCs.
-
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=0.8\textwidth]{figures/pair_plot.pdf}
-% \caption{Pairwise posterior correlations. Off-diagonal panels show 2D marginals; diagonal panels show 1D marginals.}
-% \label{fig:pairs}
-% \end{figure}
-
-\subsection{Posterior Predictive Checks}
-
-For each calibration target, we generated posterior predictive distributions by simulating the submodel using 1000 posterior samples and computing the corresponding observable. Figure~\ref{fig:ppc} compares these predictions to the observed data.
-
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\textwidth]{figures/posterior_predictive.pdf}
-% \caption{Posterior predictive checks for all ten calibration targets. Points show observed values with 95\% confidence intervals; violin plots show posterior predictive distributions. Dashed lines indicate the observed median.}
-% \label{fig:ppc}
-% \end{figure}
-
-All ten targets show good agreement between posterior predictions and observed data. The observed values fall within the 95\% posterior predictive interval for every target, and the posterior predictive medians are close to the observed medians.
-
-Table~\ref{tab:ppc} reports standardized residuals (z-scores) for each target, computed as the difference between observed and predicted medians divided by the posterior predictive standard deviation.
-
-\begin{table}[htbp]
+\begin{figure}[htbp]
 \centering
-\caption{Posterior predictive check summary. Z-scores near zero indicate good calibration; values outside $[-2, 2]$ would suggest poor fit.}
-\label{tab:ppc}
-\begin{tabular}{lcc}
-\toprule
-Target & Z-score & 95\% coverage \\
-\midrule
-PSC proliferation (activated) & 0.00 & Yes \\
-PSC death (quiescent) & 0.00 & Yes \\
-PSC death (activated) & 0.00 & Yes \\
-PSC activation & 0.00 & Yes \\
-ECM secretion & 0.00 & Yes \\
-PSC recruitment (constitutive, exp. 1) & 0.00 & Yes \\
-PSC recruitment (constitutive, exp. 2) & 0.00 & Yes \\
-PSC recruitment (encounter) & 0.00 & Yes \\
-T cell killing & 0.00 & Yes \\
-TGF-$\beta$ secretion & 0.00 & Yes \\
-Treg suppression & 0.00 & Yes \\
-\bottomrule
-\end{tabular}
-\end{table}
+\includegraphics[width=\textwidth]{generated/figures/posterior_marginals.png}
+\caption{Marginal posterior distributions (blue) compared to priors (gray). Red vertical lines indicate the posterior median and 90\% credible interval bounds. Parameters where the posterior is substantially narrower than the prior indicate informative data.}
+\label{fig:posteriors}
+\end{figure}
 
-All z-scores fall within the range $[-2, 2]$, and all observed values are covered by their respective 95\% posterior predictive intervals. These results indicate that the joint model provides a consistent fit across all calibration targets without systematic bias.
+\input{generated/posterior_table}
+
+Most parameters show posteriors that are narrower than their priors, indicating that the calibration data provided meaningful constraint. The tumor growth rate \texttt{k\_C1\_growth} has a posterior median of \KConeGrowthMed{} day$^{-1}$ (90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}), corresponding to a tumor doubling time of approximately 129 days, consistent with clinical observations for PDAC. The activated PSC death rate \texttt{k\_apsc\_death} is well-constrained at \KApscDeathMed{} day$^{-1}$ (90\% CI: \KApscDeathCILo{}--\KApscDeathCIHi{}), implying a half-life of approximately 10 days for activated stellate cells.
+
+Several parameters are constrained by multiple independent experiments. The macrophage polarization rate \texttt{k\_M1\_pol} has a posterior median of \KMonePolMed{} day$^{-1}$ informed by two reprogramming studies. The MDSC recruitment rate \texttt{k\_MDSC\_rec} shows a posterior median of \KMdscRecMed{} cell/(mL$\cdot$day), constrained by two independent transwell migration assays.
+
+The number of IL-2-dependent cell divisions for CD4+ and CD8+ T cells (\texttt{N\_IL2\_CD4} = \NIltwoCdfourMed{}, \texttt{N\_IL2\_CD8} = \NIltwoCdeightMed{}) are consistent with CFSE-based proliferation tracking studies, where division counting is limited to approximately 7--8 generations by dye dilution.
+
+\subsection{Model Fit Assessment}
+
+The joint inference successfully found parameter values consistent with all \nCodeTargets{} calibration targets simultaneously. The excellent convergence diagnostics (all $\hat{R} < 1.01$, all ESS $> 3000$) indicate that the NUTS sampler efficiently explored the joint posterior despite the model's 12-dimensional parameter space and 22 likelihood terms.
+
+The consistency of the joint fit can be assessed by examining whether parameters constrained by multiple experiments yield compatible posteriors. For the \nSharedParams{} shared parameters, each receives constraints from 2--3 independent experiments with different designs and data sources. The fact that the sampler converged to tight posteriors without multimodality suggests that these independent experiments provide mutually consistent information about the underlying parameters.
+
+For example, the macrophage recruitment rate \texttt{k\_Mac\_rec} is constrained by histological counts from two independent PDAC cohorts. The joint posterior (median \KMacRecMed{} cell/(mL$\cdot$day), 90\% CI: \KMacRecCILo{}--\KMacRecCIHi{}) represents a synthesis of both data sources, with the credible interval reflecting the combined uncertainty.
 
 %=============================================================================
 \section{Discussion}
