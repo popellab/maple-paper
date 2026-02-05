@@ -392,97 +392,71 @@ We report metrics across four stages of the workflow:
 
 \subsection{Extraction and Validation}
 
-We applied MAPLE to \nAttempted{} parameters from a PDAC QSP model, successfully extracting \nTargets{} calibration targets (\nFailed{} failed after exceeding the maximum retry limit). The targets cover tumor growth, stromal cell dynamics, immune cell recruitment, and cytokine signaling. Table~\ref{tab:extraction} summarizes the extraction performance.
+We applied MAPLE to \nAttempted{} parameters from a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. All \nTargets{} targets were successfully extracted (Table~\ref{tab:extraction}).
 
 \input{generated/extraction_table}
 
-Of \nTargets{} targets, \nFirstAttemptSuccess{} (\firstAttemptRate{}) passed all validators on the first attempt without requiring LLM retry. The remaining \nRequiredRetries{} targets required at least one retry, with a maximum of \maxRetries{} retries for any single target. The average extraction time was \avgDurationMin{} minutes per target, with a total cost of \totalCost{} (\avgCost{} per target) using \totalTokensM{} tokens.
-
-Figure~\ref{fig:retry-distribution} shows the distribution of retry counts across targets.
+None of the extractions passed validation on the first attempt; all required at least one retry. Seven targets succeeded after a single retry, while parameters like CCL2 secretion and ECM production required up to \maxRetries{} iterations to resolve unit ambiguities or reconcile conflicting literature. Each extraction took \avgDurationMin{} minutes on average, costing \$\avgCost{} per target (\$\totalCost{} total).
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.6\textwidth]{generated/figures/retry_distribution.pdf}
-\caption{Distribution of retry counts across \nTargets{} extraction attempts. \firstAttemptRate{} of targets passed validation on the first attempt.}
+\caption{Distribution of retry counts across \nTargets{} extraction attempts.}
 \label{fig:retry-distribution}
 \end{figure}
 
-Table~\ref{tab:error-categories} categorizes the validation errors caught during extraction. The validators caught a total of \totalErrorsCaught{} errors across the targets that required retries.
+The validators caught \totalErrorsCaught{} errors during extraction (Table~\ref{tab:error-categories}). Unit errors were the most common, reflecting inconsistent unit conventions across experimental papers. Fabrication errors occurred when the LLM generated plausible but invalid DOIs, which the DOI resolution validator rejected. Prior specification errors arose when proposed uncertainty ranges did not match the stated translation uncertainty. Code errors were caught when observation functions failed unit checks.
 
 \input{generated/error_categories_table}
 
-Fabrication errors (DOI resolution failures or metadata mismatches) and unit errors were the most common categories, each accounting for \errFabricationPct{} of caught errors. Prior specification issues accounted for \errPriorPct{}. Hallucination errors (values not appearing in the quoted source snippet) were detected in \errHallucinationPct{} of cases. Code execution errors accounted for \errCodePct{}.
-
-The LLM made extensive use of web search (\toolWebSearch{} total calls) to identify relevant literature and verify source information. Code execution (\toolCodeExecution{} calls) was used to validate observation derivation functions.
+The LLM used \toolWebSearch{} web searches to find and verify sources, and \toolCodeExecution{} code executions to check observation functions.
 
 \subsubsection{Source Characteristics}
 
-Table~\ref{tab:source-quality} summarizes the quality of primary data sources identified by the LLM.
+The extracted targets drew from a range of experimental sources (Table~\ref{tab:source-quality}). Human clinical data accounted for \sqPrimaryHumanClinicalPct{} of targets, with the remainder from animal studies (in vivo and in vitro).
 
 \input{generated/source_quality_table}
 
-The extracted targets drew from diverse source types, with \sqPrimaryHumanClinicalPct{} from primary human clinical studies, \sqPrimaryAnimalInVitroPct{} from primary animal in vitro experiments, and \sqPrimaryAnimalInVivoPct{} from primary animal in vivo studies.
-
-Table~\ref{tab:species} shows the species translation required between data source and model target.
+About \spHumantohumanPct{} of targets used human data directly (Table~\ref{tab:species}). The rest drew from mouse (\spMousetohumanPct{}) or rat (\spRattohumanPct{}) experiments, which would require cross-species scaling before use in a human QSP model.
 
 \input{generated/species_table}
 
-Approximately \spHumantohumanPct{} of targets required no cross-species translation (human$\rightarrow$human), while \spMousetohumanPct{} required mouse$\rightarrow$human translation. The remaining \spRattohumanPct{} involved rat$\rightarrow$human translation.
-
-Table~\ref{tab:indication} shows the indication match between source experiments and the PDAC model target.
+Only \indExactPct{} of targets came from PDAC-specific experiments (Table~\ref{tab:indication}). Most (\indProxyPct{}) relied on proxy indications: other cancer types, chronic pancreatitis, or fibrosis models with similar biology.
 
 \input{generated/indication_table}
 
-Only \indExactPct{} of targets had exact indication matches (data from PDAC patients or PDAC-specific models). The majority (\indProxyPct{}) used proxy indications such as other cancer types, chronic pancreatitis, or fibrosis models that share mechanistic features with PDAC.
-
 \subsection{Code Generation}
 
-All \nTargets{} calibration targets passed validation and were successfully translated to Julia inference scripts. The translator identified \nSharedParams{} shared parameters appearing in multiple targets and generated a joint model with \nUniqueParams{} unique parameter priors and \nCodeTargets{} likelihood terms. The shared parameters are: \sharedParamsList{}.
-
-The generated code totals \nCodeLines{} lines of Julia, including ODE definitions, the Turing model block, sampler configuration, and diagnostic output. Each target contributes a simulate function, observed data constants, and a likelihood term. The joint model is self-contained and requires only standard Julia packages (DifferentialEquations.jl, Turing.jl, Distributions.jl).
-
-Table~\ref{tab:model-type-dist} shows the distribution of forward model types used across calibration targets.
+All \nTargets{} targets were translated to a joint Julia inference script. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. Most targets (\mtAlgebraicPct{}) use closed-form forward models; the rest use simple ODEs (Table~\ref{tab:model-type-dist}).
 
 \input{generated/model_type_table}
 
-The majority (\mtAlgebraicPct{}) of targets use algebraic (closed-form) forward models, where the observable can be computed directly from parameters without numerical integration.
+The generated script is self-contained, requiring only DifferentialEquations.jl, Turing.jl, and Distributions.jl. Each target contributes a simulate function, observed data constants, and a likelihood term. The complete script is provided in the supplementary materials.
 
-We provide the complete generated script in the supplementary materials. Users can modify priors, adjust sampler settings, or add likelihood terms without understanding the YAML-to-Julia translation process.
+In this application, each target constrains a single isolated parameter with a closed-form forward model. For such cases, joint Bayesian inference is not strictly necessary; one could simply invert each forward model and propagate measurement uncertainty. The framework is designed for more complex scenarios: when multiple derivations constrain the same parameter, when a single target constrains multiple parameters, or when forward models involve ODEs that cannot be analytically inverted.
 
 \subsection{Convergence Diagnostics}
 
-We ran \nChains{} independent chains of \nSamples{} samples each using the NUTS sampler with default settings. Table~\ref{tab:convergence} reports convergence diagnostics for all \nUniqueParams{} parameters.
+We ran \nChains{} chains of \nSamples{} samples each using the NUTS sampler. All parameters achieved $\hat{R} < 1.01$ and effective sample sizes above 3000 (Table~\ref{tab:convergence}). Sampling took about 42 seconds on an M-series MacBook Air.
 
 \input{generated/convergence_table}
 
-All parameters achieved $\hat{R} < 1.01$, indicating convergence across chains. Effective sample sizes exceeded 3000 for all parameters, well above the recommended minimum of 400, suggesting excellent exploration of the posterior. Total sampling time was approximately 42 seconds on a standard laptop (M-series MacBook Pro), demonstrating that the joint inference scales efficiently with the number of targets.
-
 \subsection{Posterior Distributions}
 
-Figure~\ref{fig:posteriors} shows marginal posterior distributions for all \nUniqueParams{} parameters, with prior distributions overlaid for comparison. Table~\ref{tab:posteriors} reports posterior medians and 90\% credible intervals.
+Figure~\ref{fig:posteriors} shows posterior estimates for all \nUniqueParams{} parameters. Table~\ref{tab:posteriors} reports medians and 90\% credible intervals.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=\textwidth]{generated/figures/posterior_marginals.png}
-\caption{Marginal posterior distributions (blue) compared to priors (gray). Red vertical lines indicate the posterior median and 90\% credible interval bounds. Parameters where the posterior is substantially narrower than the prior indicate informative data.}
+\includegraphics[width=\textwidth]{generated/figures/posterior_marginals.pdf}
+\caption{Posterior distributions from joint Bayesian inference. Gray shading shows the prior distribution; blue histogram and line show the posterior. Red lines indicate median (solid) and 90\% credible interval bounds (dashed).}
 \label{fig:posteriors}
 \end{figure}
 
 \input{generated/posterior_table}
 
-Most parameters show posteriors that are narrower than their priors, indicating that the calibration data provided meaningful constraint. The tumor growth rate \texttt{k\_C1\_growth} has a posterior median of \KConeGrowthMed{} day$^{-1}$ (90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}), corresponding to a tumor doubling time of approximately 129 days, consistent with clinical observations for PDAC. The activated PSC death rate \texttt{k\_apsc\_death} is well-constrained at \KApscDeathMed{} day$^{-1}$ (90\% CI: \KApscDeathCILo{}--\KApscDeathCIHi{}), implying a half-life of approximately 10 days for activated stellate cells.
+Most posteriors are narrower than their priors, indicating that the data constrained the parameters. The tumor growth rate \texttt{k\_C1\_growth} (\KConeGrowthMed{} day$^{-1}$, 90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}) implies a doubling time of about 130 days, consistent with clinical PDAC observations. The activated PSC death rate \texttt{k\_apsc\_death} (\KApscDeathMed{} day$^{-1}$) implies a half-life of about 10 days.
 
-Several parameters are constrained by multiple independent experiments. The macrophage polarization rate \texttt{k\_M1\_pol} has a posterior median of \KMonePolMed{} day$^{-1}$ informed by two reprogramming studies. The MDSC recruitment rate \texttt{k\_MDSC\_rec} shows a posterior median of \KMdscRecMed{} cell/(mL$\cdot$day), constrained by two independent transwell migration assays.
-
-The number of IL-2-dependent cell divisions for CD4+ and CD8+ T cells (\texttt{N\_IL2\_CD4} = \NIltwoCdfourMed{}, \texttt{N\_IL2\_CD8} = \NIltwoCdeightMed{}) are consistent with CFSE-based proliferation tracking studies, where division counting is limited to approximately 7--8 generations by dye dilution.
-
-\subsection{Model Fit Assessment}
-
-The joint inference successfully found parameter values consistent with all \nCodeTargets{} calibration targets simultaneously. The excellent convergence diagnostics (all $\hat{R} < 1.01$, all ESS $> 3000$) indicate that the NUTS sampler efficiently explored the joint posterior despite the model's 12-dimensional parameter space and 22 likelihood terms.
-
-The consistency of the joint fit can be assessed by examining whether parameters constrained by multiple experiments yield compatible posteriors. For the \nSharedParams{} shared parameters, each receives constraints from 2--3 independent experiments with different designs and data sources. The fact that the sampler converged to tight posteriors without multimodality suggests that these independent experiments provide mutually consistent information about the underlying parameters.
-
-For example, the macrophage recruitment rate \texttt{k\_Mac\_rec} is constrained by histological counts from two independent PDAC cohorts. The joint posterior (median \KMacRecMed{} cell/(mL$\cdot$day), 90\% CI: \KMacRecCILo{}--\KMacRecCIHi{}) represents a synthesis of both data sources, with the credible interval reflecting the combined uncertainty.
+The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall within the 7--8 generation range expected from CFSE proliferation tracking, where dye dilution limits counting. The CD8+ estimate (\NIltwoCdeightMed{}) is somewhat lower, possibly reflecting differences in experimental conditions between the source studies.
 
 %=============================================================================
 \section{Discussion}

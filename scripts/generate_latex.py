@@ -216,14 +216,23 @@ def generate_codegen_stats_tex(codegen: CodeGenMetrics) -> str:
 """
 
 
+def _clean_param_name(filename: str) -> str:
+    """Convert filename to clean parameter name for display."""
+    import re
+    # Remove .yaml extension
+    name = filename.replace(".yaml", "")
+    # Remove _PDAC_derivNNN suffix
+    name = re.sub(r"_PDAC_deriv\d+$", "", name)
+    # Format as texttt with escaped underscores
+    name_escaped = name.replace("_", r"\_")
+    return f"\\texttt{{{name_escaped}}}"
+
+
 def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
     """Generate LaTeX table of extraction metrics per target."""
     rows = []
     for t in sorted(metrics.per_target, key=lambda x: x["file"]):
-        name = t["file"].replace("_", r"\_").replace(".yaml", "")
-        # Truncate long names
-        if len(name) > 30:
-            name = name[:27] + "..."
+        name = _clean_param_name(t["file"])
         retries = t.get("retries", 0)
         duration = t.get("duration", 0) / 60  # Convert to minutes
         tokens = t.get("tokens", 0)
@@ -359,10 +368,11 @@ Parameter & $\\hat{R}$ & ESS (bulk) & ESS (tail) \\\\
 
     rows = []
     for param, vals in sorted(inference_results["parameters"].items()):
-        param_tex = param.replace("_", r"\_")
+        param_tex = f"\\texttt{{{param.replace('_', chr(92) + '_')}}}"
         rhat = vals.get("rhat", 0)
-        ess = vals.get("ess", 0)
-        rows.append(f"{param_tex} & {rhat:.3f} & {ess:.0f} & ---")
+        ess_bulk = vals.get("ess_bulk", 0)
+        ess_tail = vals.get("ess_tail", 0)
+        rows.append(f"{param_tex} & {rhat:.3f} & {ess_bulk:.0f} & {ess_tail:.0f}")
 
     rows_tex = " \\\\\n".join(rows)
 
@@ -398,6 +408,60 @@ Target & Observed & Predicted (median) & 90\\% PI Coverage \\\\
 \\end{table}"""
 
 
+def _load_param_units() -> dict:
+    """Load parameter units from model_structure.json."""
+    model_path = SCRIPT_DIR.parent / "supporting_files" / "model_structure.json"
+    if not model_path.exists():
+        return {}
+    with open(model_path) as f:
+        data = json.load(f)
+    units = {p["name"]: p["units"] for p in data.get("parameters", [])}
+    # Auxiliary parameters not in model_structure
+    units["L_leukocyte_T"] = "cell/milliliter"
+    return units
+
+
+def _format_units_latex(units: str) -> str:
+    """Convert units string to LaTeX format."""
+    import re
+
+    if units == "dimensionless" or not units:
+        return "---"
+
+    # Handle specific complex units first
+    if units == "1/(centimeter^3*minute)":
+        return r"min$^{-1}\cdot$cm$^{-3}$"
+    if units == "nanomole/cell/day":
+        return r"nmol$\cdot$cell$^{-1}\cdot$day$^{-1}$"
+    if units == "cell/(milliliter*day)":
+        return r"cell$\cdot$mL$^{-1}\cdot$day$^{-1}$"
+
+    u = units
+    # Handle common unit abbreviations
+    u = u.replace("milliliter", "mL")
+    u = u.replace("milligram", "mg")
+    u = u.replace("centimeter", "cm")
+    u = u.replace("nanomole", "nmol")
+    u = u.replace("minute", "min")
+
+    # Handle 1/day pattern
+    if u == "1/day":
+        return r"day$^{-1}$"
+
+    # Handle exponents - wrap in math mode
+    u = re.sub(r"\^(\d+)", r"$^{\1}$", u)
+    u = re.sub(r"\^(-\d+)", r"$^{\1}$", u)
+
+    # Handle multiplication
+    u = u.replace("*", r"$\cdot$")
+
+    return u
+
+
+# Auxiliary parameters introduced during extraction (not in original model)
+AUXILIARY_PARAMS = {"L_leukocyte_T"}
+
+
 def generate_posterior_table_tex(codegen: CodeGenMetrics, inference_results: Optional[dict]) -> str:
     """Generate LaTeX table of posterior parameter estimates."""
     if not inference_results or "parameters" not in inference_results:
@@ -415,9 +479,14 @@ Parameter & Median & 90\\% CI & Units \\\\
 \\end{tabular}
 \\end{table}"""
 
+    param_units = _load_param_units()
+
     rows = []
     for param, vals in sorted(inference_results["parameters"].items()):
-        param_tex = param.replace("_", r"\_")
+        param_tex = f"\\texttt{{{param.replace('_', chr(92) + '_')}}}"
+        if param in AUXILIARY_PARAMS:
+            param_tex += "$^\\dagger$"
+        units = _format_units_latex(param_units.get(param, ""))
         if vals:
             med = vals.get("median", 0)
             ci_lo = vals.get("ci_05", 0)
@@ -430,7 +499,7 @@ Parameter & Median & 90\\% CI & Units \\\\
                     return f"{x:.2e}"
                 return f"{x:.3g}"
 
-            rows.append(f"{param_tex} & {fmt(med)} & [{fmt(ci_lo)}, {fmt(ci_hi)}] & ---")
+            rows.append(f"{param_tex} & {fmt(med)} & [{fmt(ci_lo)}, {fmt(ci_hi)}] & {units}")
         else:
             rows.append(f"{param_tex} & --- & --- & ---")
 
@@ -439,7 +508,7 @@ Parameter & Median & 90\\% CI & Units \\\\
     return rf"""% Auto-generated posterior table
 \begin{{table}}[htbp]
 \centering
-\caption{{Posterior parameter estimates from joint Bayesian inference. Credible intervals are 90\% highest density intervals.}}
+\caption{{Posterior parameter estimates from joint Bayesian inference. Credible intervals are 90\% highest density intervals. $^\dagger$Auxiliary parameter introduced during extraction.}}
 \label{{tab:posteriors}}
 \begin{{tabular}}{{lccc}}
 \toprule
@@ -664,9 +733,7 @@ def generate_tool_usage_table_tex(metrics: ExtractionMetrics) -> str:
     total_web = 0
     total_code = 0
     for t in sorted(metrics.per_target, key=lambda x: x["file"]):
-        name = t["file"].replace("_", r"\_").replace(".yaml", "")
-        if len(name) > 30:
-            name = name[:27] + "..."
+        name = _clean_param_name(t["file"])
         tool_calls = t.get("tool_calls", {})
         web_search = tool_calls.get("web_search", 0)
         code_exec = tool_calls.get("code_execution", 0)
@@ -704,10 +771,10 @@ def generate_complexity_table_tex(yaml_metrics: YAMLMetrics) -> str:
     total_params = 0
     total_states = 0
     total_lines = 0
-    for c in sorted(yaml_metrics.complexity, key=lambda x: x.get("target", "")):
-        name = c.get("target", "").replace("_", r"\_")
-        if len(name) > 30:
-            name = name[:27] + "..."
+    for c in sorted(yaml_metrics.complexity, key=lambda x: x.get("file", x.get("target", ""))):
+        # Use file field if available, otherwise target
+        raw_name = c.get("file", c.get("target", ""))
+        name = _clean_param_name(raw_name) if raw_name.endswith(".yaml") else _clean_param_name(raw_name + ".yaml")
         inputs = c.get("n_inputs", 0)
         params = c.get("n_params", 0)
         states = c.get("n_states", 0)
@@ -923,6 +990,185 @@ def generate_token_cost_figure(metrics: ExtractionMetrics, output_path: Path):
     print(f"  Saved: {output_path}")
 
 
+def _parse_priors_from_julia(julia_path: Path) -> dict:
+    """Parse prior distributions from Julia calibration script."""
+    import re
+
+    priors = {}
+    if not julia_path.exists():
+        return priors
+
+    content = julia_path.read_text()
+
+    # Match patterns like :param_name => LogNormal(mu, sigma) or Normal(mu, sigma)
+    pattern = r":(\w+)\s*=>\s*(LogNormal|Normal)\(([^,]+),\s*([^)]+)\)"
+    for match in re.finditer(pattern, content):
+        param = match.group(1)
+        dist_type = match.group(2)
+        param1 = float(match.group(3))
+        param2 = float(match.group(4))
+        priors[param] = {"type": dist_type, "param1": param1, "param2": param2}
+
+    return priors
+
+
+def _format_units_matplotlib(units: str) -> str:
+    """Convert units string to matplotlib-friendly format."""
+    if units == "dimensionless" or not units:
+        return ""
+
+    u = units
+    # Abbreviations
+    u = u.replace("milliliter", "mL")
+    u = u.replace("milligram", "mg")
+    u = u.replace("centimeter", "cm")
+    u = u.replace("nanomole", "nmol")
+    u = u.replace("minute", "min")
+
+    # Handle specific complex units
+    if "1/(centimeter^3*minute)" in units or "1/(cm^3*min)" in u:
+        return "min⁻¹·cm⁻³"
+    if "nanomole/cell/day" in units or "nmol/cell/day" in u:
+        return "nmol·cell⁻¹·day⁻¹"
+    if "cell/(milliliter*day)" in units or "cell/(mL*day)" in u:
+        return "cell·mL⁻¹·day⁻¹"
+    if u == "1/day":
+        return "day⁻¹"
+
+    # General replacements
+    u = u.replace("^-1", "⁻¹")
+    u = u.replace("^-3", "⁻³")
+    u = u.replace("^3", "³")
+    u = u.replace("*", "·")
+
+    return u
+
+
+def generate_posterior_figure(inference_results: dict, output_path: Path):
+    """Generate histogram/density plots of posterior parameter estimates from raw samples."""
+    try:
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from scipy import stats
+    except ImportError:
+        print("Warning: matplotlib/scipy not available. Skipping posterior figure.")
+        return
+
+    if not inference_results or "parameters" not in inference_results:
+        print("Warning: No inference results. Skipping posterior figure.")
+        return
+
+    # Load raw posterior samples
+    samples_path = SCRIPT_DIR.parent / "metadata_storage" / "posterior_samples.json"
+    if not samples_path.exists():
+        print(f"Warning: {samples_path} not found. Skipping posterior figure.")
+        print("  Run inference with updated translator to generate samples.")
+        return
+
+    with open(samples_path) as f:
+        posterior_samples = json.load(f)
+
+    # Parse priors from Julia script
+    julia_path = SCRIPT_DIR.parent / "metadata_storage" / "joint_calibration.jl"
+    priors = _parse_priors_from_julia(julia_path)
+
+    params = inference_results["parameters"]
+    n_params = len(params)
+
+    # Load units for parameter labels
+    param_units = _load_param_units()
+
+    # Sort parameters alphabetically
+    sorted_params = sorted(params.keys())
+
+    # Calculate grid dimensions
+    n_cols = 4
+    n_rows = (n_params + n_cols - 1) // n_cols
+
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, 3 * n_rows))
+    axes = axes.flatten()
+
+    for i, param in enumerate(sorted_params):
+        if i >= len(axes):
+            break
+
+        ax = axes[i]
+        vals = params[param]
+
+        # Get raw samples
+        samples = np.array(posterior_samples.get(param, []))
+        units_str = _format_units_matplotlib(param_units.get(param, ""))
+        title = param.replace("_", " ")
+        if units_str:
+            title += f" ({units_str})"
+
+        if len(samples) == 0:
+            ax.text(0.5, 0.5, "No samples", transform=ax.transAxes, ha="center")
+            ax.set_title(title, fontsize=9)
+            continue
+
+        med = vals.get("median", np.median(samples))
+        ci_lo = vals.get("ci_05", np.percentile(samples, 5))
+        ci_hi = vals.get("ci_95", np.percentile(samples, 95))
+
+        # Plot histogram with density
+        ax.hist(samples, bins=50, density=True, color="steelblue", alpha=0.6, edgecolor="none")
+
+        # X range for plotting densities
+        x_min = min(samples.min(), np.percentile(samples, 0.1))
+        x_max = max(samples.max(), np.percentile(samples, 99.9))
+        x_range = np.linspace(x_min, x_max, 200)
+
+        # Overlay prior distribution (gray, underneath)
+        if param in priors:
+            prior_info = priors[param]
+            try:
+                if prior_info["type"] == "LogNormal":
+                    prior_dist = stats.lognorm(s=prior_info["param2"], scale=np.exp(prior_info["param1"]))
+                elif prior_info["type"] == "Normal":
+                    prior_dist = stats.norm(loc=prior_info["param1"], scale=prior_info["param2"])
+                else:
+                    prior_dist = None
+
+                if prior_dist:
+                    prior_pdf = prior_dist.pdf(x_range)
+                    # Scale prior to be visible but not overwhelming
+                    ax.fill_between(x_range, prior_pdf, alpha=0.2, color="gray", label="Prior")
+                    ax.plot(x_range, prior_pdf, color="gray", linewidth=1, alpha=0.7)
+            except Exception:
+                pass  # Skip prior if it fails
+
+        # Overlay posterior KDE
+        try:
+            kde = stats.gaussian_kde(samples)
+            ax.plot(x_range, kde(x_range), color="darkblue", linewidth=1.5, label="Posterior")
+        except Exception:
+            pass  # Skip KDE if it fails
+
+        # Add median line
+        ax.axvline(med, color="red", linewidth=2, linestyle="-")
+
+        # Add CI lines
+        ax.axvline(ci_lo, color="red", linewidth=1, linestyle="--", alpha=0.7)
+        ax.axvline(ci_hi, color="red", linewidth=1, linestyle="--", alpha=0.7)
+
+        # Format title and axes
+        ax.set_title(title, fontsize=11)
+        ax.set_ylabel("")
+        ax.set_yticks([])
+        ax.ticklabel_format(style="scientific", axis="x", scilimits=(-2, 3))
+        ax.tick_params(axis="x", labelsize=10, rotation=45)
+
+    # Hide unused subplots
+    for i in range(n_params, len(axes)):
+        axes[i].set_visible(False)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {output_path}")
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -949,7 +1195,15 @@ def main():
     codegen = CodeGenMetrics.from_dict(data.get("codegen", {}))
     yaml_metrics = YAMLMetrics.from_dict(data.get("yaml_metrics", {}))
     inference = InferenceMetrics.from_dict({}, data.get("inference_available", False))
-    inference_results = data.get("inference_results")
+
+    # Use fresh inference results if available (from latest inference run)
+    fresh_inference_path = SCRIPT_DIR.parent / "metadata_storage" / "inference_results.json"
+    if fresh_inference_path.exists():
+        print(f"  Using fresh inference from {fresh_inference_path}")
+        with open(fresh_inference_path) as f:
+            inference_results = json.load(f)
+    else:
+        inference_results = data.get("inference_results")
 
     print(f"  Extraction: {extraction.n_targets} targets")
     print(f"  Codegen: {codegen.n_unique_parameters} parameters")
@@ -995,6 +1249,7 @@ def main():
     generate_error_category_figure(extraction, FIGURES_DIR / "error_categories.pdf")
     generate_tool_usage_figure(extraction, FIGURES_DIR / "tool_usage.pdf")
     generate_token_cost_figure(extraction, FIGURES_DIR / "token_cost_distribution.pdf")
+    generate_posterior_figure(inference_results, FIGURES_DIR / "posterior_marginals.pdf")
 
     print("\n" + "=" * 60)
     print("Done!")
