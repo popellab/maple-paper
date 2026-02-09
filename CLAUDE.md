@@ -17,6 +17,7 @@ This repository contains the manuscript for MAPLE (Model-Aware Parameter Literat
 - Scientific journal format (CPT:PSP)
 - Do not use `\textbf{}` for emphasis in running text
 - Avoid emojis
+- Do not use em-dashes (---). Use commas, parentheses, or restructure the sentence instead.
 - Use proper LaTeX formatting for code (`\texttt{}`)
 - Reference supplementary materials as "Supplementary Material S1" etc.
 

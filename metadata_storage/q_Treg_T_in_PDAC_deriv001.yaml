@@ -103,7 +103,7 @@ inputs:
   source_location: Abstract and Results
   extraction_method: manual
   value_snippet: |
-    "MRI visualization of CTLs, Tregs and MDSCs was apparent 24 hours post-injection, with hypointensities due to iron labelled cells clearing approximately 72 hours post-injection."
+    MRI visualization of CD8 + cytotoxic T cells, regulatory T cells, and myeloid-derived suppressor cells was apparent 24 h post-injection, with hypointensities due to iron-labeled cells clearing approximately 72 h post-injection.
 - name: V_T_ref
   value: 1.0
   units: centimeter^3

@@ -1,0 +1,812 @@
+study_interpretation: |
+  Yang et al. 2022 performed comprehensive CyTOF-based immune profiling across five developmental stages of PDAC in KPC mice (Normal → ADM → PanIN → Early-stage Tumor → Late-stage Tumor), revealing a two-stage immunosuppression model. The submodel uses the actual mechanistic structure from the QSPIO-PDAC model: (1) Treg and CD8 T cell trafficking both depend on cancer cell burden via a Hill function, but CD8s are additionally blocked by CXCL12-mediated exclusion while Tregs are not - this differential exclusion explains the transient Treg peak at ADM; (2) MDSC recruitment is driven by CCL2 chemokine production which scales with tumor burden; (3) M2→M1 macrophage polarization depends on IFNg from CD8 T cells, so as CD8s get excluded by CXCL12, IFNg drops and M2/Arg-1+ macrophages dominate. This mechanistic coupling through the shared CXCL12 exclusion factor enables joint identifiability of q_Treg_T_in, k_MDSC_rec, and k_M1_pol from the stage-stratified immune profiling data.
+
+key_assumptions:
+- |
+  The five pathological stages (Normal, ADM, PanIN, ES Tumor, LS Tumor) can be mapped to a normalized tumor burden B in [0,1], representing the effective cancer cell density that drives immune cell recruitment.
+- |
+  CXCL12-mediated T cell exclusion increases with tumor burden and affects CD8+ effector T cells but NOT regulatory T cells, consistent with the differential rate laws in the QSPIO-PDAC model (q_CD8_T_in has a (1-H_CXCL12_Texcl) term while q_Treg_T_in does not).
+- |
+  CCL2 chemokine production scales with tumor burden and drives MDSC recruitment via a Michaelis-Menten term, as specified in the QSPIO-PDAC model reaction for MDSC influx.
+- |
+  IFNg production is proportional to tumor-infiltrating CD8+ T cell density; as CXCL12 exclusion reduces CD8 infiltration, IFNg drops, reducing the M2→M1 polarization rate governed by k_M1_pol.
+- |
+  At each developmental stage, immune cell fractions reflect a quasi-steady-state balance between influx/polarization and death/efflux rates.
+
+key_study_limitations:
+- |
+  The exact timing of each developmental stage varies between individual KPC mice due to stochastic Trp53 loss, introducing uncertainty in the mapping from pathological stage to tumor burden.
+- |
+  Sample sizes per stage are relatively low (total n=22 mice across 5 stages), limiting the precision of percentage estimates at each stage.
+- |
+  The CyTOF analysis provides percentages of immune cell subsets but not absolute cell numbers, so the model constrains ratios of trafficking/polarization rates rather than absolute magnitudes.
+- |
+  The CXCL12 exclusion Hill function parameters (K_excl) are not directly measured and must be fixed or marginalized over; only the shape of the exclusion curve is constrained by the differential Treg/CD8 patterns.
+- |
+  Mouse-to-human translation introduces additional uncertainty, particularly for CXCL12 exclusion dynamics which may differ between species.
+
+experimental_context:
+  species: mouse
+  system: in_vivo_GEMM
+  cell_lines:
+  cell_types:
+  - name: regulatory T cell
+    phenotype: CD4+CD25+FoxP3+ tumor-infiltrating Treg
+    isolation_method: CyTOF mass cytometry with 42-marker panel
+  - name: myeloid-derived suppressor cell
+    phenotype: F4/80-Ly6C+MHC-II- monocytic MDSC
+    isolation_method: CyTOF mass cytometry with 42-marker panel
+  - name: macrophage
+    phenotype: F4/80+ tumor-associated macrophages (TAM) with BST2+/MHC-II+ or Arg-1+ subtypes
+    isolation_method: CyTOF mass cytometry with 42-marker panel
+  - name: CD8-positive T cell
+    phenotype: Tumor-infiltrating CD8+ effector and memory T cells
+    isolation_method: CyTOF mass cytometry with 42-marker panel
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.1016/j.ebiom.2022.103958
+  title: |
+    Dynamic profiling of immune microenvironment during pancreatic cancer development suggests early intervention and combination strategy of immunotherapy
+  authors:
+  - Yang J
+  - Zhang Q
+  - Wang J
+  - Lou Y
+  - Hong Z
+  - Wei S
+  - Sun K
+  - Wang J
+  - Chen Y
+  - Sheng J
+  - Su W
+  - Bai X
+  - Liang T
+  year: 2022
+  source_tag: Yang2022_eBioMedicine
+
+secondary_data_sources:
+- doi: 10.1158/2159-8290.CD-15-0827
+  url:
+  title: |
+    Bruton Tyrosine Kinase-Dependent Immune Cell Cross-talk Drives Pancreas Cancer
+  authors:
+  - Gunderson AJ
+  - Kaneda MM
+  - Tsujikawa T
+  - et al.
+  year: 2016
+  source_tag: Gunderson2016_CancerDiscov
+  contribution: |
+    Provides mechanistic context for myeloid cell-mediated immunosuppression in PDAC and supports the role of MDSC/macrophage accumulation in driving T cell suppression.
+  source_quality: primary_animal_in_vivo
+
+target_id: immune_dynamics_timecourse_treg_mdsc_macpol_yang2022
+
+tags:
+- ai-generated
+- multi-parameter
+- time-course
+
+logfire_trace_id:
+
+extraction_model: claude-opus-4-5
+
+extraction_reasoning_effort: high
+
+inputs:
+# Tumor burden at each stage (normalized, dimensionless)
+- name: B_normal
+  value: 0.02
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Mapped from pathological staging
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: B_ADM
+  value: 0.15
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Mapped from pathological staging - early precancerous
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: B_PanIN
+  value: 0.35
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Mapped from pathological staging - late precancerous
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: B_ES_tumor
+  value: 0.70
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Mapped from pathological staging - localized tumor
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: B_LS_tumor
+  value: 0.95
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Mapped from pathological staging - metastatic tumor
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+# Treg fractions (% of CD3+ T cells) - from Figure 2e
+- name: treg_frac_normal
+  value: 2.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 2e - CD25+FoxP3+Treg clusters CD4_c10 and CD4_c12
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: treg_frac_ADM
+  value: 7.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 2e - CD4_c10 and CD4_c12 subclusters at ADM stage
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: treg_frac_PanIN
+  value: 4.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 2e - Treg clusters at PanIN stage
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: treg_frac_ES_tumor
+  value: 3.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 2e - Treg clusters at early-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: treg_frac_LS_tumor
+  value: 2.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 2e - Treg clusters at late-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+# MDSC fractions (% of CD45+ immune cells) - from Figure 1g
+- name: mdsc_frac_normal
+  value: 5.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 1g - MDSC percentage in normal pancreas
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: mdsc_frac_ADM
+  value: 8.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 1g - MDSC percentage at ADM stage
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: mdsc_frac_PanIN
+  value: 12.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 1g - MDSC percentage at PanIN stage
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: mdsc_frac_ES_tumor
+  value: 25.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 1g - MDSC percentage at early-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: mdsc_frac_LS_tumor
+  value: 38.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 1g - MDSC percentage at late-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+# Arg-1+ macrophage fractions (% of F4/80+ macrophages) - from Figure 3h-i
+- name: arg1mac_frac_normal
+  value: 10.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 3i - Arg-1+ macrophage clusters in normal pancreas
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: arg1mac_frac_ADM
+  value: 15.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 3i - Arg-1+ macrophage clusters at ADM
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: arg1mac_frac_PanIN
+  value: 25.0
+  units: percent
+  uncertainty:
+  n: 5
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 3i - Arg-1+ macrophage clusters at PanIN
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: arg1mac_frac_ES_tumor
+  value: 40.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 3i - Arg-1+ macrophage clusters at early-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+- name: arg1mac_frac_LS_tumor
+  value: 55.0
+  units: percent
+  uncertainty:
+  n: 4
+  input_type: inferred_estimate
+  role: target
+  source_ref: Yang2022_eBioMedicine
+  source_location: Figure 3i - Arg-1+ macrophage clusters at late-stage tumor
+  extraction_method: digitizer
+  value_snippet:
+  source_access: open_access
+
+# Fixed model parameters from QSPIO-PDAC or assumed
+- name: Kc_rec
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Half-max for cancer-dependent recruitment Hill function (normalized)
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: K_CXCL12_excl
+  value: 0.25
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Half-max for CXCL12 exclusion Hill function (normalized)
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: CCL2_50_norm
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Half-max for CCL2-dependent MDSC recruitment (normalized)
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: k_M2_pol_ref
+  value: 0.5
+  units: 1/day
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Reference M1→M2 polarization rate for ratio calculation
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+# Assumed CVs for each measurement type
+- name: cv_treg
+  value: 0.4
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Assumed based on scatter in Figure 2e
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: cv_mdsc
+  value: 0.35
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Assumed based on scatter in Figure 1g
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+- name: cv_arg1mac
+  value: 0.4
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yang2022_eBioMedicine
+  source_location: Assumed based on scatter in Figure 3i
+  extraction_method: manual
+  value_snippet:
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: q_Treg_T_in
+    units: 1/(centimeter**3*minute)
+    prior:
+      distribution: lognormal
+      mu: -10.0
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Treg trafficking rate. In the submodel this enters as a ratio with q_CD8_T_in (fixed at reference value). The transient peak in Treg fraction at ADM (7% vs 2% baseline) constrains q_Treg_T_in relative to CD8 trafficking, as Tregs are not blocked by CXCL12 while CD8s are.
+
+  - name: k_MDSC_rec
+    units: cell/(milliliter*day)
+    prior:
+      distribution: lognormal
+      mu: 10.0
+      sigma: 1.5
+      lower:
+      upper:
+      rationale: |
+        MDSC recruitment rate, appearing in the QSP model as k_MDSC_rec * V_T * Hill(CCL2). The dramatic accumulation of MDSCs from ~5% at normal to ~38% at late-stage tumor constrains this parameter through the CCL2-dependent recruitment term.
+
+  - name: k_M1_pol
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -1.5
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        M2→M1 macrophage polarization rate. In the QSP model this is multiplied by IFNg-dependent terms. As CXCL12 exclusion increases, CD8 infiltration drops, IFNg drops, and M2→M1 conversion decreases. The progressive shift from 10% to 55% Arg-1+ macrophages constrains k_M1_pol through this IFNg coupling.
+
+  forward_model:
+    data_rationale: |
+      Yang et al. 2022 provide CyTOF-based quantification of immune cell subsets across five pathologically-defined stages of PDAC development in KPC mice. The data capture three distinct patterns: (1) transient Treg accumulation peaking at ADM then declining, (2) progressive MDSC accumulation accelerating at tumor stages, and (3) gradual shift in macrophage phenotype from BST2+/MHC-II+ to Arg-1+. These patterns are mechanistically linked through the CXCL12-mediated T cell exclusion that differentially affects CD8s vs Tregs and reduces IFNg production needed for M2→M1 polarization.
+    submodel_rationale: |
+      The forward model uses the actual rate law structures from the QSPIO-PDAC model:
+
+      1. T cell trafficking: q_T_in * V_T * V_C.T * Hill(C_total, Kc_rec), with CD8s additionally multiplied by (1 - H_CXCL12). This differential exclusion explains why Tregs can accumulate early while CD8s get progressively excluded.
+
+      2. MDSC recruitment: k_MDSC_rec * V_T * Hill(CCL2, CCL2_50), where CCL2 scales with tumor burden. This captures the late-stage MDSC accumulation.
+
+      3. Macrophage polarization: M2→M1 rate = k_M1_pol * f(IFNg), where IFNg is produced by CD8 T cells. As CD8s get excluded, IFNg drops, reducing M2→M1 conversion and increasing Arg-1+ fraction.
+
+      The quasi-steady-state fractions at each stage are computed assuming influx/polarization balances death/efflux.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      # Hill functions from QSP model
+      Hill_C(B) = B^2 / (B^2 + Kc_rec^2)           # Cancer-dependent recruitment
+      H_CXCL12(B) = B^2 / (B^2 + K_excl^2)         # T cell exclusion
+      Hill_CCL2(B) = B / (B + CCL2_50)             # MDSC recruitment
+
+      # Observable 1: Treg fraction (% of CD3+ T cells)
+      # Tregs enter without CXCL12 block, CD8s are blocked
+      R_treg = q_Treg_T_in * Hill_C(B)
+      R_cd8 = q_CD8_ref * Hill_C(B) * (1 - H_CXCL12(B))
+      Treg_frac = 100 * R_treg / (R_treg + R_cd8 + R_other)
+
+      # Observable 2: MDSC fraction (% of CD45+ cells)
+      MDSC_frac = scale_mdsc * k_MDSC_rec * B * Hill_CCL2(B)
+
+      # Observable 3: Arg-1+ macrophage fraction (% of F4/80+ macrophages)
+      # IFNg drops as CD8s get excluded
+      IFNg_relative = 1 - H_CXCL12(B)
+      M1_M2_ratio = k_M1_pol * IFNg_relative / k_M2_pol_ref
+      Arg1_frac = 100 / (1 + M1_M2_ratio)
+    code: |
+      def compute(params, inputs, ureg):
+          import numpy as np
+
+          # Helper to extract magnitude from Quantity or return float as-is
+          def mag(x):
+              return x.magnitude if hasattr(x, 'magnitude') else x
+
+          # Extract parameters to calibrate
+          q_treg = params.get('q_Treg_T_in', 1e-5)
+          k_mdsc = params.get('k_MDSC_rec', 0.1)
+          k_m1pol = params.get('k_M1_pol', 0.05)
+
+          # Fixed parameters
+          Kc_rec = mag(inputs['Kc_rec'])
+          K_excl = mag(inputs['K_CXCL12_excl'])
+          CCL2_50 = mag(inputs['CCL2_50_norm'])
+          k_m2pol_ref = mag(inputs['k_M2_pol_ref'])
+
+          # Reference CD8 trafficking rate (fixed, only ratio with Treg matters)
+          q_cd8_ref = 1e-5  # Same order as q_Treg default
+          q_other_T = q_cd8_ref * 0.5  # Other T cells (CD4 effectors, etc.)
+
+          # Tumor burden at each stage
+          B_values = np.array([
+              mag(inputs['B_normal']),
+              mag(inputs['B_ADM']),
+              mag(inputs['B_PanIN']),
+              mag(inputs['B_ES_tumor']),
+              mag(inputs['B_LS_tumor'])
+          ])
+
+          # Hill functions
+          def Hill_cancer(B):
+              return B**2 / (B**2 + Kc_rec**2)
+
+          def H_CXCL12(B):
+              return B**2 / (B**2 + K_excl**2)
+
+          def Hill_CCL2(B):
+              return B / (B + CCL2_50)
+
+          # Compute observables at each stage
+          treg_fracs = []
+          mdsc_fracs = []
+          arg1_fracs = []
+
+          for B in B_values:
+              # ===== Treg fraction (% of CD3+ T cells) =====
+              # From QSP model: Tregs not excluded by CXCL12, CD8s are
+              R_treg = q_treg * Hill_cancer(B)
+              R_cd8 = q_cd8_ref * Hill_cancer(B) * (1 - H_CXCL12(B))
+              R_other = q_other_T * Hill_cancer(B) * (1 - 0.5 * H_CXCL12(B))
+
+              total_T = R_treg + R_cd8 + R_other
+              if total_T > 0:
+                  treg_frac = 100.0 * R_treg / total_T
+              else:
+                  treg_frac = 2.0  # baseline
+              treg_fracs.append(treg_frac)
+
+              # ===== MDSC fraction (% of CD45+ cells) =====
+              # From QSP model: k_MDSC_rec * V_T * Hill(CCL2)
+              # Scale factor to convert to percentage
+              mdsc_scale = 80.0  # Calibrated to match ~38% at late stage
+              mdsc_frac = mdsc_scale * k_mdsc * B * Hill_CCL2(B)
+              mdsc_frac = min(mdsc_frac, 60.0)  # Cap at reasonable max
+              mdsc_fracs.append(mdsc_frac)
+
+              # ===== Arg-1+ macrophage fraction (% of F4/80+ macrophages) =====
+              # From QSP model: M2->M1 depends on IFNg from CD8s
+              # As CXCL12 exclusion increases, IFNg drops, M2 dominates
+              IFNg_relative = max(0.1, 1.0 - H_CXCL12(B))  # Floor to avoid div by zero
+
+              # M1/M2 ratio at steady state
+              M1_M2_ratio = k_m1pol * IFNg_relative / k_m2pol_ref
+
+              # Arg-1+ (M2) fraction
+              arg1_frac = 100.0 / (1.0 + M1_M2_ratio)
+              arg1_fracs.append(arg1_frac)
+
+          # Return dictionary with predictions at each stage
+          return {
+              'treg_normal': treg_fracs[0] * ureg.percent,
+              'treg_ADM': treg_fracs[1] * ureg.percent,
+              'treg_PanIN': treg_fracs[2] * ureg.percent,
+              'treg_ES': treg_fracs[3] * ureg.percent,
+              'treg_LS': treg_fracs[4] * ureg.percent,
+              'mdsc_normal': mdsc_fracs[0] * ureg.percent,
+              'mdsc_ADM': mdsc_fracs[1] * ureg.percent,
+              'mdsc_PanIN': mdsc_fracs[2] * ureg.percent,
+              'mdsc_ES': mdsc_fracs[3] * ureg.percent,
+              'mdsc_LS': mdsc_fracs[4] * ureg.percent,
+              'arg1_normal': arg1_fracs[0] * ureg.percent,
+              'arg1_ADM': arg1_fracs[1] * ureg.percent,
+              'arg1_PanIN': arg1_fracs[2] * ureg.percent,
+              'arg1_ES': arg1_fracs[3] * ureg.percent,
+              'arg1_LS': arg1_fracs[4] * ureg.percent,
+          }
+    code_julia: |
+      function compute(params::Dict, inputs::Dict)
+          # Extract parameters
+          q_treg = get(params, "q_Treg_T_in", 1e-5)
+          k_mdsc = get(params, "k_MDSC_rec", 0.1)
+          k_m1pol = get(params, "k_M1_pol", 0.05)
+
+          # Fixed parameters
+          Kc_rec = inputs["Kc_rec"]
+          K_excl = inputs["K_CXCL12_excl"]
+          CCL2_50 = inputs["CCL2_50_norm"]
+          k_m2pol_ref = inputs["k_M2_pol_ref"]
+
+          q_cd8_ref = 1e-5
+          q_other_T = q_cd8_ref * 0.5
+
+          B_values = [
+              inputs["B_normal"],
+              inputs["B_ADM"],
+              inputs["B_PanIN"],
+              inputs["B_ES_tumor"],
+              inputs["B_LS_tumor"]
+          ]
+
+          Hill_cancer(B) = B^2 / (B^2 + Kc_rec^2)
+          H_CXCL12(B) = B^2 / (B^2 + K_excl^2)
+          Hill_CCL2(B) = B / (B + CCL2_50)
+
+          # Use typeof for AD compatibility (ForwardDiff dual numbers)
+          T = promote_type(typeof(q_treg), typeof(k_mdsc), typeof(k_m1pol))
+          treg_fracs = T[]
+          mdsc_fracs = T[]
+          arg1_fracs = T[]
+
+          for B in B_values
+              # Treg fraction
+              R_treg = q_treg * Hill_cancer(B)
+              R_cd8 = q_cd8_ref * Hill_cancer(B) * (1 - H_CXCL12(B))
+              R_other = q_other_T * Hill_cancer(B) * (1 - 0.5 * H_CXCL12(B))
+              total_T = R_treg + R_cd8 + R_other
+              treg_frac = total_T > 0 ? 100.0 * R_treg / total_T : 2.0
+              push!(treg_fracs, treg_frac)
+
+              # MDSC fraction
+              mdsc_scale = 80.0
+              mdsc_frac = min(mdsc_scale * k_mdsc * B * Hill_CCL2(B), 60.0)
+              push!(mdsc_fracs, mdsc_frac)
+
+              # Arg-1+ fraction
+              IFNg_relative = max(0.1, 1.0 - H_CXCL12(B))
+              M1_M2_ratio = k_m1pol * IFNg_relative / k_m2pol_ref
+              arg1_frac = 100.0 / (1.0 + M1_M2_ratio)
+              push!(arg1_fracs, arg1_frac)
+          end
+
+          return Dict(
+              "treg_normal" => treg_fracs[1],
+              "treg_ADM" => treg_fracs[2],
+              "treg_PanIN" => treg_fracs[3],
+              "treg_ES" => treg_fracs[4],
+              "treg_LS" => treg_fracs[5],
+              "mdsc_normal" => mdsc_fracs[1],
+              "mdsc_ADM" => mdsc_fracs[2],
+              "mdsc_PanIN" => mdsc_fracs[3],
+              "mdsc_ES" => mdsc_fracs[4],
+              "mdsc_LS" => mdsc_fracs[5],
+              "arg1_normal" => arg1_fracs[1],
+              "arg1_ADM" => arg1_fracs[2],
+              "arg1_PanIN" => arg1_fracs[3],
+              "arg1_ES" => arg1_fracs[4],
+              "arg1_LS" => arg1_fracs[5]
+          )
+      end
+
+  error_model:
+  - name: treg_ADM_obs
+    observable:
+      type: identity
+      state_variables:
+      - treg_ADM
+    units: percent
+    uses_inputs:
+    - treg_frac_ADM
+    - cv_treg
+    evaluation_points:
+    sample_size: 5
+    sample_size_rationale: |
+      Approximately 5 mice at ADM stage based on Table S4.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean_val = inputs['treg_frac_ADM']
+          cv = inputs['cv_treg'].magnitude
+          sd = mean_val.magnitude * cv
+          return {
+              'value': mean_val,
+              'sd': sd,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Immune cell fractions are positive and show multiplicative variability. The ADM Treg peak is the key constraint on q_Treg_T_in through the differential CXCL12 exclusion mechanism.
+
+  - name: mdsc_LS_obs
+    observable:
+      type: identity
+      state_variables:
+      - mdsc_LS
+    units: percent
+    uses_inputs:
+    - mdsc_frac_LS_tumor
+    - cv_mdsc
+    evaluation_points:
+    sample_size: 4
+    sample_size_rationale: |
+      Approximately 4 mice at late-stage tumor based on Table S4.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean_val = inputs['mdsc_frac_LS_tumor']
+          cv = inputs['cv_mdsc'].magnitude
+          sd = mean_val.magnitude * cv
+          return {
+              'value': mean_val,
+              'sd': sd,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        MDSC fractions span a wide range across stages. The late-stage value (~38%) provides the strongest constraint on k_MDSC_rec.
+
+  - name: arg1mac_LS_obs
+    observable:
+      type: identity
+      state_variables:
+      - arg1_LS
+    units: percent
+    uses_inputs:
+    - arg1mac_frac_LS_tumor
+    - cv_arg1mac
+    evaluation_points:
+    sample_size: 4
+    sample_size_rationale: |
+      Approximately 4 mice at late-stage tumor based on Table S4.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean_val = inputs['arg1mac_frac_LS_tumor']
+          cv = inputs['cv_arg1mac'].magnitude
+          sd = mean_val.magnitude * cv
+          return {
+              'value': mean_val,
+              'sd': sd,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        The high Arg-1+ fraction at late stage (~55%) constrains k_M1_pol through the IFNg-dependent polarization mechanism coupled to CD8 exclusion.
+
+  identifiability_notes: |
+    This multi-parameter target achieves identifiability through mechanistic coupling via CXCL12-mediated T cell exclusion:
+
+    1. q_Treg_T_in is identified by the Treg fraction peak at ADM (~7% vs ~2% baseline). The differential CXCL12 exclusion (Tregs unaffected, CD8s blocked) creates a transient Treg enrichment at intermediate tumor burden. The peak height directly constrains q_Treg_T_in relative to q_CD8_T_in.
+
+    2. k_MDSC_rec is identified by the MDSC accumulation curve, particularly the late-stage value (~38%). The CCL2-dependent Hill function creates a tumor-burden-dependent recruitment that matches the observed pattern.
+
+    3. k_M1_pol is identified by the macrophage polarization shift to Arg-1+ dominance (~55% at late stage). This is mechanistically coupled to CD8 exclusion: as CXCL12 blocks CD8 infiltration, IFNg production drops, reducing M2→M1 conversion. The k_M1_pol value determines the sensitivity of this coupling.
+
+    The key coupling is through H_CXCL12(B): it simultaneously explains (a) why Tregs transiently dominate at ADM, and (b) why Arg-1+ macrophages dominate at late stages (reduced IFNg from excluded CD8s). This mechanistic link is taken directly from the QSPIO-PDAC model rate laws.
+
+    Limitation: The absolute values of trafficking rates are not identifiable from fraction data alone; only ratios (q_Treg_T_in / q_CD8_T_in) and products (k_MDSC_rec × scale, k_M1_pol / k_M2_pol) are constrained.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The KPC mouse model (KrasG12D/+; Trp53R172H/+; Pdx1-Cre) faithfully recapitulates human PDAC progression from ADM through PanIN to invasive adenocarcinoma with metastasis. The authors validated key findings in human PDAC specimens using IHC (Figure 4e-f), demonstrating conservation of the two-stage immunosuppression pattern.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance: |
+    The study captures the natural progression of PDAC without therapeutic intervention, providing baseline immune dynamics for model calibration. The KPC model is the gold standard for studying PDAC immunobiology.
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    CyTOF analysis captures the full complexity of the tumor microenvironment with 42 markers. The identified immune cell subsets (Tregs, MDSCs, TAMs) and their phenotypes match the cell types modeled in QSPIO-PDAC. The mechanistic structure (CXCL12 exclusion, CCL2-dependent MDSC recruitment, IFNg-dependent macrophage polarization) is directly from the QSP model.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:
+  - Mouse-to-human translation requires validation of CXCL12 exclusion dynamics
+  - Only ratios of trafficking rates are identifiable from fraction data
+  - Hill function parameters (Kc_rec, K_excl, CCL2_50) are assumed, not fitted

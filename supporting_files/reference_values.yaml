@@ -1,0 +1,288 @@
+version: "1.0"
+values:
+
+# =============================================================================
+# ANATOMY
+# =============================================================================
+
+- name: blood_volume
+  display_name: Adult blood volume
+  value: 5.0
+  units: liter
+  category: anatomy
+  species: human
+  source:
+    description: Standard adult blood volume
+  typical_range: [4.5, 5.5]
+
+- name: body_weight
+  display_name: Adult body weight
+  value: 70.0
+  units: kilogram
+  category: anatomy
+  species: human
+  source:
+    description: Standard adult reference body weight
+  typical_range: [50.0, 100.0]
+
+# =============================================================================
+# GEOMETRY / CONVERSIONS
+# =============================================================================
+
+- name: ihc_section_volume_3um
+  display_name: IHC section volume per mm^2 (3 um)
+  value: 3.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 3-um paraffin section; volume = 3e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+    Used for Chen2015 PDAC TAM data (3-um sections).
+
+- name: ihc_section_volume_4um
+  display_name: IHC section volume per mm^2 (4 um)
+  value: 4.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 4-um paraffin section; volume = 4e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+
+- name: ihc_section_volume_5um
+  display_name: IHC section volume per mm^2 (5 um)
+  value: 5.0e-06
+  units: centimeter**3 / millimeter**2
+  category: geometry
+  species: human
+  source:
+    description: Standard 5-um paraffin section; volume = 5e-4 cm * 0.01 cm^2 per mm^2
+  notes: |
+    Use this to convert IHC cell densities (cells/mm^2) to volumetric
+    densities (cells/cm^3). Multiply cells/mm^2 by 1/section_volume.
+    Used for Jiang2014 PDAC FOXP3+ data (5-um sections).
+
+# =============================================================================
+# CIRCULATING CELL COUNTS (human, healthy adult)
+# =============================================================================
+
+- name: circulating_cd8_count
+  display_name: Circulating CD8+ T cell count
+  value: 2.0e+9
+  units: cell
+  uncertainty:
+    sd: 1.0e+9
+  category: cell_counts
+  species: human
+  source:
+    description: Normal adult peripheral blood CD8+ T cell count (20-30% of ~7e9 lymphocytes)
+  model_species: V_C.CD8
+  typical_range: [1.0e+9, 4.0e+9]
+  notes: |
+    May be reduced by 30-50% in advanced cancer patients due to lymphopenia.
+
+- name: circulating_cd4_count
+  display_name: Circulating CD4+ T cell count
+  value: 5.0e+9
+  units: cell
+  uncertainty:
+    sd: 2.0e+9
+  category: cell_counts
+  species: human
+  source:
+    description: Normal adult peripheral blood CD4+ T cell count (40-60% of ~7e9 lymphocytes)
+  model_species: V_C.CD4
+  typical_range: [3.0e+9, 8.0e+9]
+
+- name: circulating_treg_count
+  display_name: Circulating Treg count
+  value: 2.0e+8
+  units: cell
+  uncertainty:
+    sd: 1.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: Approximately 5-10% of circulating CD4+ T cells
+  model_species: V_C.Treg
+  typical_range: [1.0e+8, 4.0e+8]
+
+- name: circulating_treg_count_pdac
+  display_name: Circulating Treg count in PDAC patients
+  value: 6.864e+8
+  units: cell
+  uncertainty:
+    sd: 3.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Derived from CD4+ absolute count (1040 cells/uL, Kamallou2014) *
+      blood volume (5e6 uL) * Treg fraction in pancreas cancer patients
+      (0.132, Liyanage2002): 1040 * 5e6 * 0.132 = 6.864e8 cells.
+    doi: 10.4049/jimmunol.169.5.2756
+    authors: Liyanage et al. / Kamallou et al.
+    year: 2002
+  model_species: V_C.Treg
+  typical_range: [2.0e+8, 1.5e+9]
+  notes: |
+    PDAC-specific estimate using elevated Treg fraction (13.2% of CD4+)
+    reported in pancreas cancer patients (Liyanage2002), combined with
+    healthy adult CD4+ counts (Kamallou2014) and standard blood volume.
+    Higher than the healthy circulating_treg_count (~2e8) due to
+    cancer-associated Treg expansion. Use this as source_pool for
+    steady_state_density models of Treg trafficking into PDAC tumors.
+
+- name: circulating_monocyte_count
+  display_name: Circulating monocyte count
+  value: 3.0e+9
+  units: cell
+  uncertainty:
+    sd: 1.5e+9
+  category: cell_counts
+  species: human
+  source:
+    description: Normal adult peripheral blood monocyte count
+  typical_range: [1.5e+9, 5.0e+9]
+
+# =============================================================================
+# TISSUE CELL DENSITIES (human PDAC)
+# =============================================================================
+
+- name: pdac_cd45_density_mm2
+  display_name: Total CD45+ leukocyte density in PDAC (IHC)
+  value: 1000.0
+  units: cell / millimeter**2
+  uncertainty:
+    sd: 500.0
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Estimated from sum of immune subset densities. Tahkola 2019 reports
+      CD3+ ~396 cells/mm^2 and CD8+ ~120 cells/mm^2 in PDAC whole sections.
+      Porembka 2012 shows myeloid cells are ~66% of CD45+ infiltrate.
+      Total CD45+ estimated as ~3x T cell density.
+    doi: 10.1007/s00428-019-02549-1
+    authors: Tahkola et al.
+    year: 2019
+  typical_range: [500.0, 2000.0]
+  notes: |
+    Highly variable across patients and tumor regions. PDAC stroma is
+    myeloid-dominated (Porembka 2012). Tumor center has lower density
+    than invasive margin.
+
+- name: pdac_cd45_density_volumetric
+  display_name: Total CD45+ leukocyte volumetric density in PDAC
+  value: 2.5e+8
+  units: cell / milliliter
+  uncertainty:
+    sd: 2.0e+8
+  category: cell_counts
+  species: human
+  source:
+    description: |
+      Derived from IHC density (~1000 cells/mm^2) divided by section
+      volume (4e-6 cm^3/mm^2) with cell-counting correction factor ~2x.
+      Consistent with Liudahl 2021 spatial profiling of 135 PDAC specimens.
+    doi: 10.1158/2159-8290.CD-20-0841
+    authors: Liudahl et al.
+    year: 2021
+  typical_range: [1.0e+8, 1.0e+9]
+  notes: |
+    Use this as parent_density in steady_state_fraction models when
+    the observable is a fraction of CD45+ cells.
+
+# =============================================================================
+# TUMOR PROPERTIES (human PDAC)
+# =============================================================================
+
+- name: pdac_tumor_volume_resectable
+  display_name: Resectable PDAC tumor volume
+  value: 10.0
+  units: milliliter
+  uncertainty:
+    sd: 8.0
+  category: tumor_properties
+  species: human
+  source:
+    description: Typical resectable PDAC volume from imaging studies
+  typical_range: [3.0, 30.0]
+
+- name: pdac_total_tumor_cells
+  display_name: Total tumor cell count in resectable PDAC
+  value: 1.0e+9
+  units: cell
+  uncertainty:
+    sd: 5.0e+8
+  category: tumor_properties
+  species: human
+  source:
+    description: |
+      Estimated from tumor volume (~10 mL) and tumor cellularity
+      (~1e8 cells/mL in desmoplastic PDAC with ~20-30% tumor fraction)
+  typical_range: [5.0e+8, 5.0e+9]
+
+# =============================================================================
+# CYTOKINE / CHEMOKINE KINETICS
+# =============================================================================
+
+- name: ccl2_half_life
+  display_name: CCL2 (MCP-1) plasma half-life
+  value: 0.1
+  units: day
+  uncertainty:
+    sd: 0.05
+  category: kinetics
+  species: human
+  source:
+    description: Rapid chemokine clearance; estimated from PK literature
+  typical_range: [0.02, 0.5]
+
+- name: il2_half_life
+  display_name: IL-2 plasma half-life
+  value: 0.007
+  units: day
+  category: kinetics
+  species: human
+  source:
+    description: Very short half-life (~10 min) in vivo
+  typical_range: [0.003, 0.02]
+
+- name: ifng_half_life
+  display_name: IFN-gamma plasma half-life
+  value: 0.02
+  units: day
+  category: kinetics
+  species: human
+  source:
+    description: Short half-life (~30 min) in vivo
+  typical_range: [0.01, 0.05]
+
+# =============================================================================
+# MOLECULAR WEIGHTS
+# =============================================================================
+
+- name: ccl2_molecular_weight_mature
+  display_name: Mature human CCL2 (MCP-1) molecular weight
+  value: 8679.0
+  units: gram / mole
+  category: molecular_properties
+  species: human
+  source:
+    description: |
+      Mature human CCL2 (UniProt P13500, residues 24-99, 76 amino acids)
+      after signal peptide cleavage. The precursor includes a 23-residue
+      signal peptide (MW ~11025 Da). ELISA kits calibrated against mature
+      recombinant CCL2 should use 8679 Da for mass-to-mole conversion.
+  typical_range: [8600.0, 8800.0]
+  notes: |
+    DrugBank/UniProt report 11024.87 for the full precursor (99 aa).
+    The secreted, bioactive form is the mature protein (76 aa, 8679 Da).
+    Use mature MW for converting in vitro secretion assay data (pg or ng)
+    to molar secretion rates (nmol/cell/day).

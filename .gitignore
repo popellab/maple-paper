@@ -37,3 +37,8 @@ published_parameter_details.xlsx
 jobs
 archive
 _minted
+*.json
+.claude
+*.jl
+*.png
+notes/

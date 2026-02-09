@@ -1,0 +1,69 @@
+# QSPIO-PDAC: Quantitative Systems Pharmacology Model for Pancreatic Ductal Adenocarcinoma
+
+## Overview
+Immuno-oncology QSP model for PDAC capturing tumor-immune-stroma interactions and therapeutic interventions.
+
+## Compartments
+- **V_C**: Central compartment (blood, 5 L)
+- **V_P**: Peripheral compartment (tissues, 60 L)
+- **V_T**: Tumor compartment (dynamic volume, initially ~1 μL)
+- **V_LN**: Tumor-draining lymph node (1113 mm³)
+- Synaptic compartments for immune checkpoint interactions (syn_CD8_C1, syn_CD8_APC, syn_M_C)
+
+## Cell Populations
+
+### Tumor Cells
+- **C1**: Viable cancer cells
+- **C_x**: Dead cancer cells (source of antigen)
+- **K**: Carrying capacity (vasculature-dependent)
+
+### T Cells (by functional state)
+- **nCD8, nTreg**: Naive T cells (in V_C, V_P, V_LN)
+- **aCD8, aTreg, aTh**: Activated T cells (in V_LN)
+- **CD8, Treg, Th**: Effector T cells (in V_T and circulation)
+- **CD8_exh, Th_exh**: Exhausted T cells (in V_T) - reduced function, PD-1 high
+
+### Myeloid Cells
+- **APC, mAPC**: Antigen-presenting cells (naive vs mature)
+- **MDSC**: Myeloid-derived suppressor cells (immunosuppressive)
+- **Mac_M1**: M1 macrophages (pro-inflammatory, anti-tumor)
+- **Mac_M2**: M2 macrophages (immunosuppressive, pro-tumor)
+
+### Stromal Cells (PDAC-specific)
+- **qPSC**: Quiescent pancreatic stellate cells (vitamin A storing, homeostatic)
+- **aPSC**: Activated PSCs (myofibroblast-like, αSMA+, main CAF population in PDAC)
+- **ECM**: Extracellular matrix (collagen, fibronectin - drives desmoplasia)
+
+## Key Cytokines and Factors
+- **Pro-inflammatory**: IFNγ, IL-12
+- **Immunosuppressive**: TGFβ, IL-10, IL-6
+- **T cell growth**: IL-2
+- **Chemokines**: CCL2 (monocyte recruitment), CXCL12 (T cell exclusion)
+- **Growth factors**: PDGF (PSC activation), c_vas (angiogenic)
+
+## Checkpoint Molecules
+- **PD-1/PD-L1/PD-L2**: T cell exhaustion axis
+- **CTLA-4/CD80/CD86**: T cell activation control
+- **CD28**: Co-stimulation
+
+## Therapeutic Interventions
+- **Checkpoint inhibitors**: aPD1 (nivolumab, pembrolizumab), aPDL1 (atezolizumab), aCTLA4 (ipilimumab, tremelimumab)
+- **Chemotherapy**: nab-paclitaxel
+- **Epigenetic**: entinostat (HDAC inhibitor)
+- **Vaccine**: GVAX (GM-CSF secreting tumor cells)
+- **Targeted**: cabozantinib (anti-angiogenic), anti-CD47
+- **Immunomodulatory**: low-dose cyclophosphamide (Treg depletion)
+
+## PDAC-Specific Biology
+The model captures the unique PDAC tumor microenvironment characterized by:
+1. **Desmoplastic stroma**: Dense ECM produced by aPSCs creates physical barrier
+2. **T cell exclusion**: CXCL12 from aPSCs prevents T cell infiltration
+3. **Immunosuppression**: High MDSC, M2 macrophages, Tregs
+4. **PSC-cancer cell crosstalk**: Bidirectional signaling via TGFβ, PDGF, IL-6
+
+## Key Parameter Naming Conventions
+- `k_*`: Rate constants (e.g., k_C1_growth, k_CD8_death)
+- `K_*`: Carrying capacities or Michaelis constants
+- `n_*`: Hill coefficients
+- `q_*`: Transport/trafficking rates
+- `rho_*`: Density parameters

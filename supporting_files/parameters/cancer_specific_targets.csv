@@ -1,0 +1,38 @@
+target_id,parameters,units,manual_value,notes
+A_cell,A_cell,micrometer^2,572.555,Surface area of the Cancer cell calculated based on the average cancer cell diameter (?)
+APC_PDL1_base,APC_PDL1_base,molecule,0-10e4 15,"baseline number of PDL1 molecules per APC cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Shin 2017, PMID: 27903500; Gatalica 2014,"
+C_CD47,C_CD47,molecule/micrometer^2,147-665 20,"CD47 expression on cancer cells (Morrissey 2020, PMID: 32768386)"
+C_max,C_max,cell,1e10 13,Cancer cell capacity estimated
+C1_PDL1_base,C1_PDL1_base,molecule,5e4 - 2.7e5,"baseline number of PDL1 molecules per C1 cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Shin 2017, PMID: 27903500; Gatalica 2014, "
+gamma_T_aCTLA4,gamma_T_aCTLA4,dimensionless,0.446-0.918,"Volume fraction of interstitial space available to aCTLA4 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)"
+gamma_T_aPD1,gamma_T_aPD1,dimensionless,0.446-0.918,"Volume fraction of interstitial space available to aPD1 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)"
+gamma_T_aPDL1,gamma_T_aPDL1,dimensionless,0.446-0.918,"Volume fraction of interstitial space available to aPDL1 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)"
+initial_tumour_diameter,initial_tumour_diameter,centimeter,1.43-3.03 9,Pre-treatment tumor diameter
+k_C1_growth,k_C1_growth,1/day,0.0066 3,"Cancer cell growth rate (Ryu 2014, PMID: 24895040; Desai 2006, PMID: 16489089)"
+k_CCL2_sec,k_CCL2_sec,nanomole/cell/day,1.7e-12,"rate of CCL2 secretion (Huang 2007, PMID: 17257744; Dutta 2018, PMID: 29594759)"
+k_IFNg_Thsec,k_IFNg_Thsec,1/day,80.29521142666667,"IFNg secretion rate by T helper cell estimated assuming IFNg secretion is 3 times lower in CD4 than CD8 T cells (Kasahara 1983, PMID: 6403613)"
+k_M1_pol,k_M1_pol,1/day,0.05 18,Rate of M2 to M1 macrophage polarization (estimated based on the M1/M2 ratio)
+k_Mac_mig,k_Mac_mig,cell/(milliliter*day),175000 17,"Recruitment rate of macrophage into tumor compartment (Yang 2018, PMID: 30026826)"
+k_MDSC_mig,k_MDSC_mig,cell/(milliliter*day),21000 11,"Rate of MDSC recruitment into the tumor (Diaz-Montero 2009, PMID: 18446337; Huang 2006, PMID: 17257744)"
+k_P1_d1,k_P1_d1,nanomolarity,100 8,"Antigen-MHC kd (Stone 2015, PMID: 25618219)"
+M_PD1_total,M_PD1_total,molecule,1.5e3 - 6.2e4,"PD-1 expression on macrophages estimated based on PD-1 expression on T cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483) and adjusted"
+N_IL2_CD4,N_IL2_CD4,dimensionless, 7 - 10,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)"
+N_IL2_CD8,N_IL2_CD8,dimensionless, 10 - 12,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)"
+n_T0_clones,n_T0_clones,dimensionless,63 9,Number of T cell clones (estimated)
+n_T1_clones,n_T1_clones,dimensionless,21-208 16,"Number of T cell clones (Morisaki 2021 PMID: 34193879; Narang 2019, PMID: 30832597)"
+q_P_aCTLA4,q_P_aCTLA4,liter/second,,"Capillary filtration rate of aCTLA4 between central and peripheral compartment(Wang 2014, PMID: 24737343)"
+q_P_aPD1,q_P_aPD1,liter/second,,"Capillary filtration rate of aPD1 between central and peripheral compartment(Ahamadi 2016, PMID: 27863186)"
+q_P_aPDL1,q_P_aPDL1,liter/second,,Capillary filtration rate of aPDL1 between central and peripheral compartment
+q_T_aCTLA4,q_T_aCTLA4,milliliter/second,,"Capillary filtration rate of aCTLA4 between central and tumor compartment(Wang 2019, PMID: 31218069)"
+q_T_aPD1,q_T_aPD1,milliliter/second,,"Capillary filtration rate of aPD1 between central and tumor compartment(Wang 2019, PMID: 31218069)"
+q_T_aPDL1,q_T_aPDL1,milliliter/second,,"Capillary filtration rate of aPDL1 between central and tumor compartment(Wang 2019, PMID: 31218069)"
+q_T_TCE,q_T_TCE,1/second,,"Volumetric flow rate of T cell engager between central and tumor compartment(Weddell 2023, doi.org/10.1002/psp4.12928)"
+q_T0_T_in,q_T0_T_in,1/(centimeter^3*minute),2.5-6.5% 14,"rate of T0 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density ("
+q_T1_T_in,q_T1_T_in,1/(centimeter^3*minute),0.0001305,"rate of T1 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density ("
+r_PDL2APC,r_PDL2APC,dimensionless,0.07,"PDL2/PDL1 molecule ratio on APCcell (Cheng 2014, PMID: 23417675)"
+T_PD1_total,T_PD1_total,molecule,0-400 19 ,"concentration of PD1 on T cells (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Gatalica 2014, PMID: 25392179)"
+T_PDL1_total,T_PDL1_total,molecule,79980,"concentration of PDL1 on T cells (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Gatalica 2014, PMID: 25392179)"
+TGFbase,TGFbase,nanomolarity,0.016,"Baseline TGFb level in breast tumor (Ivanović 2003, PMID: 12751375; Manuyakorn 2008, PMID: 19317336; Panis 2013, PMID: 23393376)"
+V_LN,V_LN,millimeter^3,"916.2979-1357.58 6, 21, 22",Lymph node (LN) compartment volume Volume of lumped tumor-draining lymph nodes calculated based on number of LNs and average LN diameter (Schmidt 2007
+Ve_T,Ve_T,dimensionless,0.017-0.529,"Void fraction of the tumor (Zhang 2010, PMID: 20713014)"
+vol_cell,vol_cell,micrometer^3/cell,2642.08,Average volume of cancer cell Volume of a cancer cell calculated based on cancer cell diameter

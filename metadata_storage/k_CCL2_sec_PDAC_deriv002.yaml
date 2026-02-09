@@ -127,28 +127,18 @@ calibration:
   forward_model:
     independent_variable:
     state_variables:
-    type: algebraic
-    formula: |
-      k_CCL2_sec = (MCP1_pg_per_ml_per_1e6cells * 1e-12 g/pg / MW_CCL2_g_per_mol * 1e9 nmol/mol) / (1e6 cells * 1 day)
-    code: |
-      def compute(params, inputs, ureg):
-          """Forward model: given k_CCL2_sec, predict MCP-1 secretion."""
-          import numpy as np
-          k = params['k_CCL2_sec']  # nmol/cell/day
-          MW = 8700.0  # g/mol
-          mcp1_pg = k * 1e6 * 1.0 / (1e-12 / MW * 1e9)
-          return mcp1_pg * ureg('pg/milliliter')
-    code_julia: |
-      function compute(params, inputs)
-          k = params["k_CCL2_sec"]
-          MW = 8700.0
-          mcp1_pg = k * 1e6 * 1.0 / (1e-12 / MW * 1e9)
-          return mcp1_pg  # pg/mL per 1e6 cells
-      end
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count: "1000000.0"
+    incubation_time: "1.0"
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume: "1.0"
+    unit_conversion_factor: "1000.0"
     data_rationale: |
       Steube1999 measured constitutive MCP-1 (CCL2) secretion by several human myelomonocytic leukemia cell lines using ELISA, reporting that culture supernatants contained 440 to 1400 pg/ml MCP-1 per 10^6 cells, and that the highest stimulated level exceeded 80 ng/ml within 24 h. These measurements correspond to mass of CCL2 secreted per cell over approximately 1 day in a well-mixed medium, which can be analytically converted into a per-cell, per-day secretion rate.
     submodel_rationale: |
-      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment V_T follow d(V_T.CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * V_T.CCL2. In an in vitro setting without appreciable extracellular degradation or clearance, the increase in CCL2 concentration over 24 h reflects the production term alone. Therefore, the measured mass of CCL2 secreted per 10^6 cells per 24 h can be converted directly into k_CCL2_sec (nanomole per cell per day), assuming a representative distribution volume per cell. This preserves the mechanistic usage of k_CCL2_sec as a per-cell secretion rate driving accumulation of CCL2 in a well-mixed compartment.
+      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment V_T follow d(V_T.CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * V_T.CCL2. In an in vitro setting without appreciable extracellular degradation or clearance, the increase in CCL2 concentration over 24 h reflects the production term alone. The batch_accumulation model predicts pg/mL from k_CCL2_sec (nmol/cell/day) using: predicted = k * 1e6 cells * 1 day * MW * 1000 / 1 mL, where ucf=1000 converts nmol*g/mol to pg (1e-9 * 1e12 = 1e3).
 
   error_model:
   - name: k_CCL2_sec_from_LeukemiaCellLines

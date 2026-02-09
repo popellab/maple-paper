@@ -91,7 +91,7 @@ inputs:
   source_location: Abstract and Introduction, lines 111-116
   extraction_method: manual
   value_snippet: |
-    "Following adoptive transfer of Tag-immune cells, epitope I- and IV-specific T_CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5-7 days" (Yorty et al., 2007 Cancer Immunol Immunother 57:883-895). The lower bound of this reported peak window is 5 days.
+    epitope I- and IV-specific T CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5–7 days
 - name: t_peak_immune_upper
   value: 7.0
   units: day
@@ -103,7 +103,7 @@ inputs:
   source_location: Abstract and Introduction, lines 111-116
   extraction_method: manual
   value_snippet: |
-    "Following adoptive transfer of Tag-immune cells, epitope I- and IV-specific T_CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5-7 days" (Yorty et al., 2007 Cancer Immunol Immunother 57:883-895). The upper bound of this reported peak window is 7 days.
+    epitope I- and IV-specific T CD8 accumulated to high levels in the brain of SV11 mice, peaking at 5–7 days
 - name: reference_tumor_volume
   value: 1.0
   units: centimeter^3

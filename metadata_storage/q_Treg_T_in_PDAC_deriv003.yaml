@@ -127,6 +127,7 @@ inputs:
   extraction_method: manual
   value_snippet: |
     In contrast to conventional CD4+ T cells, more blood-derived Treg cells adhered to (1.0% versus 5.2%, difference = 4.2%, 95% CI = 2.7% to 5.6%; P<.001) and transmigrated through (3332 cells versus 4976 cells, difference = 1644 cells, 95% CI = 708 cells to 2580 cells; P = .008) autologous tumor-derived endothelial cells in vitro and in vivo (458 cells versus 605 cells, difference = 147 cells, 95% CI = 50.8 to 237.2 cells; P = .04).
+  source_access: restricted
 - name: treg_transmigration_treg_invitro_cells
   value: 4976.0
   units: cell
@@ -139,6 +140,7 @@ inputs:
   extraction_method: manual
   value_snippet: |
     In contrast to conventional CD4+ T cells, more blood-derived Treg cells adhered to (1.0% versus 5.2%, difference = 4.2%, 95% CI = 2.7% to 5.6%; P<.001) and transmigrated through (3332 cells versus 4976 cells, difference = 1644 cells, 95% CI = 708 cells to 2580 cells; P = .008) autologous tumor-derived endothelial cells in vitro and in vivo (458 cells versus 605 cells, difference = 147 cells, 95% CI = 50.8 to 237.2 cells; P = .04).
+  source_access: restricted
 - name: cd34_migration_fraction_4h
   value: 0.46
   units: dimensionless

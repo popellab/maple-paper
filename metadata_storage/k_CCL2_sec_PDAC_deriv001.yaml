@@ -176,44 +176,21 @@ calibration:
   forward_model:
     independent_variable:
     state_variables:
-    type: algebraic
-    formula: |
-      k_CCL2_sec = f(CCL2_prsc_unstim_mean, CCL2_prsc_unstim_sd, n_cells_prsc, incubation_time_hours, V_medium_ml) converting pg/mL over 48 h in 1 mL from 1e5 cells to nmol/cell/day using MW≈8.7 kDa.
-    code: |
-      def compute(params, inputs, ureg):
-          """Forward model: given k_CCL2_sec, predict CCL2 concentration."""
-          import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          k = params['k_CCL2_sec']  # nmol/cell/day
-          N_cells = _val(inputs['n_cells_prsc'])
-          t_h = _val(inputs['incubation_time_hours'])
-          V_ml = _val(inputs['V_medium_ml'])
-          MW = 8.7e3  # g/mol
-          days = t_h / 24.0
-          nmol = k * N_cells * days
-          mass_g = nmol * 1e-9 * MW
-          mass_pg = mass_g * 1e12
-          conc = mass_pg / V_ml
-          return conc * ureg('pg/milliliter')
-    code_julia: |
-      function compute(params, inputs)
-          k = params["k_CCL2_sec"]
-          N_cells = inputs["n_cells_prsc"]
-          t_h = inputs["incubation_time_hours"]
-          V_ml = inputs["V_medium_ml"]
-          MW = 8.7e3
-          days = t_h / 24.0
-          nmol = k * N_cells * days
-          mass_g = nmol * 1e-9 * MW
-          mass_pg = mass_g * 1e12
-          conc = mass_pg / V_ml
-          return conc  # pg/mL
-      end
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count:
+      input_ref: n_cells_prsc
+    incubation_time:
+      input_ref: incubation_time_hours
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume:
+      input_ref: V_medium_ml
+    unit_conversion_factor: "41.6667"
     data_rationale: |
       Fujita et al. reported a single 48 h time point measurement of MCP-1 (CCL2) concentration in conditioned medium from a known number of human prostate stromal cells (PrSC). Because only an end-point concentration is available and secretion can be approximated as linear with time, the per-cell secretion rate can be computed analytically from the measured concentration, assuming negligible degradation and a known medium volume.
     submodel_rationale: |
-      In the full PDAC QSP model, tumor CCL2 dynamics are given by d(CCL2)/dt = k_CCL2_sec·C_total − k_CCL2_deg·CCL2. In the PrSC experiment, CCL2 accumulates in a fixed medium volume V over time t from N_cells secreting at rate k_CCL2_sec. Neglecting degradation, the final concentration C_meas satisfies C_meas·V = k_CCL2_sec·N_cells·t (up to unit conversions). Thus k_CCL2_sec can be obtained by direct algebraic conversion from the measured concentration, using the same mechanistic production term (rate×cell number) as in the full model but omitting the degradation term over the short assay duration.
+      In the full PDAC QSP model, tumor CCL2 dynamics are given by d(CCL2)/dt = k_CCL2_sec*C_total - k_CCL2_deg*CCL2. In the PrSC experiment, CCL2 accumulates in a fixed medium volume V over time t from N_cells secreting at rate k_CCL2_sec. Neglecting degradation, the final concentration C_meas satisfies C_meas*V = k_CCL2_sec*N_cells*t (up to unit conversions). The unit_conversion_factor of 41.6667 (= 1000/24) converts nmol to pg (factor 1000) and hours to days (factor 1/24) simultaneously.
 
   error_model:
   - name: derived_k_CCL2_sec_from_PrSC

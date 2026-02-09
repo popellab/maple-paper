@@ -1,0 +1,18 @@
+target_id,parameters,units,manual_value,notes,original_notes,cancer_type
+A_cell,A_cell,micrometer^2,572.555,Cancer cell surface area for receptor binding calculations,Surface area of the Cancer cell calculated based on the average cancer cell diameter (?),PDAC
+APC_PDL1_base,APC_PDL1_base,molecule,0-10e4 15,Baseline PD-L1 molecules per APC for checkpoint interactions,"baseline number of PDL1 molecules per APC cell (Cheng 2014, PMID: 23417675; Mkrtichyan 2012, PMID: 22837483; Shin 2017, PMID: 27903500; Gatalica 2014,",PDAC
+C_CD47,C_CD47,molecule/micrometer^2,147-665 20,CD47 surface density on cancer cells (anti-phagocytic signal),"CD47 expression on cancer cells (Morrissey 2020, PMID: 32768386)",PDAC
+C_max,C_max,cell,1e10 13,Maximum cancer cell carrying capacity,Cancer cell capacity estimated,PDAC
+ECM_50_T_exh,ECM_50_T_exh,nanomolarity,,ECM concentration for half-maximal T cell exhaustion induction,half maximal concentration of ECM induced T cell exhausion(Fitted to Ma 2022 single cell data Texh fraction of all CD8+ T cell 15%),PDAC
+ECM_50_T_mot,ECM_50_T_mot,nanomolarity,,ECM concentration for half-maximal reduction in T cell motility,half maximal concentration of ECM induced reduced Cancer cell killing due to reduced T cell motility(Estimated),PDAC
+ECM_base,ECM_base,milligram/milliliter,,EXCLUDED: Not in rate laws; use k_ECM_* rates and V_T.ECM initial condition instead,Hao et al. 10.1073/pnas.1413970111 3.26e-3 (g/cm^3) * (1 mole/3e5 g) * (1e3 cm^3/L) *1e9 (mole/nmole),PDAC
+ECM_density,ECM_density,gram/milliliter,,ECM mass density for unit conversions,(Estimated),PDAC
+ECM_level,ECM_level,milligram/milliliter,,EXCLUDED: Should be computed (V_T.ECM/volume) not calibrated; model has implementation issue,initially assigned as ECM base level,PDAC
+ECM_max,ECM_max,nanomolarity,,Maximum ECM concentration achievable in desmoplastic stroma,Hao et al. 10.1073/pnas.1413970111 3e-2 (g/cm^3) * /3e5 (g/mole)/1e3 (L/cm^3) *1e9 (mole/nmole),PDAC
+gamma_T_aCTLA4,gamma_T_aCTLA4,dimensionless,0.446-0.918,Tumor interstitial volume fraction accessible to anti-CTLA4 antibody,"Volume fraction of interstitial space available to aCTLA4 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)",PDAC
+gamma_T_aPD1,gamma_T_aPD1,dimensionless,0.446-0.918,Tumor interstitial volume fraction accessible to anti-PD1 antibody,"Volume fraction of interstitial space available to aPD1 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)",PDAC
+gamma_T_aPDL1,gamma_T_aPDL1,dimensionless,0.446-0.918,Tumor interstitial volume fraction accessible to anti-PDL1 antibody,"Volume fraction of interstitial space available to aPDL1 in tumor compartment(Coughlin 2010, PMID: 20125040; Finley 2015, PMID: 26783500)",PDAC
+Ve_T,Ve_T,dimensionless,0.017-0.529,Tumor void fraction (extracellular space for drug distribution),"Void fraction of the tumor (Zhang 2010, PMID: 20713014)",PDAC
+vol_aPSCcell,vol_aPSCcell,micrometer^3/cell,,Volume of activated PSC (CAF) for density calculations,Volume of a CAF cell https://doi.org/10.1016/B0-12-370879-6,PDAC
+vol_cell,vol_cell,micrometer^3/cell,2642.08,Cancer cell volume for tumor volume calculations,Average volume of cancer cell Volume of a cancer cell calculated based on cancer cell diameter,PDAC
+vol_qPSCcell,vol_qPSCcell,micrometer^3/cell,,Volume of quiescent PSC for density calculations,Volume of a normal fibroblast cell https://doi.org/10.1016/B0-12-370879-6,PDAC

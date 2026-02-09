@@ -1,0 +1,298 @@
+study_interpretation: |
+  Masugi et al. quantified CD8+ T cell densities in whole sections of resected human PDAC using multiplex immunohistochemistry and image analysis, reporting mean and distributional statistics for the tumor center, tumor margin, and whole tumor. The tumor center showed relatively low CD8+ density compared with the invasive margin, reflecting T cell exclusion from the tumor core in most patients. We use the mean CD8+ density in the tumor center as a direct constraint on the quasi-steady-state intratumoral CD8+ population predicted by the QSP model under baseline (treatment-naive) conditions. Under a steady-state balance between influx from blood, driven by q_CD8_T_in, and loss by death/exhaustion/egress, the intratumoral CD8+ density is proportional to q_CD8_T_in. The proportionality is decomposed into mechanistic components: circulating CD8+ count (from the reference database), IHC section volume factor, an effective loss rate (sampled), and recruitment efficiency/exclusion terms. Cross-tissue reference values from CRC and melanoma provide context.
+
+key_assumptions:
+- |
+  Resected human PDAC tumors are approximated as being in a quasi-steady state with respect to intratumoral effector CD8+ T cells at the time of surgery (no recent large perturbations in trafficking).
+- |
+  The mechanistic recruitment term q_CD8_T_in * V_T * V_C.CD8 * (C_total^2/(C_total^2+Kc_rec)) * (1 - H_CXCL12_Texcl) can be decomposed at steady state into: density = q_CD8_T_in * source_pool * recruitment_efficiency * (1 - exclusion_fraction) / loss_rate * section_volume_factor, where each component has a mechanistic interpretation and an independent source.
+- |
+  Circulating CD8+ T cell count (~2e9 cells) comes from the reference database; IHC section volume factor (4e-6 cm^3/mm^2) is standard for 4-um sections; recruitment efficiency is approximated as 1.0 (saturated for macroscopic PDAC); exclusion fraction is sampled with a Uniform(0.7, 0.99) prior reflecting substantial CXCL12-mediated T cell exclusion in the PDAC tumor center, consistent with the large density difference between tumor center and invasive margin in Masugi 2019.
+- |
+  CD8+ IHC counts in the tumor center predominantly reflect effector and effector-memory CD8+ cells relevant for antitumor activity, and non-tumor-specific CD8+ subpopulations do not dominate the signal.
+- |
+  Heterogeneity of CD8+ density across the tumor is reasonably summarized by the reported mean and interquartile range for the tumor center; we approximate measurement variability using a lognormal likelihood with SD inferred from the IQR assuming approximate normality on the linear scale.
+
+key_study_limitations:
+- |
+  The PDAC data are cross-sectional at resection and do not provide time-resolved infiltration or clearance kinetics, so the inferred q_CD8_T_in is sensitive to assumptions about intratumoral CD8+ loss rates.
+- |
+  CD8+ density is measured per unit area (cells/mm2) in histologic sections, whereas the QSP model is formulated in terms of cell numbers per tumor volume; we approximate the volumetric-to-areal conversion within the scale factor rather than modeling section thickness explicitly.
+- |
+  The cohort represents resectable PDAC, which may differ in immune infiltration from unresectable or metastatic disease modeled in some QSP applications.
+- |
+  Multiplex IHC and automated image analysis reduce but do not eliminate technical variability in cell detection and segmentation, contributing to additional noise beyond the reported distribution across patients.
+- |
+  Auxiliary KPC mouse data on CD8+ infiltration kinetics and human melanoma/CRC CD8+ densities are used qualitatively for mechanistic context and prior setting but not directly linked in the algebraic forward model, so cross-species and cross-tissue translation remains approximate.
+
+experimental_context:
+  species: human
+  system: in_vivo_clinical
+  cell_lines:
+  cell_types:
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.1038/s41379-019-0291-z
+  title: |
+    Characterization of spatial distribution of tumor-infiltrating CD8+ T cells refines their prognostic utility for pancreatic cancer survival
+  authors:
+  year: 2019
+  source_tag: Masugi2019
+
+secondary_data_sources:
+- doi: 10.1186/s40425-019-0656-3
+  url:
+  title: |
+    Immune cell concentrations among the primary tumor microenvironment in colorectal cancer patients predicted by clinicopathologic characteristics and blood indexes
+  authors:
+  year: 2019
+  source_tag: Guo2019_CRC
+  contribution: |
+    Provided median CD8+ T cell densities (cells/mm2) in the core and invasive margin of human colorectal cancers as a cross-tissue reference for how PDAC CD8+ density compares to a more T cell-permissive indication.
+  source_quality: primary_human_clinical
+- doi: 10.1093/oncolo/oyae054
+  url:
+  title: |
+    Automated Quantitative CD8+ Tumor-Infiltrating Lymphocytes and Tumor Mutation Burden as Independent Biomarkers in Melanoma Patients Receiving Front-Line Anti-PD-1 Immunotherapy
+  authors:
+  year: 2024
+  source_tag: Fortman2024_Melanoma
+  contribution: |
+    Provided an automated digital pathology-based cutoff CD8+ TIL density of 222.9 cells/mm2 that discriminates responders from non-responders to anti-PD-1 therapy in advanced melanoma, used as a reference for high CD8+ infiltration in an immune-inflamed tumor type.
+  source_quality: primary_human_clinical
+- doi: 10.1007/s00262-022-03338-7
+  url:
+  title: Cxcr3 constrains pancreatic cancer dissemination through instructing T cell fate
+  authors:
+  year: 2022
+  source_tag: Burrack2022_Cxcr3KPC
+  contribution: |
+    Provided orthotopic KPC mouse data on CD8+ T cell numbers per gram of tumor at 14 and 21 days post-implantation and on the spatial distribution of CD8+ cells and CXCL9/10 expression, supporting the assumption of quasi-steady CD8+ infiltration over 1-3 week timescales and the importance of chemokine-mediated recruitment.
+  source_quality: primary_animal_in_vivo
+
+target_id: q_CD8_T_in_PDAC_CD8density_ModPathol2019
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c30c202739bc6fd9da6d9bf4af4d9
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: pdac_cd8_center_mean
+  value: 166.9
+  units: cell / millimeter**2
+  uncertainty:
+  n: 214
+  input_type: direct_measurement
+  role: target
+  source_ref: Masugi2019
+  source_location: Results, CD8+ cell density in tumor center
+  extraction_method: manual
+  value_snippet: |
+    CD8+ cell density in the tumor center (mean, 166.9 cells/mm2; median, 112.8; interquartile range, 66.0-200.2 cells/mm2).
+  source_access: restricted
+- name: pdac_cd8_center_q1
+  value: 66.0
+  units: cell / millimeter**2
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Masugi2019
+  source_location: Results, CD8+ cell density in tumor center
+  extraction_method: manual
+  value_snippet: interquartile range, 66.0-200.2 cells/mm2
+  source_access: restricted
+- name: pdac_cd8_center_q3
+  value: 200.2
+  units: cell / millimeter**2
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Masugi2019
+  source_location: Results, CD8+ cell density in tumor center
+  extraction_method: manual
+  value_snippet: interquartile range, 66.0-200.2 cells/mm2
+  source_access: restricted
+- name: pdac_cd8_center_n
+  value: 214.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Masugi2019
+  source_location: Methods, patient cohort size
+  extraction_method: manual
+  value_snippet: whole-tissue sections of 214 pancreatic ductal adenocarcinomas
+  source_access: restricted
+- name: iqr_to_sd_factor
+  value: 1.349
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Masugi2019
+  source_location: Assumed conversion from IQR to SD for approximately normal data
+  extraction_method: other
+  value_snippet: Assumed SD is approximately IQR/1.349 for approximately normal distributions.
+  source_access: restricted
+- name: cd8_exclusion_fraction
+  value: 0.9
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Masugi2019
+  source_location: Model assumption based on tumor center vs margin CD8+ density ratio
+  extraction_method: other
+  value_snippet: |
+    CD8+ cell density in the tumor center (mean, 166.9 cells/mm2) was substantially lower than at the invasive margin, consistent with partial immune exclusion.
+  source_access: restricted
+- name: crc_cd8_core_median
+  value: 96.0
+  units: cell / millimeter**2
+  uncertainty:
+  n: 240
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Guo2019_CRC
+  source_location: Results, description of Table 1
+  extraction_method: manual
+  value_snippet: |
+    the median number of CD8+ T cells was 96/mm2 (2/mm2-4178/mm2) and 262/mm2 (1/mm2-2800/mm2), respectively.
+  source_access: open_access
+- name: crc_cd8_margin_median
+  value: 262.0
+  units: cell / millimeter**2
+  uncertainty:
+  n: 240
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Guo2019_CRC
+  source_location: Results, description of Table 1
+  extraction_method: manual
+  value_snippet: |
+    the median number of CD8+ T cells was 96/mm2 (2/mm2-4178/mm2) and 262/mm2 (1/mm2-2800/mm2), respectively.
+  source_access: open_access
+- name: melanoma_cd8_high_cutoff
+  value: 222.9
+  units: cell / millimeter**2
+  uncertainty:
+  n: 78
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Fortman2024_Melanoma
+  source_location: Results, abstract
+  extraction_method: manual
+  value_snippet: |
+    CD8+ TIL density >=222.9 cells/mm2 reliably segregated responders and non-responders to front-line anti-PD-1 therapy.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: q_CD8_T_in
+    units: 1 / (centimeter**3 * minute)
+    prior:
+      distribution: lognormal
+      mu: -9.0
+      sigma: 2.5
+      lower:
+      upper:
+      rationale: |
+        With sampled exclusion_fraction ~ Uniform(0.7, 0.99), the effective (1-excl) factor ranges from 0.01 to 0.3, requiring q_CD8_T_in to compensate. exp(-9.0) ~ 1.2e-4 with typical exclusion 0.9 and k_death=1/day gives CD8 density ~ 170 cells/mm2. Wide sigma=2.5 accommodates the additional uncertainty from sampled exclusion.
+  - name: k_CD8_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered at 1/day (intratumoral CD8+ T cell half-life ~1 day due to exhaustion, apoptosis, and egress). Range ~0.1-10 per day.
+  - name: cd8_exclusion_fraction
+    units: dimensionless
+    prior:
+      distribution: uniform
+      lower: 0.7
+      upper: 0.99
+      rationale: |
+        CXCL12-mediated T cell exclusion in PDAC tumor center. Lower bound 0.7 reflects moderate exclusion (tumor center density ~30% of margin); upper bound 0.99 reflects near-complete exclusion seen in some cold tumors. Masugi2019 tumor center mean (166.9) vs invasive margin suggests substantial exclusion. Sampling this parameter allows the data to inform the degree of exclusion rather than fixing it.
+  forward_model:
+    data_rationale: |
+      The PDAC study reports a static snapshot of intratumoral CD8+ T cell density by IHC (cells/mm2) in resected tumors rather than time-resolved trafficking. At baseline, intratumoral effector CD8+ counts can be approximated as a quasi-steady state between influx from blood and loss (death/exhaustion/egress), making a steady-state density model appropriate.
+    submodel_rationale: |
+      In the full QSP model, the influx of CD8+ T cells into tumor is q_CD8_T_in * V_T * V_C.CD8 * (C_total^2/(C_total^2+Kc_rec)) * (1 - H_CXCL12_Texcl), and intratumoral CD8+ T cells are removed via death and exhaustion. The steady-state density model decomposes this into: density = q_CD8_T_in * source_pool * recruitment_efficiency * (1 - exclusion_fraction) / loss_rate * section_volume_factor. Each component is independently sourced: circulating CD8+ count from the reference database, section geometry from standard IHC. The exclusion fraction is sampled with a Uniform(0.7, 0.99) prior, allowing the data to inform the degree of CXCL12-mediated T cell exclusion in the tumor center rather than fixing it at an assumed value.
+    independent_variable:
+    state_variables:
+    type: steady_state_density
+    target_rate: q_CD8_T_in
+    unit_conversion_factor: "1440.0"
+    source_pool:
+      reference_ref: circulating_cd8_count
+    loss_rate: k_CD8_death
+    section_volume_factor:
+      reference_ref: ihc_section_volume_4um
+    recruitment_efficiency: "1.0"
+    exclusion_fraction: cd8_exclusion_fraction
+  error_model:
+  - name: pdac_cd8_center_density
+    observable:
+    units: cell / millimeter**2
+    uses_inputs:
+    - pdac_cd8_center_mean
+    - pdac_cd8_center_q1
+    - pdac_cd8_center_q3
+    - pdac_cd8_center_n
+    - iqr_to_sd_factor
+    evaluation_points:
+    sample_size: 214
+    sample_size_rationale: |
+      214 resected PDAC specimens with whole-tissue multiplex IHC quantification of CD8+ cell density.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean = inputs['pdac_cd8_center_mean']
+          q1 = inputs['pdac_cd8_center_q1']
+          q3 = inputs['pdac_cd8_center_q3']
+          factor = inputs['iqr_to_sd_factor']
+          iqr = (q3 - q1).to(mean.units)
+          sd = iqr / factor
+          cv = sd.magnitude / mean.magnitude
+          n = int(inputs['pdac_cd8_center_n'].magnitude)
+          return {
+              'value': mean,
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': n,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        CD8+ T cell densities are positive, right-skewed across patients, and vary over orders of magnitude; a lognormal likelihood on density is appropriate.
+  identifiability_notes: |
+    Three sampled parameters (q_CD8_T_in, k_CD8_death, cd8_exclusion_fraction) from one observation. The data constrains the product q_CD8_T_in * (1 - cd8_exclusion_fraction) / k_CD8_death. The prior on k_CD8_death (centered at 1/day) provides scale separation between q and k. The Uniform(0.7, 0.99) prior on exclusion_fraction allows the data to inform the degree of T cell exclusion rather than fixing it at an assumed value. Because (1-excl) enters multiplicatively with q, the posterior will show a negative correlation between q_CD8_T_in and (1 - cd8_exclusion_fraction). This is expected and preferable to fixing exclusion at a potentially wrong value, which would bias q_CD8_T_in.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The primary data source measures CD8+ tumor-infiltrating lymphocyte density by multiplex IHC directly in resected human pancreatic ductal adenocarcinoma. This matches the target indication of the QSPIO-PDAC model, including the desmoplastic, T cell-excluded tumor microenvironment. The measurement region (tumor center) corresponds to the immunologically cold compartment the model aims to represent.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Human PDAC tumors in this cohort display the characteristic dense desmoplastic stroma and restricted CD8+ infiltration in the tumor center, matching the PDAC tumor microenvironment represented in the QSP model.
+  estimated_translation_uncertainty_fold: 2.0
+  validation_warnings:

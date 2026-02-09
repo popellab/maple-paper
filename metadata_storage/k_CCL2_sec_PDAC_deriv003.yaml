@@ -7,7 +7,7 @@ key_assumptions:
 - |
   Cell number is approximately constant over the 48 h measurement period or appropriately normalized, so the reported value (ng/10^6 cells/48 h) can be interpreted as an average per-cell secretion rate.
 - |
-  The molecular weight of human CCL2 relevant for ELISA calibration is approximately 11 kDa as reported in curated protein databases, allowing reliable conversion from mass to moles.
+  The molecular weight of mature human CCL2 (8679 Da, 76 amino acids after signal peptide cleavage) is used for mass-to-mole conversion, consistent with ELISA kits calibrated against recombinant mature CCL2.
 - |
   Tumor-cell-intrinsic machinery governing CCL2 transcription, translation, and secretion is broadly similar between triple-negative breast cancer cells and PDAC cells, so per-cell secretion rates are at least within an order of magnitude.
 - |
@@ -78,16 +78,6 @@ secondary_data_sources:
   contribution: |
     Demonstrated that many human PDAC cell lines and primary tumors constitutively produce CCL2 and that serum CCL2 levels correlate with macrophage infiltration and disease features, supporting the mechanistic relevance of CCL2 secretion in PDAC but without providing directly usable per-cell secretion rates.
   source_quality: primary_human_clinical
-- doi:
-  url: https://go.drugbank.com/polypeptides/P13500
-  title: DrugBank entry for C-C motif chemokine 2 (CCL2, UniProt P13500)
-  authors: []
-  year: 2024
-  source_tag: DrugBank_CCL2
-  contribution: |
-    Provided the molecular weight of human CCL2 (11024.87 Da) used to convert mass-based secretion measurements to molar secretion rates.
-  source_quality: textbook
-
 target_id: k_CCL2_sec_bcproxy_yoshimura2023
 
 tags:
@@ -132,17 +122,6 @@ inputs:
   source_location: Table 2 value "30 ng/10^6 cells/48 h"
   extraction_method: manual
   value_snippet: 30 ng/10^6 cells/48 h
-- name: CCL2_molecular_weight
-  value: 11024.87
-  units: gram/mole
-  uncertainty:
-  n:
-  input_type: assumed_value
-  role: fixed_parameter
-  source_ref: DrugBank_CCL2
-  source_location: DrugBank polypeptide entry for C-C motif chemokine 2 (P13500)
-  extraction_method: manual
-  value_snippet: Molecular Weight 11024.87
 - name: assumed_cv
   value: 0.5
   units: dimensionless
@@ -172,39 +151,20 @@ calibration:
   forward_model:
     independent_variable:
     state_variables:
-    type: algebraic
-    formula: |
-      k_CCL2_sec = (MDA_MB231_CCL2_mass_48h / CCL2_molecular_weight / MDA_MB231_cell_count / MDA_MB231_time_interval_48h)
-    code: |
-      def compute(params, inputs, ureg):
-          """Forward model: given k_CCL2_sec, predict CCL2 mass secreted."""
-          import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          k = params['k_CCL2_sec']  # nmol/cell/day
-          cells = _val(inputs['MDA_MB231_cell_count'])
-          time_h = _val(inputs['MDA_MB231_time_interval_48h'])
-          time_days = time_h / 24.0
-          mw = _val(inputs['CCL2_molecular_weight'])
-          nmol = k * cells * time_days
-          mass_g = nmol * 1e-9 * mw
-          mass_ng = mass_g * 1e9
-          return mass_ng * ureg.nanogram
-    code_julia: |
-      function compute(params, inputs)
-          k = params["k_CCL2_sec"]
-          cells = inputs["MDA_MB231_cell_count"]
-          time_days = inputs["MDA_MB231_time_interval_48h"] / 24.0
-          mw = inputs["CCL2_molecular_weight"]
-          nmol = k * cells * time_days
-          mass_g = nmol * 1e-9 * mw
-          mass_ng = mass_g * 1e9
-          return mass_ng  # nanograms
-      end
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count:
+      input_ref: MDA_MB231_cell_count
+    incubation_time:
+      input_ref: MDA_MB231_time_interval_48h
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume: "1.0"
+    unit_conversion_factor: "0.041667"
     data_rationale: |
       Yoshimura 2023 summarizes Nam et al. measurements of cumulative CCL2 production by MDA-MB-231 breast cancer cells over 48 h, normalized per 10^6 cells. Under constant cell number and negligible degradation in conditioned medium, this directly determines the per-cell secretion rate.
     submodel_rationale: |
-      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment follow d(CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * CCL2. Integrating this ODE over a short interval with approximately constant cell number and ignoring degradation yields CCL2(t) - CCL2(0) ≈ k_CCL2_sec * C_total * t. The in vitro assay measures this cumulative production per cell over a fixed time, so an algebraic conversion from cumulative mass to moles per cell per day is a mechanistically consistent submodel for k_CCL2_sec.
+      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment follow d(CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * CCL2. The batch_accumulation model predicts ng from k_CCL2_sec (nmol/cell/day) using: predicted = k * cells * t_hours * MW * ucf / 1.0, where ucf = 0.041667 (= 1/24) converts hours to days. The ng conversion factor is 1.0 (nmol * g/mol * 1e-9 * 1e9 = 1.0). Molecular weight uses the mature CCL2 form (8679 Da) from the reference database.
 
   error_model:
   - name: k_CCL2_sec_observation

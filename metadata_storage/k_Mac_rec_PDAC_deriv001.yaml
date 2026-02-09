@@ -23,7 +23,7 @@ key_study_limitations:
 - |
   The analysis assumes that most CD86+ cells in the tumor are recently recruited monocyte-derived macrophages, whereas PDAC lesions contain a mixture of tissue-resident and monocyte-derived macrophage populations.
 - |
-  Macrophage half-life estimates are taken from generic tissue macrophage literature rather than PDAC-specific measurements, introducing additional uncertainty that is only approximately captured in the prior on k_Mac_rec.
+  Macrophage half-life estimates are taken from generic tissue macrophage literature rather than PDAC-specific measurements, introducing additional uncertainty that is only approximately captured in the prior on k_Mac_death.
 
 experimental_context:
   species: human
@@ -97,7 +97,7 @@ secondary_data_sources:
   source_tag: PhagocyteWiki
   source_quality: non_peer_reviewed
   contribution: |
-    Summarizes tissue macrophage life-span estimates (4-15 days) used to define the range of macrophage half-lives for deriving k_Mac_rec from steady-state considerations. Wikipedia used as a convenient summary; the underlying estimates derive from primary literature on tissue macrophage turnover.
+    Summarizes tissue macrophage life-span estimates (4-15 days) used to define the prior on k_Mac_death for deriving k_Mac_rec from steady-state considerations. Wikipedia used as a convenient summary; the underlying estimates derive from primary literature on tissue macrophage turnover.
 
 target_id: k_Mac_rec_PDAC_M1_recruitment_Gu2023
 
@@ -116,6 +116,30 @@ inputs:
   n: 42
   input_type: direct_measurement
   role: target
+  source_ref: Gu2023_PDAC_M1M2
+  source_location: Results, Section 3.2; Table 2
+  extraction_method: manual
+  value_snippet: |
+    The mean number of infiltrated CD86+ M1 macrophages was 11.6 (range 2-31.2) in primary tumors and 8.4 (1.4-27.8) in metastases.
+- name: M1_per_HPF_range_low
+  value: 2.0
+  units: cell
+  uncertainty:
+  n: 42
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Gu2023_PDAC_M1M2
+  source_location: Results, Section 3.2; Table 2
+  extraction_method: manual
+  value_snippet: |
+    The mean number of infiltrated CD86+ M1 macrophages was 11.6 (range 2-31.2) in primary tumors and 8.4 (1.4-27.8) in metastases.
+- name: M1_per_HPF_range_high
+  value: 31.2
+  units: cell
+  uncertainty:
+  n: 42
+  input_type: direct_measurement
+  role: auxiliary
   source_ref: Gu2023_PDAC_M1M2
   source_location: Results, Section 3.2; Table 2
   extraction_method: manual
@@ -144,30 +168,6 @@ inputs:
   extraction_method: manual
   value_snippet: |
     Microscope high-power field using Olympus BX43 with 10x ocular and 20 mm diameter and 40x objective lens has area 0.196 mm2 (red circle).
-- name: macrophage_half_life_min
-  value: 4.0
-  units: day
-  uncertainty:
-  n:
-  input_type: assumed_value
-  role: fixed_parameter
-  source_ref: PhagocyteWiki
-  source_location: Macrophages section
-  extraction_method: manual
-  value_snippet: |
-    The life-span of tissue macrophages has been estimated to range from four to fifteen days.
-- name: macrophage_half_life_max
-  value: 15.0
-  units: day
-  uncertainty:
-  n:
-  input_type: assumed_value
-  role: fixed_parameter
-  source_ref: PhagocyteWiki
-  source_location: Macrophages section
-  extraction_method: manual
-  value_snippet: |
-    The life-span of tissue macrophages has been estimated to range from four to fifteen days.
 
 calibration:
   parameters:
@@ -176,65 +176,46 @@ calibration:
     prior:
       distribution: lognormal
       mu: 13.89
-      sigma: 0.7
+      sigma: 1.5
       lower:
       upper:
       rationale: |
-        Steady-state balance between recruitment and death using PDAC M1 macrophage density (Gu 2023) and tissue macrophage half-life 4-15 days (Phagocyte review).
-
+        Centered at the value implied by steady-state balance between M1 macrophage recruitment and death using Gu2023 CD86+ density (~59 cells/mm^2) and geometric-mean tissue macrophage half-life (~7.7 days). Sigma=1.5 accommodates uncertainty in HPF area, macrophage death rate, and the fraction of M1 vs total macrophages.
+  - name: k_Mac_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -2.42
+      sigma: 0.5
+      lower:
+      upper:
+      rationale: |
+        Macrophage death rate derived from generic tissue macrophage lifespan of 4-15 days (PhagocyteWiki). Geometric mean half-life sqrt(4*15) = 7.75 days gives k_death = ln(2)/7.75 = 0.089/day. Sigma=0.5 spans the reported range and accommodates uncertainty in TAM-specific turnover vs generic tissue macrophage estimates.
   forward_model:
+    data_rationale: |
+      Gu 2023 reports the mean number of CD86+ M1 macrophages per 400x high-power field in primary human PDAC tumors, which provides an estimate of steady-state M1 macrophage areal density (cells/mm^2) in the tumor microenvironment via division by the HPF area.
+    submodel_rationale: |
+      In the full QSP model, macrophage recruitment into the tumor is represented by k_Mac_rec * V_T * (CCL2/(CCL2 + CCL2_50)), and tumor macrophages are lost via first-order death with rate k_Mac_death. For established PDAC lesions with high CCL2 expression, CCL2 >> CCL2_50 so the chemokine term is approximated as 1. Because k_Mac_rec has units cell/(mL*day) and already encodes the cell production rate per unit tumor volume, the source_pool is set to "1.0" to avoid double-counting. At steady state, areal density = k_Mac_rec / k_Mac_death * section_volume_factor.
     independent_variable:
     state_variables:
-    type: algebraic
-    formula: |
-      At steady state for tumor M1 macrophages with saturating CCL2, k_Mac_rec * V_T = k_Mac_death * Mac_M1, where Mac_M1/V_T is the M1 density estimated from CD86+ counts per high-power field and histology section thickness. We set k_Mac_death = ln(2)/t_half. Thus k_Mac_rec = (ln(2)/t_half) * (M1_per_HPF / (HPF_area_400x * section_thickness)).
-    code: |
-      def compute(params, inputs, ureg):
-          """Forward model: given k_Mac_rec, predict M1 macrophage density per HPF."""
-          import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
-          k_rec = params['k_Mac_rec']
-          A = _val(inputs['HPF_area_400x_microscope'])  # mm^2
-          thickness = _val(inputs['section_thickness_histology']) / 1000.0  # um -> mm
-          t_min = _val(inputs['macrophage_half_life_min'])  # days
-          t_max = _val(inputs['macrophage_half_life_max'])  # days
-          t_half = (t_min + t_max) / 2.0
-          k_death = np.log(2) / t_half
-          V_mm3 = A * thickness
-          V_mL = V_mm3 / 1000.0
-          density = k_rec / k_death
-          M1_per_HPF = density * V_mL
-          return M1_per_HPF * ureg.cell
-    code_julia: |
-      function compute(params, inputs)
-          k_rec = params["k_Mac_rec"]
-          A = inputs["HPF_area_400x_microscope"]
-          thickness = inputs["section_thickness_histology"]
-          t_min = inputs["macrophage_half_life_min"]
-          t_max = inputs["macrophage_half_life_max"]
-          t_half = (t_min + t_max) / 2.0
-          k_death = log(2) / t_half
-          V_mm3 = A * thickness
-          V_mL = V_mm3 / 1000.0
-          density = k_rec / k_death
-          M1_per_HPF = density * V_mL
-          return M1_per_HPF  # cells per HPF
-      end
-    data_rationale: |
-      Gu 2023 reports the median number of CD86+ M1 macrophages per 400x high-power field in primary human PDAC tumors, which provides an estimate of steady-state M1 macrophage density in the tumor microenvironment.
-    submodel_rationale: |
-      In the full QSP model, macrophage recruitment into the tumor is represented by k_Mac_rec * V_T * (CCL2/(CCL2 + CCL2_50)), and tumor macrophages are lost via first-order death with rate k_Mac_death. For established PDAC lesions with high CCL2 expression, CCL2 >> CCL2_50 so the chemokine term is approximated as 1. Assuming quasi-steady state for M1 macrophages and neglecting slower polarization and clearance terms, recruitment balances death, yielding an analytical relation between k_Mac_rec, k_Mac_death, and the measured M1 density.
-
+    type: steady_state_density
+    target_rate: k_Mac_rec
+    unit_conversion_factor: "1.0"
+    source_pool: "1.0"
+    loss_rate: k_Mac_death
+    section_volume_factor:
+      reference_ref: ihc_section_volume_4um
+    recruitment_efficiency: "1.0"
+    exclusion_fraction: "0.0"
   error_model:
-  - name: k_Mac_rec_literature
-    units: cell
+  - name: m1_density_primary_pdac_gu2023
+    observable:
+    units: cell / millimeter**2
     uses_inputs:
     - M1_per_HPF_primary_PDAC
+    - M1_per_HPF_range_low
+    - M1_per_HPF_range_high
     - HPF_area_400x_microscope
-    - section_thickness_histology
-    - macrophage_half_life_min
-    - macrophage_half_life_max
     sample_size: 42
     sample_size_rationale: |
       Number of primary PDAC tumors in which CD86+ M1 macrophages were quantified (Gu 2023, Table 2).
@@ -243,32 +224,37 @@ calibration:
           """
           Derive observation from PDAC M1 macrophage density.
 
-          The forward model predicts M1 macrophages per HPF, so we return
-          the observed count with log-scale SD derived from half-life range.
+          The forward model predicts M1 macrophage areal density (cells/mm^2),
+          so we convert counts per HPF to density and derive log-scale SD from
+          the reported range of M1 counts across patients.
           """
           import numpy as np
-          def _val(x):
-              return getattr(x, 'magnitude', x)
 
-          M1_per_HPF = _val(inputs['M1_per_HPF_primary_PDAC'])
-          t_min = _val(inputs['macrophage_half_life_min'])  # days
-          t_max = _val(inputs['macrophage_half_life_max'])  # days
+          M1_mean = inputs['M1_per_HPF_primary_PDAC'].magnitude  # cells/HPF
+          M1_low = inputs['M1_per_HPF_range_low'].magnitude      # cells/HPF
+          M1_high = inputs['M1_per_HPF_range_high'].magnitude     # cells/HPF
+          hpf_area = inputs['HPF_area_400x_microscope'].magnitude  # mm^2
 
-          observed_value = M1_per_HPF * ureg.cell
+          # Convert to areal density
+          density_mean = M1_mean / hpf_area   # cells/mm^2
+          density_low = M1_low / hpf_area
+          density_high = M1_high / hpf_area
 
-          # Log-scale SD from the half-life range (treat as ~95% CI)
-          sigma_log = (np.log(t_max) - np.log(t_min)) / (2.0 * 1.96)
+          observed_value = density_mean * ureg('cell / millimeter**2')
+
+          # Log-scale SD from reported range (treat as approximate 95% CI)
+          sigma_log = (np.log(density_high) - np.log(density_low)) / (2.0 * 1.96)
 
           return {
               'value': observed_value,
-              'sd': sigma_log,  # dimensionless for lognormal likelihood
-              'sd_uncertain': False,  # SD derived from half-life range
+              'sd': sigma_log,
+              'sd_uncertain': True,
               'n': sample_size,
           }
     likelihood:
       distribution: lognormal
       rationale: |
-        Treat the literature-derived steady-state estimate of k_Mac_rec as a lognormal observation on the parameter scale, with uncertainty captured via the half-life range.
+        Patient-to-patient M1 macrophage densities are positive and span more than an order of magnitude (range 2-31.2 cells/HPF). A lognormal likelihood captures this multiplicative inter-patient heterogeneity.
 
   identifiability_notes: |
-    This submodel constrains k_Mac_rec primarily through a single steady-state relation using cross-sectional human PDAC data. The estimate is sensitive to assumptions about macrophage half-life, the fraction of macrophages that are recently recruited versus tissue-resident or locally proliferating, and the exact area of the 400x high-power field. Because M1 counts are modest compared to M2, and polarization and clearance processes are neglected, k_Mac_rec should be interpreted as an effective recruitment rate into the M1 compartment under high-CCL2 conditions rather than a precise biophysical flux. Joint calibration with k_Mac_death and polarization parameters in the full QSP model will be required for full structural identifiability.
+    Two sampled parameters (k_Mac_rec, k_Mac_death) from one observation. The data constrain the ratio k_Mac_rec / k_Mac_death via the steady-state density. The prior on k_Mac_death (centered at ~0.089/day from 4-15 day half-life range) provides scale separation. Note that CD86+ IHC captures M1-polarized macrophages specifically, while the QSP model's k_Mac_rec drives total M1 recruitment; the inferred k_Mac_rec is therefore specific to the M1 compartment.

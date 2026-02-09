@@ -1,0 +1,20 @@
+target_id,parameters,units,manual_value,notes,original_notes,cancer_type
+initial_tumour_diameter,initial_tumour_diameter,centimeter,1.43-3.03 9,Pre-treatment tumor diameter determining initial tumor volume,Pre-treatment tumor diameter,PDAC
+k_C1_growth,k_C1_growth,1/day,0.0066 3,Cancer cell proliferation rate,"Cancer cell growth rate (Ryu 2014, PMID: 24895040; Desai 2006, PMID: 16489089)",PDAC
+k_apsc_death,k_apsc_death,1/day,,Death rate of activated PSCs (cancer-associated fibroblasts),"death rate of CAFs in tumor compartment (Hao 2015, PMID: 25225370)",PDAC
+k_psc_activation,k_psc_activation,1/day,,Rate of quiescent PSC activation to myofibroblast-like CAF phenotype,Fitted to Ma 2022 single cell data,PDAC
+k_CCL2_sec,k_CCL2_sec,nanomole/cell/day,1.7e-12,CCL2 chemokine secretion rate driving monocyte/MDSC recruitment,"rate of CCL2 secretion (Huang 2007, PMID: 17257744; Dutta 2018, PMID: 29594759)",PDAC
+k_ECM_apsc_sec,k_ECM_apsc_sec,milligram/(cell*day),,ECM production rate by activated PSCs (main source of desmoplasia),0.432 g/day/cm^3 (Kim et al. PMID: 22205943),PDAC
+k_ECM_deg,k_ECM_deg,1/day,,ECM degradation rate by matrix metalloproteinases,Hao et al. 10.1073/pnas.1413970111,PDAC
+k_ECM_qpsc_sec,k_ECM_qpsc_sec,milligram/(cell*day),,ECM production rate by quiescent PSCs (lower than activated),Assume ECM remodeling halved by fibroblast (Kim et al. PMID: 22205943),PDAC
+k_psc_const,k_psc_const,cell/milliliter,,PSC population carrying capacity in tumor,Fitted to 145 +- 9.38 cells/0.785 mm^2 PMID: 19289585,PDAC
+k_qpsc_death,k_qpsc_death,1/day,,Death rate of quiescent pancreatic stellate cells,"death rate of normal fibroblast in tumor compartment (Hao 2015, PMID: 25225370)",PDAC
+k_M1_pol,k_M1_pol,1/day,0.05 18,M2 to M1 macrophage polarization rate (pro-inflammatory shift),Rate of M2 to M1 macrophage polarization (estimated based on the M1/M2 ratio),PDAC
+k_Mac_rec,k_Mac_rec,cell/(milliliter*day),175000 17,Macrophage recruitment rate from circulation into tumor,"Recruitment rate of macrophage into tumor compartment (Yang 2018, PMID: 30026826)",PDAC
+k_MDSC_rec,k_MDSC_rec,cell/(milliliter*day),21000 11,MDSC recruitment rate into tumor (immunosuppressive population),"Rate of MDSC recruitment into the tumor (Diaz-Montero 2009, PMID: 18446337; Huang 2006, PMID: 17257744)",PDAC
+N_IL2_CD4,N_IL2_CD4,dimensionless, 7 - 10,Maximum CD4 T cell division generations from IL-2 stimulation,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)",PDAC
+N_IL2_CD8,N_IL2_CD8,dimensionless, 10 - 12,Maximum CD8 T cell division generations from IL-2 stimulation,"maximum number of activated T cell generations due to IL2 (Marchingo 2014, PMID: 25430770)",PDAC
+n_Treg_clones,n_Treg_clones,dimensionless,63 9,Number of distinct Treg clonal populations,Number of T cell clones (estimated),PDAC
+n_CD8_clones,n_CD8_clones,dimensionless,21-208 16,Number of distinct tumor-reactive CD8 T cell clones,"Number of T cell clones (Morisaki 2021 PMID: 34193879; Narang 2019, PMID: 30832597)",PDAC
+q_Treg_T_in,q_Treg_T_in,1/(centimeter^3*minute),2.5-6.5% 14,Treg extravasation rate from vasculature into tumor,"rate of T0 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density (",PDAC
+q_CD8_T_in,q_CD8_T_in,1/(centimeter^3*minute),0.0001305,CD8 T cell extravasation rate from vasculature into tumor,"rate of T1 transport into the tumor compartment calculated based on T cell transmigration rate (Zhu 1996, PMID: 8706023) and T cell adhesion density (",PDAC

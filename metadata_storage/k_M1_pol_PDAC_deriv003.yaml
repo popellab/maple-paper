@@ -1,0 +1,293 @@
+study_interpretation: |
+  Yates et al. used the synthetic peptide RP-182 to engage the mannose receptor CD206 on murine M2-polarized bone marrow-derived macrophages and demonstrated rapid acquisition of M1-associated markers and functions. Within 30 minutes of RP-182 exposure, the fraction of CD11b+F4/80+Gr1- macrophages co-expressing CD86 and CD206 increased from about 10% in vehicle-treated controls to nearly 88%, indicating very fast induction of M1-associated costimulatory molecules in an initially M2-enriched population. This behavior is well described by a first-order M2-to-M1 conversion driven by a strong activating signal and is mechanistically analogous to the Mac_M2 -> Mac_M1 reaction in the QSP PDAC model under saturating IL-12/IFNg. We therefore use these data to constrain the intrinsic polarization rate constant k_M1_pol under maximal activation, recognizing that tumor-context effective rates will be lower because the cytokine-dependent Hill term multiplying k_M1_pol is <1 in most PDAC settings. Human PDAC ex vivo TAM phenotyping data (e.g., Gu et al. 2023; Ino et al. 2013) indicate that M2-like macrophages (CD163+, CD206+) are numerically dominant over M1-like (CD86+, HLA-DR+) TAMs in primary tumors, consistent with a PDAC microenvironment in which the effective M2-promoting influences (captured in the full QSP model by k_M2_pol and immunosuppressive cytokines) outweigh the effective M1-promoting drive encoded by k_M1_pol.
+
+key_assumptions:
+- |
+  CD86+CD206+ double-positive macrophages 30 minutes after RP-182 exposure are treated as M1-like cells for the purpose of estimating the rapid M2-to-M1 polarization rate, even though they retain CD206 expression and may represent a transitional phenotype.
+- |
+  The baseline 10.3% CD86+CD206+ fraction in vehicle-treated M2 macrophages reflects incomplete M2 polarization and is used as the initial M1-like fraction f0 in the first-order conversion model.
+- |
+  RP-182 is assumed to provide a near-saturating M1-promoting signal such that the cytokine-dependent Hill term in the full QSP model is effectively 1, making the measured rate directly informative for k_M1_pol.
+- |
+  Measurement variability in the reported fractions is not explicitly reported; a 10% coefficient of variation is assumed to capture combined technical and biological noise for the 30-minute time point.
+- |
+  Intrinsic signaling and transcriptional kinetics of M2-to-M1 repolarization are assumed to be similar between murine bone marrow-derived M2 macrophages and human PDAC TAMs, with cross-species and context differences captured by the large translation uncertainty factor.
+- |
+  Later time points (e.g., 24 h) in the RP-182 study are influenced by apoptosis of M2 macrophages and are not used directly to estimate k_M1_pol, which is interpreted as a short-timescale signaling-driven polarization rate rather than a long-term net population turnover rate.
+
+key_study_limitations:
+- |
+  Data are from murine bone marrow-derived M2 macrophages in vitro, not from tumor-associated macrophages in a PDAC model or human monocyte-derived macrophages, introducing substantial translational uncertainty.
+- |
+  The M1-like phenotype is inferred from CD86 expression; cells remain CD206+ at early time points and may not fully correspond to the Mac_M1 compartment in the QSP model.
+- |
+  Only a single early time point (30 min) with explicit quantitative fractions is used for calibration; the assumed error model (10% CV) is heuristic.
+- |
+  RP-182 is a non-physiologic pharmacologic agonist of CD206 that additionally induces apoptosis of M2 macrophages over 24-48 hours, which may not reflect typical cytokine-driven repolarization dynamics in PDAC.
+- |
+  Human PDAC TAM phenotyping data used for contextualization (e.g., Gu et al. 2023, Ino et al. 2013) provide steady-state M1/M2 ratios but do not report repolarization kinetics, limiting direct linkage between tumor data and k_M1_pol in this submodel.
+
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_lines:
+  cell_types:
+  - name: bone marrow-derived macrophages
+    phenotype: |
+      M2-polarized macrophages differentiated from murine bone marrow precursors with M-CSF and polarized with IL-4/IL-13 prior to RP-182 treatment
+    isolation_method: |
+      Bone marrow progenitors from healthy C57BL/6 mice differentiated to macrophages for 7 days in M-CSF-containing medium, then polarized to M2 with IL-4/IL-13 as described in Yates et al.
+  culture_conditions:
+    substrate: tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication:
+
+primary_data_source:
+  doi: 10.1126/scitranslmed.aax6337
+  title: |
+    Mannose receptor (CD206) activation in tumor-associated macrophages enhances adaptive and innate antitumor immune responses
+  authors:
+  - Yates CC
+  - Baardman J
+  - Otto NA
+  - et al.
+  year: 2020
+  source_tag: Yates2020_RP182
+
+secondary_data_sources:
+- doi: 10.1038/bjc.2013.32
+  url:
+  title: |
+    Immune cell infiltration as an indicator of the immune microenvironment of pancreatic cancer
+  authors:
+  - Ino Y
+  - Yamazaki-Itoh R
+  - Shimada K
+  - et al.
+  year: 2013
+  source_tag: Ino2013_PDAC_TILs
+  contribution: |
+    Provides quantitative immunohistochemical assessment of CD68+ pan-macrophages, HLA-DR+CD68+ M1 macrophages, and CD163+/CD204+ M2 macrophages in 212 human PDAC specimens, demonstrating that M2 infiltration and a low M1/pan-macrophage ratio are associated with worse survival. Used qualitatively to confirm that PDAC TAMs are typically M2-biased at baseline.
+  source_quality: primary_human_clinical
+- doi:
+  url: https://pmc.ncbi.nlm.nih.gov/articles/PMC10010873/
+  title: |
+    Correlation between Macrophage Polarization and PD-L1-Related Tumor Microenvironmental Alteration and Metastasis in Pancreatic Ductal Adenocarcinoma
+  authors:
+  - Gu J
+  - Gao F
+  - Fan B
+  - et al.
+  year: 2023
+  source_tag: Gu2023_PDAC_TAM
+  contribution: |
+    Reports mean numbers of CD86+ (M1) and CD163+ (M2) macrophages per high-power field in primary and metastatic human PDAC lesions (e.g., 11.6 vs 27.1 cells/HPF in primary tumors), confirming that M2-like TAMs numerically dominate M1-like TAMs in PDAC and that macrophage polarization correlates with metastasis. Used qualitatively for PDAC TAM context and to motivate large translation uncertainty for k_M1_pol.
+  source_quality: primary_human_clinical
+- doi: 10.1158/1078-0432.CCR-20-3141
+  url:
+  title: |
+    Composition, Spatial Characteristics, and Prognostic Significance of Myeloid Cell Infiltration in Pancreatic Cancer
+  authors:
+  - Steele NG
+  - Carpenter ES
+  - Kemp SB
+  - et al.
+  year: 2021
+  source_tag: Steele2021_PDAC_myeloid
+  contribution: |
+    Provides multiplex immunofluorescence profiling of M1- and M2-polarized macrophage densities and spatial distribution in 305 human PDAC resections, showing that M2-polarized macrophages at close proximity to tumor cells are associated with worse outcomes. Used qualitatively to inform tumor microenvironment compatibility assessment for translating in vitro macrophage polarization rates.
+  source_quality: primary_human_clinical
+
+target_id: k_M1_pol_rp182_m2_to_m1_repolarization
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c30fc0d9d740643bceec2dc80f1f8
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: rp182_cd86pos_cd206pos_frac_30min
+  value: 0.878
+  units: dimensionless
+  uncertainty:
+  n: 3
+  input_type: direct_measurement
+  role: target
+  source_ref: Yates2020_RP182
+  source_location: 'Figure 3A,B; text: "87.8% versus 10.3% in vehicle-treated control" within 30 min'
+  extraction_method: manual
+  value_snippet: |
+    an increase in the CD86+CD206+ double-positive macrophage fraction (87.8% versus 10.3% in vehicle-treated control) within 30 min of starting treatment with RP-182
+  source_access: open_access
+- name: rp182_cd86pos_cd206pos_frac_vehicle
+  value: 0.103
+  units: dimensionless
+  uncertainty:
+  n: 3
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yates2020_RP182
+  source_location: 'Figure 3A,B; text: "87.8% versus 10.3% in vehicle-treated control"'
+  extraction_method: manual
+  value_snippet: |
+    CD86+CD206+ double-positive macrophage fraction (87.8% versus 10.3% in vehicle-treated control) within 30 min
+  source_access: open_access
+- name: rp182_cd86pos_cd206neg_frac_24h
+  value: 0.106
+  units: dimensionless
+  uncertainty:
+  n: 3
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yates2020_RP182
+  source_location: 'Figure 3A,B; text: "CD86+CD206- M1-like fraction ... 10.6% after 24 hours"'
+  extraction_method: manual
+  value_snippet: |
+    resulting in a CD86+CD206- M1-like fraction not expressing the M2 marker CD206 of 10.6% after 24 hours of treatment
+  source_access: open_access
+- name: rp182_t_30min
+  value: 0.0208333
+  units: day
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Yates2020_RP182
+  source_location: Methods for in vitro macrophage experiments; RP-182 treatment for 30 min
+  extraction_method: manual
+  value_snippet: within 30 min of starting treatment with RP-182
+  source_access: open_access
+- name: rp182_cd86pos_frac_cv
+  value: 0.1
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Yates2020_RP182
+  source_location: Not explicitly reported; CV assumed for calibration
+  extraction_method: manual
+  value_snippet: |
+    Data shown are representative of three independent experiments conducted in triplicate
+  source_access: open_access
+- name: pdac_primary_cd86_pos_cells_per_hpf_median
+  value: 11.6
+  units: '1'
+  uncertainty:
+  n: 42
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Gu2023_PDAC_TAM
+  source_location: |
+    Results 3.2 and Table 2: "The mean number of infiltrated CD86+ M1 macrophages was 11.6 (2-31.2) in primary tumors"
+  extraction_method: manual
+  value_snippet: |
+    The mean number of infiltrated CD86+ M1 macrophages was 11.6 (2-31.2) in primary tumors
+  source_access: open_access
+- name: pdac_primary_cd163_pos_cells_per_hpf_median
+  value: 27.1
+  units: '1'
+  uncertainty:
+  n: 42
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Gu2023_PDAC_TAM
+  source_location: |
+    Results 3.2 and Table 3: "The mean number of infiltrated CD163+ M2 macrophage was 27.1 (7.6-38.2) in primary tumors"
+  extraction_method: manual
+  value_snippet: |
+    The mean number of infiltrated CD163+ M2 macrophage was 27.1 (7.6-38.2) in primary tumors
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_M1_pol
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: 4.605
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        RP-182 data imply a very rapid M2-to-M1-like polarization with an effective rate on the order of 10^2 per day (half-time ~10 min) under strong CD206 activation. We center the prior at exp(4.605) ~ 100/day with one log-unit SD to allow ~10-fold uncertainty in either direction and additional flexibility for translation to PDAC TAMs.
+  forward_model:
+    data_rationale: |
+      Yates et al. quantified the fraction of IL-4/IL-13-polarized murine bone marrow-derived M2 macrophages that became CD86+CD206+ within 30 min after addition of RP-182, reporting an increase in the double-positive fraction from 10.3% in vehicle-treated controls to 87.8% with RP-182. This provides a direct measurement of the timescale over which strong M1-promoting stimulation can reprogram M2 macrophages toward an M1-like phenotype.
+    submodel_rationale: |
+      In the full QSP PDAC model, k_M1_pol appears in a first-order conversion term V_T.Mac_M2 -> V_T.Mac_M1, multiplied by a cytokine-dependent Hill function of IL-12 and IFNg. Under saturating M1-promoting signals (e.g., high IFNg/IL-12 or strong CD206 activation by RP-182), this Hill term approaches 1 and the effective polarization rate reduces to k_M1_pol * V_T.Mac_M2. The algebraic model assumes this saturated first-order Mac_M2 -> Mac_M1 conversion and relates k_M1_pol to the observed gain of CD86 expression over 30 min in M2 macrophages.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      fraction_CD86pos(t) = 1 - (1 - f0) * exp(-k_M1_pol * t) where f0 is the baseline CD86+ fraction in M2-polarized macrophages and t is time in days.
+    code: |
+      def compute(params, inputs, ureg):
+          import numpy as np
+          k = params['k_M1_pol']
+          # Stimulation time in days (stored directly in inputs)
+          t = inputs['rp182_t_30min']
+          # Baseline CD86+ fraction in vehicle-treated M2 macrophages
+          f0 = inputs['rp182_cd86pos_cd206pos_frac_vehicle']
+          frac = 1.0 - (1.0 - f0) * np.exp(-k * t)
+          return frac * ureg('dimensionless')
+    code_julia: |
+      function compute(params::Dict, inputs::Dict)
+          k = params["k_M1_pol"]
+          # Stimulation time in days (stored directly in inputs)
+          t = inputs["rp182_t_30min"]
+          f0 = inputs["rp182_cd86pos_cd206pos_frac_vehicle"]
+          frac = 1.0 - (1.0 - f0) * exp(-k * t)
+          return frac
+      end
+  error_model:
+  - name: rp182_cd86pos_frac_30min
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - rp182_cd86pos_cd206pos_frac_30min
+    - rp182_cd86pos_cd206pos_frac_vehicle
+    - rp182_cd86pos_frac_cv
+    - rp182_t_30min
+    evaluation_points:
+    sample_size: 3
+    sample_size_rationale: |
+      Yates et al. report that flow cytometry data are representative of three independent experiments conducted in triplicate; we treat n=3 biological replicates as the effective sample size for the fraction of CD86+CD206+ cells at 30 minutes.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          frac = inputs['rp182_cd86pos_cd206pos_frac_30min']
+          cv = inputs['rp182_cd86pos_frac_cv']
+          sd = frac * cv
+          return {
+              'value': frac * ureg('dimensionless'),
+              'sd': sd,
+          }
+    likelihood:
+      distribution: normal
+      rationale: |
+        The observable is a cell fraction bounded between 0 and 1 and close to 1 in this experiment. Given the moderate assumed coefficient of variation and lack of strong skewness information, a normal likelihood on the linear scale is an adequate approximation for measurement noise around the mean fraction of CD86+CD206+ cells at 30 minutes.
+  identifiability_notes: |
+    This target uses a single early time point (30 min) for the fraction of CD86+CD206+ M2 macrophages under a very strong activating stimulus. Under the assumed first-order repolarization model with known baseline fraction, this single measurement is mathematically sufficient to identify k_M1_pol in the in vitro mouse system, but uncertainty remains due to the assumed measurement CV and potential deviations from simple first-order kinetics (e.g., multi-step signaling, cell-to-cell heterogeneity). Translation of this intrinsic rate constant from murine bone marrow-derived M2 macrophages under pharmacologic CD206 activation to human PDAC tumor-associated macrophages under cytokine-driven polarization introduces additional 1–2 orders of magnitude uncertainty reflected in the wide prior and large translation uncertainty factor. The model intentionally ignores slower apoptotic loss of M2 cells at later times (>24 h) under RP-182 treatment, so k_M1_pol should be interpreted as an upper bound for rapid signaling-driven M2-to-M1 phenotype conversion rather than a net population turnover rate in tumors.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The primary data come from murine bone marrow-derived macrophages polarized to an M2-like phenotype in vitro and rapidly reprogrammed toward an M1-like state by the synthetic peptide RP-182, which engages the mannose receptor CD206. These cells are not pancreatic tumor-associated macrophages and are studied outside the pancreatic tumor microenvironment. However, the measured timescale of CD86 acquisition after a strong M1-promoting signal primarily reflects cell-intrinsic signaling and transcriptional kinetics in M2 macrophages. We therefore use these data as a mechanistic proxy for the maximal M2-to-M1 polarization rate (k_M1_pol) under saturating activation, with additional uncertainty to account for species (mouse vs human), tissue context (bone marrow-derived vs PDAC TAM), and the pharmacologic nature of the stimulus.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: pharmacological
+  perturbation_relevance: |
+    RP-182 is a synthetic amphipathic peptide agonist of the mannose receptor CD206 that selectively binds M2-like macrophages and reprograms them toward an M1-like phenotype, ultimately inducing apoptosis of M2 cells. This represents a near-maximal pharmacologic drive toward M2-to-M1-like repolarization and cell clearance, not a physiologic IFNg/IL-12 signal. We therefore interpret the inferred k_M1_pol as an upper bound on the intrinsic polarization rate under saturating M1-promoting conditions; effective rates in PDAC tumors, where cytokine levels and receptor engagement are lower, will typically be smaller.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    Experiments were performed on isolated M2-polarized macrophages in 2D culture without the dense desmoplastic stroma, hypoxia, immunosuppressive cytokines (IL-10, TGFbeta), and metabolic constraints characteristic of the PDAC tumor microenvironment. These PDAC-specific features likely slow M2-to-M1 reprogramming and bias macrophages toward an M2 phenotype compared with the in vitro system used here.
+  estimated_translation_uncertainty_fold: 30.0
+  validation_warnings:

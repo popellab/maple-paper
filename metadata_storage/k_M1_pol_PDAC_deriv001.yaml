@@ -91,7 +91,7 @@ inputs:
   source_location: Abstract
   extraction_method: manual
   value_snippet: |
-    IL-12, both in vivo and in vitro, induced a rapid (<90 min) reduction of tumor supportive macrophage activities and a concomitant increase in proinflammatory and proimmunogenic activities.
+    IL-12, both in vivo and in vitro, induced a rapid (<90 min) reduction of tumor supportive macrophage activities (IL-10, MCP-1, migration inhibitory factor, and TGFbeta production) and a concomitant increase in proinflammatory and proimmunogenic activities.
 - name: assumed_half_life_fraction
   value: 0.5
   units: dimensionless

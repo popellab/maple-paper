@@ -182,7 +182,7 @@ inputs:
   source_location: Results, Dynamics of CD8+ T cell responses
   extraction_method: manual
   value_snippet: |
-    The half-life of the contraction phase was estimated to be 41 h for CD8+ T cells.
+    The half-life during the contraction phase following the peak of the response is 41 h and 3 days, respectively.
 - name: CD8_eff_half_life_sd
   value: 10.0
   units: hour

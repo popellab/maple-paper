@@ -1,0 +1,3 @@
+target_id,parameters,units,manual_value,notes,original_notes,cancer_type
+k_C1_growth,k_C1_growth,1/day,0.0066 3,Cancer cell proliferation rate,"Cancer cell growth rate (Ryu 2014, PMID: 24895040; Desai 2006, PMID: 16489089)",PDAC
+k_apsc_death,k_apsc_death,1/day,,Death rate of activated PSCs (cancer-associated fibroblasts),"death rate of CAFs in tumor compartment (Hao 2015, PMID: 25225370)",PDAC
