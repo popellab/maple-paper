@@ -1,0 +1,194 @@
+study_interpretation: |
+  Zheng et al. demonstrate that fully polarised mouse M2 macrophages (generated with M-CSF plus IL-4) can be transformed towards an M1-like, IL-12p70-producing state after stimulation with 10 ng/ml LPS. Supernatants collected 48 h after LPS stimulation show IL-12p70 levels approximately 20-fold higher in previously M2 macrophages than in previously M1 macrophages, indicating robust M2 to M1 repolarisation under strong TLR4 stimulation. We interpret the 48 h stimulation period required to reveal this phenotype as an approximate characteristic timescale for M2 to M1 repolarisation under maximal pro-inflammatory conditions. By relating this timescale to the first-order rate constant k_M1_pol via t_repol ≈ 1/k_M1_pol, the study provides a coarse but mechanistically aligned constraint on the magnitude of k_M1_pol in the QSPIO-PDAC model.
+
+key_assumptions:
+- |
+  LPS-induced M2 to M1 switching in mouse bone marrow-derived macrophages shares a similar intrinsic timescale with IL-12/IFNg-driven M2 to M1 repolarisation of tumour-associated macrophages in PDAC.
+- |
+  The 48 h LPS stimulation interval used for ELISA readouts corresponds to an order-of-magnitude estimate of the characteristic repolarisation time (i.e., by 48 h, the majority of susceptible M2 cells capable of switching have done so).
+- |
+  Per-cell IL-12p70 production after repolarisation is comparable between previously M1 and previously M2 macrophages, so the strong differential IL-12p70 signal in previously M2 cultures mainly reflects more efficient M2 to M1 switching rather than radically different secretion per cell.
+- |
+  Other processes affecting macrophage numbers (proliferation, death, migration) are negligible over the 48 h in vitro stimulation window relative to phenotype switching.
+- |
+  Translation from mouse in vitro BMDM to human PDAC TAMs introduces at least ~30-fold uncertainty in k_M1_pol, which is captured in the prior and source_relevance assessment.
+
+key_study_limitations:
+- |
+  The experiment is performed in mouse BMDM cultured on plastic with LPS stimulation, which differs substantially from human PDAC tumour microenvironments lacking bacterial products and containing complex stromal and cancer-cell derived cues.
+- |
+  Only a single stimulation duration (48 h) is used for the key comparison of IL-12p70 between previously M1 and M2 macrophages, so the true time course and half-time of M2 to M1 switching are not directly measured.
+- |
+  IL-12p70 concentrations are reported graphically, and the text only provides a fold-change (20-fold higher in M2 vs M1), limiting the ability to link absolute cytokine levels to macrophage numbers.
+- |
+  The study does not quantify the fraction of cells that change phenotype at the single-cell level (e.g., via flow cytometry for M1 vs M2 markers), so the mapping between IL-12p70 output and the underlying M1/M2 cell counts is indirect.
+- |
+  The stimuli (GM-CSF, M-CSF, IL-4, LPS) and mouse strain may lead to macrophage phenotypes that differ from human PDAC TAMs, particularly in terms of TLR4 expression and responsiveness.
+
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_lines:
+  cell_types:
+  - name: bone marrow-derived macrophages (BMDM)
+    phenotype: M1 and M2 polarized
+    isolation_method: |
+      Bone marrow cells harvested from femurs of male C57/Black mice and differentiated in vitro with GM-CSF (M1) or M-CSF plus IL-4 (M2) for 7 days.
+  culture_conditions:
+    substrate: tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication:
+
+primary_data_source:
+  doi: 10.1371/journal.pone.0063967
+  title: |
+    Lipopolysaccharide-induced M2 to M1 macrophage transformation for IL-12p70 production is blocked by Candida albicans mediated up-regulation of EBI3 expression
+  authors:
+  year: 2013
+  source_tag: Zheng2013
+
+secondary_data_sources:
+
+target_id: k_M1_pol_M2_to_M1_repolarization_Zheng2013
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c25112542c0b9d9bc70e0093222b6
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: t_repol_mean
+  value: 48.0
+  units: hour
+  uncertainty:
+  n: 3
+  input_type: inferred_estimate
+  role: target
+  source_ref: Zheng2013
+  source_location: |
+    Results, 'Candida albicans Suppresses LPS-induced IL-12p70 in M2 to M1 Phenotype Switching'
+  extraction_method: manual
+  value_snippet: |
+    To demonstrate plasticity of macrophage polarisation, fully polarised M1 and M2 macrophage were stimulated with 10 ng/ml bacterial LPS and the cell culture supernatants harvested 48 h after stimulation. In these experiments, IL-12p70 and TNFalpha production was determined via ELISA.
+  source_access: open_access
+- name: t_repol_sd
+  value: 24.0
+  units: hour
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Zheng2013
+  source_location: |
+    No experimental variance reported; SD assumed as 24 h (half of 48 h) to represent broad uncertainty in the characteristic repolarisation time.
+  extraction_method: manual
+  value_snippet: |
+    Harvested M1 and M2 macrophages were seeded at a density of 1x10^5 cells/well in a 24 well plate, then cultured with full medium for 24 h.
+  source_access: open_access
+- name: hours_per_day
+  value: 24.0
+  units: hour/day
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Zheng2013
+  source_location: |
+    General time conversion factor (24 h per day) used to relate rate constant units (1/day) to observed hours of stimulation.
+  extraction_method: manual
+  value_snippet: |
+    Harvested M1 and M2 macrophages were seeded at a density of 1x10^5 cells/well in a 24 well plate, then cultured with full medium for 24 h.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_M1_pol
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Very weakly informative prior centered at 1/day, spanning several orders of magnitude (approximately 0.02–50/day) to allow for substantial uncertainty in M2 to M1 repolarisation rates across species and tumour microenvironments.
+  forward_model:
+    data_rationale: |
+      Zheng et al. quantify M2 to M1 phenotype switching by measuring IL-12p70 production 48 h after LPS stimulation of fully polarised M2 macrophages. This provides an approximate characteristic timescale for M2 to M1 repolarisation under strong pro-inflammatory stimulation.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, k_M1_pol is a first-order rate constant governing M2 to M1 macrophage polarisation in the tumour compartment, modulated by IL-12 and IFNg through a Hill-type term. Under saturating pro-inflammatory stimulation (e.g., strong TLR4 and Th1 cytokine signals), this modulation term approaches 1, so the characteristic timescale of polarisation is approximately the inverse of k_M1_pol. The algebraic submodel t_repol = 1/k_M1_pol captures this relationship without explicitly modelling cytokine dynamics.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: t_repol_hr = (1 / k_M1_pol) * hours_per_day
+    code: |
+      def compute(params, inputs, ureg):
+          # params['k_M1_pol]: polarisation rate constant (1/day)
+          # inputs['hours_per_day]: conversion factor (24 hour/day)
+          k = params['k_M1_pol']
+          hours_per_day = inputs['hours_per_day']  # Quantity with units hour/day
+          # Characteristic time in days is 1/k; convert to hours using hours_per_day
+          t_day = (1.0 / k) * ureg('day')
+          return t_day * hours_per_day
+    code_julia: |
+      function compute(params, inputs)
+          # params["k_M1_pol"]: polarisation rate constant (1/day)
+          # inputs["hours_per_day"]: conversion factor with units hour/day
+          k = params["k_M1_pol"]
+          hours_per_day = inputs["hours_per_day"]
+          t_day = 1.0 / k
+          return t_day * hours_per_day
+      end
+  error_model:
+  - name: t_repol_observation
+    observable:
+    units: hour
+    uses_inputs:
+    - t_repol_mean
+    - t_repol_sd
+    evaluation_points:
+    sample_size: 3
+    sample_size_rationale: |
+      Zheng et al. state that results are representative of three independent experiments; n=3 is used as an approximate sample size for the repolarisation assay.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          # Observed characteristic M2->M1 repolarisation time under LPS stimulation
+          t_mean = inputs['t_repol_mean']  # Quantity with units hour
+          t_sd = inputs['t_repol_sd']      # Quantity with units hour (assumed)
+          # For a lognormal likelihood, represent uncertainty as coefficient of variation (dimensionless)
+          cv = t_sd.magnitude / t_mean.magnitude
+          return {
+              'value': t_mean,
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Repolarisation times are positive and likely span orders of magnitude across contexts; a lognormal likelihood on time with SD specified as a coefficient of variation is appropriate.
+  identifiability_notes: |
+    Only a single, indirect timescale measurement (48 h LPS-induced M2 to M1 switching in mouse bone marrow-derived macrophages) constrains k_M1_pol through the relationship t_repol ≈ 1/k_M1_pol. As a result, k_M1_pol will be only weakly identified and highly correlated with assumptions about what fraction of repolarisation is achieved by 48 h and how well LPS-mediated switching reflects IL-12/IFNg-driven polarisation in human PDAC tumours. The wide lognormal prior is essential to capture these uncertainties. Additional in vivo data on TAM phenotype dynamics under therapies that modulate IL-12/IFNg (e.g., GM-CSF-secreting vaccines or checkpoint blockade) would be required to more tightly constrain k_M1_pol in the full model.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The source study uses mouse bone marrow-derived macrophages polarized to M1 or M2 in vitro and restimulated with bacterial LPS. This is a mechanistic proxy for tumour-associated macrophage (TAM) repolarisation in human PDAC, which occurs in a cytokine-rich but LPS-free tumour microenvironment. The data primarily inform an upper-bound timescale for M2 to M1 switching under strong pro-inflammatory cues rather than PDAC-specific kinetics.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: pharmacological
+  perturbation_relevance: |
+    LPS stimulation provides a strong, non-physiological TLR4 signal that likely drives faster and more complete M2 to M1 repolarisation than would occur in human PDAC tumours exposed to endogenous IL-12 and IFNg. Thus the inferred k_M1_pol should be interpreted as approximating a maximal repolarisation rate under strong pro-inflammatory stimulation, with substantial downscaling uncertainty when translated to the PDAC microenvironment.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    The experiment uses isolated mouse BMDM cultured on plastic in serum-containing medium, lacking the dense extracellular matrix, hypoxia, cancer cells, stellate cells, and complex chemokine gradients that characterise PDAC tumours. TAM repolarisation in PDAC is expected to be slower and potentially less complete than in this simplified system.
+  estimated_translation_uncertainty_fold: 30.0
+  validation_warnings:

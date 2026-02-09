@@ -1,0 +1,181 @@
+study_interpretation: |
+  Iredale et al. (1998) demonstrate that spontaneous resolution of experimental rat liver fibrosis is accompanied by a marked (12-fold) decline in activated hepatic stellate cell (HSC) numbers over 28 days, with clear evidence of HSC apoptosis. This supports a picture in which activated stellate cells, although apoptosis-resistant during ongoing injury, can undergo substantial first-order apoptosis once pro-survival stimuli are withdrawn and matrix remodeling is permitted. Assuming that activated pancreatic stellate cells (aPSCs) in PDAC share similar intrinsic apoptosis machinery and first-order death kinetics, this 12-fold reduction over 28 days provides a mechanistic constraint on the order of magnitude of k_apsc_death when translated with appropriate uncertainty.
+
+key_assumptions:
+- |
+  Activated hepatic stellate cells (HSCs) and activated pancreatic stellate cells (aPSCs) share similar intrinsic susceptibility to apoptosis and die via approximately first-order kinetics once survival cues are withdrawn.
+- |
+  The 12-fold reduction in alpha-SMA-positive HSCs over 28 days primarily reflects net apoptosis of activated stellate cells, with negligible contribution from phenotypic reversion or migration.
+- |
+  Exponential (first-order) decay is an adequate approximation for the decline in activated HSCs over the reported recovery period.
+- |
+  The assumed coefficient of variation (30%) reasonably captures experimental and inter-animal variability in the reported fold-reduction, in the absence of published error bars.
+- |
+  Pathological liver fibrosis resolution provides an upper-bound scenario for stellate cell death rates; actual aPSC death rates in PDAC may be lower, which is accommodated by wide priors and translation uncertainty.
+
+key_study_limitations:
+- |
+  Data are from rat hepatic stellate cells in liver fibrosis, not from human pancreatic stellate cells in PDAC; cross-species and cross-organ extrapolations introduce substantial uncertainty.
+- |
+  The 12-fold reduction in activated HSCs is reported without explicit variance or sample size, requiring an assumed coefficient of variation for calibration.
+- |
+  The measured decline reflects a recovery phase after removal of fibrogenic insult, which may feature enhanced pro-apoptotic signaling compared with the chronic PDAC microenvironment.
+- |
+  The analysis is based on histological quantification of alpha-SMA-positive cells, which may be influenced by changes in marker expression as well as absolute cell number.
+
+experimental_context:
+  species: rat
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: hepatic stellate cell (activated)
+    phenotype:
+    isolation_method:
+  culture_conditions:
+  indication: toxicant-induced liver fibrosis with spontaneous resolution
+
+primary_data_source:
+  doi: 10.1172/JCI1018
+  title: |
+    Mechanisms of spontaneous resolution of rat liver fibrosis. Hepatic stellate cell apoptosis and reduced hepatic expression of metalloproteinase inhibitors.
+  authors:
+  - Iredale JP
+  - Benyon RC
+  - Pickering J
+  - McCullen M
+  - Northrop M
+  - Pawley S
+  - Hovell C
+  - Arthur MJ
+  year: 1998
+  source_tag: Iredale1998
+
+secondary_data_sources:
+- doi: 10.1172/JCI30082
+  url:
+  title: 'The pancreatic stellate cell: a star on the rise in pancreatic diseases.'
+  authors:
+  - Omary MB
+  - Lugea A
+  - Lowe AW
+  - Pandol SJ
+  year: 2007
+  source_tag: Omary2007
+  contribution: |
+    Review article establishing that pancreatic stellate cells are myofibroblast-like, vitamin A-storing stellate cells closely related to hepatic stellate cells, supporting use of HSC data as a mechanistic proxy for PSC biology.
+  source_quality: review_article
+
+target_id: k_apsc_death_hsc_apoptosis_Iredale1998
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c251125a69ebf00338faeabd71cfc
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: hsc_fold_reduction_28d
+  value: 12.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Iredale1998
+  source_location: |
+    Abstract: "alpha-Smooth muscle actin staining of liver sections demonstrated a 12-fold reduction in the number of activated HSC over the same time period"
+  extraction_method: manual
+  value_snippet: |
+    alpha-Smooth muscle actin staining of liver sections demonstrated a 12-fold reduction in the number of activated HSC over the same time period with evidence of HSC apoptosis.
+  source_access: open_access
+- name: recovery_duration_28d
+  value: 28.0
+  units: day
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Iredale1998
+  source_location: |
+    Abstract: "Livers were harvested from rats at 0, 3, 7, and 28 d of spontaneous recovery"
+  extraction_method: manual
+  value_snippet: |
+    Livers were harvested from rats at 0, 3, 7, and 28 d of spontaneous recovery from liver fibrosis
+  source_access: open_access
+- name: assumed_fold_reduction_cv
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Iredale1998
+  source_location: |
+    No experimental variance reported; CV assumed based on typical biological variability
+  extraction_method: manual
+  value_snippet: |
+    No explicit error bars reported for 12-fold reduction; we assume 30% coefficient of variation to represent measurement and inter-animal variability.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_apsc_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -2.3
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered around ~0.1 1/day (approximate fibroblast/stellate cell death rates) with 10-fold uncertainty to accommodate cross-species and cross-organ translation as well as experimental uncertainty in HSC apoptosis kinetics.
+  forward_model:
+    data_rationale: |
+      Iredale et al. (1998) report that activated hepatic stellate cell (HSC) numbers decline 12-fold over 28 days during spontaneous resolution of rat liver fibrosis, consistent with approximately first-order apoptosis-driven loss of activated stellate cells.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, k_apsc_death parameterizes first-order death of activated pancreatic stellate cells (aPSCs) via V_T.aPSC -> null with rate k_apsc_death * aPSC. Activated hepatic stellate cells (HSCs) in liver fibrosis are closely related myofibroblast-like stellate cells. Assuming first-order death dynamics, the fold-reduction in HSCs over a fixed time interval is fold_reduction = N(0)/N(t) = exp(k_apsc_death * t). We use this relationship as a proxy submodel to constrain k_apsc_death.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: fold_reduction = N(0)/N(t) = exp(k_apsc_death * t_recovery)
+    code: |
+      def compute(params, inputs, ureg): import numpy as np; k = params['k_apsc_death']; t_days = inputs['recovery_duration_28d']; return np.exp(k * t_days) * ureg.dimensionless
+    code_julia: |
+      function compute(params, inputs) k = params["k_apsc_death"]; t = inputs["recovery_duration_28d"]; return exp(k * t); end
+  error_model:
+  - name: hsc_fold_reduction_measurement
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - hsc_fold_reduction_28d
+    - assumed_fold_reduction_cv
+    evaluation_points:
+    sample_size:
+    sample_size_rationale: |
+      Iredale et al. (1998) do not report explicit n alongside the 12-fold reduction; we treat this as a representative group-level estimate and encode additional uncertainty via an assumed coefficient of variation.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg): mean_fold = inputs['hsc_fold_reduction_28d']; cv = inputs['assumed_fold_reduction_cv'].magnitude; return {'value': mean_fold * ureg.dimensionless, 'sd': cv, 'sd_uncertain': True}
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Fold-changes are positive and typically right-skewed; a lognormal likelihood with CV from assumed_fold_reduction_cv is appropriate.
+  identifiability_notes: |
+    Within this submodel, there is a single algebraic relationship between k_apsc_death and the observed fold-reduction over a fixed interval, so k_apsc_death is structurally identifiable from the HSC data alone. However, practical identifiability is limited by (1) the absence of explicit variance or sample size in Iredale et al. (1998), (2) use of hepatic rather than pancreatic stellate cells, (3) rat-to-human translation, and (4) modeling a resolution phase (enhanced apoptosis) rather than steady-state PDAC stroma. These issues are captured via a wide prior and large translation uncertainty in the source_relevance block, and k_apsc_death should be further informed by PDAC-specific stromal dynamics if available.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The data are from activated hepatic stellate cells (HSCs) in rat liver fibrosis resolving after carbon tetrachloride injury, whereas the QSPIO-PDAC model targets activated pancreatic stellate cells (aPSCs) in human PDAC. HSCs and PSCs are both vitamin A-storing stellate cells that become myofibroblast-like upon activation and drive organ fibrosis, and PSC biology has historically been extrapolated from HSC studies. However, the liver and pancreatic tumor microenvironments differ in vascular structure, immune context, and mechanics, so HSC apoptosis kinetics are treated only as a mechanistic proxy for aPSC death rates.
+  species_source: rat
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Both liver fibrosis and PDAC stroma feature dense collagen-rich extracellular matrix produced by activated stellate cells, but PDAC additionally exhibits extreme desmoplasia and T cell exclusion driven by PSC-cancer interactions. These differences may alter survival signaling to stellate cells; we therefore treat hepatic stellate cell apoptosis kinetics as only moderately representative of PDAC aPSC death.
+  estimated_translation_uncertainty_fold: 5.0
+  validation_warnings:

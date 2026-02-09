@@ -1,0 +1,177 @@
+study_interpretation: |
+  Weissman-Shomer and Fry (1975) quantified the pattern of division, ageing, and death of cultured chick embryo fibroblasts across a wide range of seeding densities and reported that the calendar lifespan of these cultures was consistently 57 +/- 3 days. We interpret this lifespan as an effective mean survival time for quiescent, fibroblast-like stromal cells under baseline conditions without strong exogenous death stimuli. Because quiescent pancreatic stellate cells in normal pancreas share key features with fibroblasts (vitamin A storage, low proliferative capacity, extracellular matrix homeostasis), this lifespan provides an approximate constraint on the intrinsic death rate of qPSC encoded by k_qpsc_death in the QSPIO-PDAC model, acknowledging that additional tumor-dependent clearance processes are handled separately by k_cell_clear in the full model.
+
+key_assumptions:
+- |
+  Quiescent pancreatic stellate cells and fibroblasts share similar baseline survival kinetics as long-lived mesenchymal stromal cells, so fibroblast lifespan can be used as an order-of-magnitude proxy for qPSC death rate.
+- |
+  The reported 57 +/- 3 day lifespan of chick embryo fibroblast cultures can be interpreted as the mean survival time of individual cells under an effective first-order death process, implying mean lifetime 1 / k_qpsc_death.
+- |
+  Tumor-dependent qPSC clearance terms in the full QSP model (e.g., k_cell_clear mediated processes and activation to aPSC) are treated separately from k_qpsc_death and are not constrained by this submodel.
+- |
+  In vitro fibroblast lifespan under normoxic culture conditions approximates physiological stromal cell longevity better than data from highly proliferative or transformed cell lines.
+
+key_study_limitations:
+- |
+  The data are from embryonic chick fibroblasts rather than adult human pancreatic stellate cells, introducing cross-species and cell-type translation uncertainty.
+- |
+  Lifespan is measured in vitro under culture conditions that may not fully recapitulate in vivo stromal homeostasis or exposure to immune and mechanical cues.
+- |
+  The abstract reports a single mean +/- 3 days without a clear statement of sample size or whether the error represents SD or SEM; we treat it as an empirical SD but this may mischaracterize measurement uncertainty.
+- |
+  Fibroblast cultures in the study undergo both proliferation and senescence; mapping the culture lifespan directly to an individual-cell death rate assumes effective first-order loss that may oversimplify underlying cell cycle dynamics.
+
+experimental_context:
+  species: chick
+  system: in_vitro_primary_cells
+  cell_lines:
+  cell_types:
+  - name: embryonic chick fibroblasts
+    phenotype: quiescent fibroblast-like stromal cells in primary culture
+    isolation_method: |
+      fibroblasts isolated from chick embryos and cultured in vitro as described in the original study
+  culture_conditions:
+    substrate: tissue culture plastic
+    serum_concentration:
+    serum_concentration_units:
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication:
+
+primary_data_source:
+  doi: 10.1016/0047-6374(75)90017-2
+  title: |
+    Chick embryo fibroblasts senscence in vitro: pattern of cell division and life span as a function of cell density
+  authors:
+  - Weissman-Shomer P
+  - Fry M
+  year: 1975
+  source_tag: WeissmanShomer1975
+
+secondary_data_sources:
+- doi: 10.3390/molecules28145586
+  url:
+  title: |
+    Pancreatic Stellate Cells and the Targeted Therapeutic Strategies in Chronic Pancreatitis
+  authors:
+  - Chang M
+  - Chen W
+  - Xia R
+  - Peng Y
+  - Niu P
+  - Fan H
+  year: 2023
+  source_tag: Chang2023
+  contribution: |
+    Recent review summarizing quiescent PSC biology, including their low proliferative capacity and role in maintaining pancreatic connective tissue structure, reinforcing the use of a long baseline lifespan for qPSCs.
+  source_quality: review_article
+
+target_id: k_qpsc_death_fibroblast_lifespan_WeissmanShomer1975
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c251124f788a301f78b03b1d87b04
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: fibroblast_lifespan_mean
+  value: 57.0
+  units: day
+  uncertainty:
+    ci95:
+    sd: 3.0
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: WeissmanShomer1975
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    cell populations seeded at different densities show life span at all densities remains 57 +/- 3 days
+  source_access: restricted
+- name: fibroblast_lifespan_sd
+  value: 3.0
+  units: day
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: WeissmanShomer1975
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: life span at all densities remains 57 +/- 3 days
+  source_access: restricted
+
+calibration:
+  parameters:
+  - name: k_qpsc_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -4.04
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Center prior on inverse of fibroblast lifespan (~1/57 day^-1) with one-log10-wide uncertainty to allow for species and cell-type differences between chick embryonic fibroblasts and human pancreatic stellate cells.
+  forward_model:
+    data_rationale: |
+      The primary data source reports the mean calendar lifespan (57 +/- 3 days) of cultured chick embryo fibroblasts under baseline conditions, which we interpret as the mean survival time of quiescent fibroblast-like stromal cells.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, quiescent pancreatic stellate cells (qPSC) are removed by a first-order death process V_T.qPSC -> null with rate k_qpsc_death * qPSC, in parallel with other clearance mechanisms. Under a pure first-order death process, the expected lifetime of an individual cell is 1 / k_qpsc_death. We therefore use the measured fibroblast lifespan as a proxy constraint on 1 / k_qpsc_death, ignoring tumor-dependent clearance and activation for this submodel so that we can calibrate the intrinsic death rate.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: t_life = 1 / k_qpsc_death
+    code: |
+      def compute(params, inputs, ureg):
+          k = params['k_qpsc_death']
+          return (1 / k) * ureg('day')
+    code_julia: |
+      function compute(params, inputs)
+          return 1.0 / params["k_qpsc_death"]
+      end
+  error_model:
+  - name: fibroblast_lifespan_measurement
+    observable:
+    units: day
+    uses_inputs:
+    - fibroblast_lifespan_mean
+    - fibroblast_lifespan_sd
+    evaluation_points:
+    sample_size:
+    sample_size_rationale: |
+      The abstract reports a single mean +/- SD over multiple seeding densities; the effective number of independent cultures contributing to the summary is not reported, so we treat the reported SD as an empirical population SD without explicit n.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          t = inputs['fibroblast_lifespan_mean']
+          t_sd = inputs['fibroblast_lifespan_sd']
+          cv = t_sd.magnitude / t.magnitude
+          return {
+              'value': t,
+              'sd': cv,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Cell lifespans are positive quantities and biological time-to-event data are typically right-skewed; a lognormal likelihood using the coefficient of variation is appropriate.
+  identifiability_notes: |
+    This algebraic submodel has a single parameter (k_qpsc_death) and a single independent measurement (mean fibroblast lifespan). Under the assumption of first-order death, k_qpsc_death is structurally identifiable from this measurement alone. However, practical identifiability is limited by experimental uncertainty in the lifespan estimate and by substantial translation uncertainty between chick embryo fibroblasts in vitro and human quiescent pancreatic stellate cells in vivo within a PDAC tumor microenvironment.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The primary study measures lifespan of embryonic chick fibroblasts in vitro, which we use as a mechanistic proxy for quiescent pancreatic stellate cell (qPSC) turnover. Both fibroblasts and qPSCs are long-lived, low-proliferation mesenchymal stromal cells that maintain extracellular matrix homeostasis, but they differ by tissue of origin (skin or generic connective tissue vs pancreas) and developmental stage (embryonic vs adult), so substantial translation uncertainty is expected when mapping fibroblast lifespan to qPSC death rate in human PDAC.
+  species_source: chick
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility:
+  tme_compatibility_notes:
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings:

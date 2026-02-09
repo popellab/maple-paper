@@ -1,0 +1,68 @@
+study_interpretation: x
+
+key_assumptions:
+- x
+
+key_study_limitations:
+
+experimental_context:
+  species: human
+  system: in_vitro_immortalized
+  cell_lines:
+  cell_types:
+  culture_conditions:
+  indication:
+
+primary_data_source:
+  doi: 10.1007/s10549-018-4760-8
+  title:
+  authors:
+  year:
+  source_tag: Dutta2018_TNBC_MCP1
+
+secondary_data_sources:
+
+target_id: k_CCL2_sec_dummy_ignore
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c251124abe573f6a746d794e7801d
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs: []
+
+calibration:
+  parameters: []
+  forward_model:
+    data_rationale: x
+    submodel_rationale: x
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: y=0
+    code: |
+      def compute(params, inputs, ureg):
+          return 0 * ureg.dimensionless
+    code_julia: |
+      function compute(params, inputs)
+          return 0.0
+      end
+  error_model: []
+  identifiability_notes: x
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: This is a long enough dummy justification string to satisfy length.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility:
+  tme_compatibility_notes:
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:

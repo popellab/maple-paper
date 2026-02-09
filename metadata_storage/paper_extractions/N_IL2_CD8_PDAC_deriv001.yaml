@@ -1,0 +1,173 @@
+study_interpretation: |
+  Tomala2009 demonstrate that sustained, high-intensity IL-2 receptor signaling delivered via IL-2/anti-IL-2 immunocomplexes can expand activated naive CD8+ T cells more than 1000-fold in vivo after six doses. Assuming each cell division approximately doubles cell number and that net death during the expansion burst is limited, this fold-expansion implies on the order of 10 effective generations (log2(1000) ~ 10). We therefore use these data to calibrate N_IL2_CD8 as an effective maximum number of IL-2-driven CD8 T cell divisions achievable under strong IL-2 exposure, recognizing that this captures both true mitotic events and any systematic deviations from idealized doubling.
+
+key_assumptions:
+- |
+  Each effective IL-2-driven generation approximately doubles CD8 T cell number, so total fold expansion can be approximated as 2 ** N_IL2_CD8.
+- |
+  Net cell death during the main IL-2-driven proliferative burst is relatively small compared to proliferation, so it can be neglected when mapping fold expansion to number of effective generations.
+- |
+  The pharmacologic IL-2/anti-IL-2 immunocomplex regimen in mice approximates a near-maximal IL-2R signaling scenario that is suitable for constraining the upper bound of N_IL2_CD8 in the human PDAC model.
+- |
+  Intrinsic IL-2-driven proliferative capacity of CD8 T cells (in generations) is broadly conserved between mice and humans, allowing mouse in vivo data to inform a human QSP model with a moderate translation uncertainty factor.
+- |
+  Biological and experimental variability in reported fold-expansion can be reasonably summarized by an assumed coefficient of variation (here 30 percent) in the absence of detailed dispersion and sample size reporting.
+
+key_study_limitations:
+- |
+  Data are from mouse models with IL-2/anti-IL-2 immunocomplexes, not from human PDAC patients or human CD8 T cells in vitro.
+- |
+  IL-2 is presented as a long-acting immunocomplex at pharmacologic doses, which may exaggerate expansion relative to clinical IL-2 exposure or endogenous IL-2 produced in PDAC tumors.
+- |
+  The abstract reports fold-expansion qualitatively as several hundred-fold and more than 1000-fold, without precise point estimates, variance, or sample sizes, so the effective fold expansion and its uncertainty must be approximated.
+- |
+  The mapping from fold expansion to number of generations assumes idealized doubling and negligible death; in reality, division and death are concurrent, so N_IL2_CD8 inferred here should be viewed as an effective parameter rather than a literal division count.
+- |
+  Tumor microenvironmental factors in PDAC (desmoplasia, myeloid suppression, T cell exclusion) are not captured in the Tomala2009 models and could limit IL-2-driven expansion in patients relative to these mouse experiments.
+
+experimental_context:
+  species: mouse
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: naive CD8 T cells (activated in vivo)
+    phenotype: |
+      CD8+ CD44low naive T cells activated and expanded in vivo by IL-2/anti-IL-2 immunocomplex treatment
+    isolation_method: |
+      FACS-sorted CD44low CD8+ T cells transferred into mice, then activated and expanded in vivo with IL-2/S4B6 immunocomplexes
+  culture_conditions:
+  indication: |
+    Tumor-bearing mice receiving IL-2/anti-IL-2 immunocomplexes as an experimental cancer immunotherapy regimen
+
+primary_data_source:
+  doi: 10.4049/jimmunol.0900284
+  title: |
+    In vivo expansion of activated naive CD8+ T cells and NK cells driven by complexes of IL-2 and anti-IL-2 monoclonal antibody as novel approach of cancer immunotherapy
+  authors:
+  - Tomala J
+  - Chmelova H
+  - Mrkvan T
+  - Rihova B
+  - Kovar M
+  year: 2009
+  source_tag: Tomala2009
+
+secondary_data_sources:
+
+target_id: N_IL2_CD8_max_generations_Tomala2009
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511251da3b0aa89ee0d050082bd
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: fold_expansion_min_il2_complex_cd8
+  value: 1000.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Tomala2009
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    IL-2 immunocomplexes expand activated naive CD8(+) T cells several hundred-fold times after four doses and more than 1000-fold times after six doses (1.5 microg/dose of IL-2), whereas free IL-2 given at the same dosage shows negligible activity.
+  source_access: open_access
+- name: assumed_cv_il2_complex_fold
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Tomala2009
+  source_location: |
+    Assumption based on typical variability of in vivo T cell expansion; not directly reported in paper.
+  extraction_method: other
+  value_snippet:
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: N_IL2_CD8
+    units: dimensionless
+    prior:
+      distribution: uniform
+      mu:
+      sigma:
+      lower: 0.0
+      upper: 20.0
+      rationale: |
+        Maximum number of IL-2-driven CD8 T cell divisions is expected to be finite and positive. Typical T cell replicative histories before senescence are on the order of 10-20 generations, so a broad uniform prior from 0 to 20 covers plausible values without being overly informative.
+  forward_model:
+    data_rationale: |
+      Tomala2009 report that IL-2/anti-IL-2 immunocomplexes expand activated naive CD8+ T cells more than 1000-fold after six doses in vivo, providing a strong constraint on the maximum clonal expansion achievable under sustained, strong IL-2 receptor signaling.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, N_IL2_CD8 represents the maximum number of activated CD8 T cell generations achievable due to IL-2 stimulation. Under the simplifying assumption that each division approximately doubles cell number and that death is negligible during the expansion burst, the total fold expansion is approximated as 2 ** N_IL2_CD8. The Tomala2009 data therefore constrain N_IL2_CD8 via the observed maximum fold expansion under strong IL-2R signaling.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: fold_expansion = 2 ** N_IL2_CD8
+    code: |
+      def compute(params, inputs, ureg):
+          import numpy as np
+          N = params['N_IL2_CD8']
+          # Under pure proliferative expansion with negligible death, each generation doubles cell number
+          fold = (2 ** N) * 1.0
+          return fold * ureg.dimensionless
+    code_julia: |
+      function compute(params, inputs)
+          N = params["N_IL2_CD8"]
+          # Under pure proliferative expansion with negligible death, each generation doubles cell number
+          fold = 2.0 ^ N
+          return fold
+      end
+  error_model:
+  - name: il2_complex_cd8_fold_expansion
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - fold_expansion_min_il2_complex_cd8
+    - assumed_cv_il2_complex_fold
+    evaluation_points:
+    sample_size:
+    sample_size_rationale: |
+      Sample size for fold-expansion measurement is not reported explicitly in the abstract. Variability is captured via an assumed coefficient of variation input rather than explicit n.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          fold = inputs['fold_expansion_min_il2_complex_cd8']
+          cv = inputs['assumed_cv_il2_complex_fold'].magnitude
+          # For a lognormal likelihood, we pass a dimensionless coefficient of variation as the SD parameter.
+          return {
+              'value': fold,
+              'sd': cv,
+              'sd_uncertain': True,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Fold expansion is positive and typically multiplicative in biology. Experimental fold-changes often follow approximately lognormal distributions, so a lognormal likelihood with CV specified via an auxiliary input is appropriate.
+  identifiability_notes: |
+    With a single measurement of overall fold expansion and a strictly monotonic mapping fold_expansion = 2 ** N_IL2_CD8, N_IL2_CD8 is structurally identifiable from this dataset under the assumption of pure doubling divisions and negligible death. However, this identifiability is conditional on that mechanistic assumption; any systematic deviation from exact doubling (for example, concurrent death or incomplete division) will be absorbed into the inferred N_IL2_CD8, so the calibrated value should be interpreted as an effective number of IL-2-driven generations rather than a literal count of mitoses.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The Tomala2009 study investigates IL-2/anti-IL-2 immunocomplex-driven expansion of activated naive CD8+ T cells in mouse tumor models (non-PDAC). We use these data as a proxy to constrain the maximal IL-2-driven proliferative potential of CD8 T cells in a human PDAC QSP model. Although the tumor type and species differ, the underlying process of IL-2 receptor-mediated clonal expansion of CD8 T cells is largely cell-intrinsic and mechanistically similar across solid tumor settings, so the data are informative but require translation uncertainty.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pharmacological
+  perturbation_relevance: |
+    IL-2 is delivered as long-acting IL-2/anti-IL-2 immunocomplexes at pharmacologic doses, which strongly amplify IL-2R signaling and extend IL-2 half-life. As a result, the observed greater than 1000-fold CD8 T cell expansion likely represents an upper bound on IL-2-driven proliferative capacity under highly favorable conditions. In the PDAC QSP model, N_IL2_CD8 should therefore be interpreted as a maximal or near-maximal number of IL-2-driven generations achievable under strong IL-2 exposure, with typical in-tumor expansion expected to be lower.
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    The Tomala2009 models use transplantable tumor systems in immunocompetent mice, which provide an inflamed but not strongly desmoplastic microenvironment. PDAC tumors are more fibrotic and immunosuppressed. However, the parameter N_IL2_CD8 reflects intrinsic CD8 T cell proliferative capacity under IL-2 rather than trafficking or stromal constraints, so tumor microenvironment differences are expected to introduce only moderate uncertainty.
+  estimated_translation_uncertainty_fold: 5.0
+  validation_warnings: []

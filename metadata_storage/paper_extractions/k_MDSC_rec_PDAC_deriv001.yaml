@@ -1,0 +1,251 @@
+study_interpretation: |
+  Bayne et al. quantified Gr-1+ CD11b+ myeloid-derived suppressor cells in the KPC mouse model of pancreatic ductal adenocarcinoma and found that they comprise approximately 20%-30% of all CD45+ leukocytes in pancreatic tumors and spleens. Interpreting established KPC tumors as being at quasi-steady state with respect to MDSC turnover, this high fraction reflects the balance between chemokine-driven recruitment into the tumor and first-order loss (death and clearance). Literature describing MDSCs as short-lived cells with a lifespan of about one to two days in blood and tumor microenvironments further constrains the loss rate. Together, these data imply a substantial continuous recruitment flux to maintain the observed MDSC burden, providing an order-of-magnitude constraint on k_MDSC_rec in the PDAC QSP model.
+
+key_assumptions:
+- |
+  KPC tumors analyzed in Bayne et al. represent a quasi-steady state for intratumoral MDSC numbers, so that recruitment approximately balances death and clearance.
+- |
+  The fraction of CD45+ leukocytes that are Gr-1+ CD11b+ cells (20%-30%) in KPC pancreatic tumors is representative of established PDAC tumors used as baseline in the QSP model.
+- |
+  Chemokine-dependent modulation of MDSC recruitment via CCL2 and IL-6 is near-saturated in established PDAC and can be absorbed into the prior on k_MDSC_rec in this steady-state submodel.
+- |
+  Total CD45+ leukocyte density per milliliter of PDAC tumor (L_leukocyte_T) is relatively stable across tumors and can be represented by a broad lognormal prior centered around 1e7 cells/mL.
+- |
+  The additional first-order clearance term for MDSCs present in the full QSP model can be lumped with intrinsic death into an effective loss rate k_MDSC_death for the purpose of this calibration.
+
+key_study_limitations:
+- |
+  Bayne et al. report MDSC frequencies as percentages of leukocytes but do not provide absolute counts per tumor volume, requiring introduction of an assumed leukocyte density parameter.
+- |
+  Only a single cross-sectional time point for intratumoral MDSCs is available, so recruitment and death rates cannot be independently identified without informative priors.
+- |
+  Gr-1+ CD11b+ cells in the KPC model include heterogeneous immature myeloid subsets (monocytic and granulocytic MDSCs), whereas the QSP model aggregates them into a single MDSC compartment.
+- |
+  Mouse-to-human species differences in myeloid biology and chemokine receptor expression introduce at least a few-fold uncertainty when translating recruitment rates to human PDAC.
+- |
+  Non-chemokine mechanisms (e.g., local proliferation of myeloid cells in the tumor) are not disentangled and are effectively absorbed into the recruitment parameter.
+
+experimental_context:
+  species: mouse
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: Gr-1+ CD11b+ myeloid-derived suppressor cells
+    phenotype: |
+      Immature myeloid cells with suppressive function; includes both monocytic and granulocytic MDSCs in KPC PDAC tumors.
+    isolation_method: |
+      Flow cytometry gating on CD45+ Gr-1+ CD11b+ cells from pancreas and spleen of KPC mice.
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.1016/j.ccr.2012.04.025
+  title: |
+    Tumor-derived granulocyte-macrophage colony stimulating factor regulates myeloid inflammation and T cell immunity in pancreatic cancer
+  authors:
+  - Bayne LJ
+  - Beatty GL
+  - Jhala N
+  - Clark CE
+  - Lorang D
+  - Laufer TM
+  - Vonderheide RH
+  year: 2012
+  source_tag: Bayne2012_GMCSF_PDAC
+
+secondary_data_sources:
+- doi: 10.1016/j.humimm.2021.04.009
+  url:
+  title: The impact of microRNAs on myeloid-derived suppressor cells in cancer
+  authors:
+  year: 2021
+  source_tag: Baghbani2021_MDSC_Review
+  contribution: |
+    Provided qualitative and semi-quantitative information that M-MDSC and G-MDSC in blood and tumor microenvironments are short-lived cells with a lifespan of approximately one to two days, used to construct the prior for k_MDSC_death.
+  source_quality: review_article
+
+target_id: k_MDSC_rec_PDAC_MDSC_recruitment_Bayne2012
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511242ab624c97b3b2874745f15
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: mdsc_fraction_tumor_ci95_low
+  value: 0.2
+  units: dimensionless
+  uncertainty:
+  n: 13
+  input_type: direct_measurement
+  role: target
+  source_ref: Bayne2012_GMCSF_PDAC
+  source_location: |
+    Results, first paragraph describing Gr-1+ CD11b+ accumulation in KPC tumors and spleens.
+  extraction_method: manual
+  value_snippet: |
+    In tumor-bearing KPC mice, we found that Gr-1+ CD11b+ cells prominently accumulated in both the tumor and the spleen compared to normal controls, comprising 20%-30% of all leukocytes in these tissues.
+  source_access: open_access
+- name: mdsc_fraction_tumor_ci95_high
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n: 13
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Bayne2012_GMCSF_PDAC
+  source_location: |
+    Results, first paragraph describing Gr-1+ CD11b+ accumulation in KPC tumors and spleens.
+  extraction_method: manual
+  value_snippet: |
+    In tumor-bearing KPC mice, we found that Gr-1+ CD11b+ cells prominently accumulated in both the tumor and the spleen compared to normal controls, comprising 20%-30% of all leukocytes in these tissues.
+  source_access: open_access
+- name: mdsc_lifespan_ci95_low
+  value: 1.0
+  units: day
+  uncertainty:
+  n:
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Baghbani2021_MDSC_Review
+  source_location: Section discussing MDSC lifespan in blood and tumor microenvironment.
+  extraction_method: manual
+  value_snippet: |
+    M-MDSC and G-MDSC in the blood flow or in the tumor microenvironment have a limited lifespan of just about one to two days.
+  source_access: restricted
+- name: mdsc_lifespan_ci95_high
+  value: 2.0
+  units: day
+  uncertainty:
+  n:
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Baghbani2021_MDSC_Review
+  source_location: Section discussing MDSC lifespan in blood and tumor microenvironment.
+  extraction_method: manual
+  value_snippet: |
+    M-MDSC and G-MDSC in the blood flow or in the tumor microenvironment have a limited lifespan of just about one to two days.
+  source_access: restricted
+
+calibration:
+  parameters:
+  - name: k_MDSC_rec
+    units: cell/(milliliter*day)
+    prior:
+      distribution: lognormal
+      mu: 13.8
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered around 1e6 cell/(mL*day), roughly the recruitment flux needed to maintain ~2-3 x 10^6 MDSCs per mL with a 1-2 day lifespan in PDAC tumors, with 10-fold uncertainty to reflect cross-species and TME variability.
+  - name: k_MDSC_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -0.77
+      sigma: 0.5
+      lower:
+      upper:
+      rationale: |
+        Derived from MDSC lifespan of approximately 1-2 days in blood and tumors. A midpoint lifespan of ~1.5 days corresponds to k ~ ln(2)/1.5 ~ 0.46 1/day. Moderate uncertainty reflects variation across contexts and experimental systems.
+  - name: L_leukocyte_T
+    units: cell/milliliter
+    prior:
+      distribution: lognormal
+      mu: 16.1
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Effective CD45+ leukocyte density in PDAC tumor tissue. Prior centered at 1e7 cells/mL, with an order-of-magnitude uncertainty to cover plausible ranges in desmoplastic solid tumors. This is needed to convert an observed MDSC fraction into an absolute MDSC density.
+  forward_model:
+    data_rationale: |
+      Bayne et al. (KPC PDAC model) report that Gr-1+ CD11b+ cells comprise 20%-30% of all CD45+ leukocytes in established pancreatic tumors, but only at a single time point. Interpreting these tumors as being at quasi-steady state with respect to MDSC turnover, the steady-state MDSC fraction constrains the ratio of recruitment to loss rates.
+    submodel_rationale: |
+      In the full QSP PDAC model, intratumoral MDSCs are generated via a source term null -> V_T.MDSC with rate k_MDSC_rec * V_T * (V_T.CCL2 / (V_T.CCL2 + CCL2_50)) * (1 + H_IL6_MDSC) and are removed by first-order death and additional clearance. Under baseline PDAC conditions with high chemokine levels, we assume the chemokine-dependent modulation is near-saturated and absorb it into the prior for k_MDSC_rec. At steady state, recruitment balances first-order loss, so that the MDSC density per tumor volume is k_MDSC_rec / k_MDSC_death (up to chemokine modulation). Dividing by the CD45+ leukocyte density L_leukocyte_T yields the observable fraction of leukocytes that are MDSCs. This algebraic submodel captures that steady-state balance while preserving the mechanistic role of k_MDSC_rec as a source-term coefficient.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: f_MDSC = k_MDSC_rec / (k_MDSC_death * L_leukocyte_T)
+    code: |
+      def compute(params, inputs, ureg):
+          # params:
+          #   k_MDSC_rec   [cell/(mL*day)]
+          #   k_MDSC_death [1/day]
+          #   L_leukocyte_T[cell/mL]
+          k_rec = params['k_MDSC_rec']
+          k_death = params['k_MDSC_death']
+          L = params['L_leukocyte_T']
+          f = k_rec / (k_death * L)
+          return f * ureg('dimensionless')
+    code_julia: |
+      function compute(params, inputs)
+          k_rec   = params["k_MDSC_rec"]
+          k_death = params["k_MDSC_death"]
+          L       = params["L_leukocyte_T"]
+          f = k_rec / (k_death * L)
+          return f
+      end
+  error_model:
+  - name: mdsc_fraction_tumor_measurement
+    observable:
+      type: identity
+      state_variables: []
+      rationale:
+      code:
+    units: dimensionless
+    uses_inputs:
+    - mdsc_fraction_tumor_ci95_low
+    - mdsc_fraction_tumor_ci95_high
+    evaluation_points:
+    sample_size: 13
+    sample_size_rationale: |
+      Number of KPC pancreata analyzed for tumor-associated Gr-1+ CD11b+ MDSCs in the PDA group (n=13 pancreata reported).
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          import numpy as np
+          low = inputs['mdsc_fraction_tumor_ci95_low']   # dimensionless
+          high = inputs['mdsc_fraction_tumor_ci95_high'] # dimensionless
+
+          L = low.magnitude
+          U = high.magnitude
+
+          # Interpret 20%-30% as an approximate 95% interval for the
+          # between-mouse variability in MDSC fraction.
+          sigma_log = (np.log(U) - np.log(L)) / (2.0 * 1.96)
+
+          # Use the geometric mean as central estimate of the fraction
+          mean_val = np.sqrt(L * U) * ureg('dimensionless')
+
+          return {
+              'value': mean_val,
+              'sd': sigma_log,       # log-space SD for lognormal likelihood
+              'sd_uncertain': False,
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        MDSC fractions are positive and bounded between 0 and 1. Across mice, inter-tumoral variability in these fractions is plausibly closer to lognormal than normal due to multiplicative biological sources of variation.
+  identifiability_notes: |
+    This submodel primarily constrains the combination k_MDSC_rec / (k_MDSC_death * L_leukocyte_T) through the observed steady-state MDSC fraction in KPC PDAC tumors. With only a single cross-sectional measurement, k_MDSC_rec is not strictly identifiable without informative priors on k_MDSC_death (from MDSC lifespan) and L_leukocyte_T (tumor leukocyte density). The posterior for k_MDSC_rec will therefore remain broad and correlated with both k_MDSC_death and L_leukocyte_T, and this calibration should be interpreted as providing an order-of-magnitude constraint rather than a precise estimate. Longitudinal data on intratumoral MDSC accumulation or absolute counts of MDSCs and CD45+ cells per gram of tumor would be required for stronger identifiability.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The primary data source uses the KPC genetically engineered mouse model of pancreatic ductal adenocarcinoma, which closely recapitulates the stromal desmoplasia, immune infiltration, and progression of human PDAC. The QSP model targets human PDAC, so the disease indication and major tumor microenvironment features are well aligned, though species differences persist.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    The KPC model exhibits dense desmoplastic stroma, high myeloid inflammation, and abundant Gr-1+ CD11b+ infiltrates, all characteristic of human PDAC. It is therefore a strong surrogate for PDAC tumor microenvironment properties that govern MDSC recruitment.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:

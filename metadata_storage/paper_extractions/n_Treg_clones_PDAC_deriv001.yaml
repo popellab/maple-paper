@@ -1,0 +1,225 @@
+study_interpretation: |
+  Yu et al. used an IL-2Rbeta-/- mouse model rescued with wild-type Foxp3+ Tregs to progressively restrict the Treg TCRbeta repertoire and assess when tolerance fails. Deep sequencing of TCRbeta in Tregs from primary recipients that remained autoimmune-free showed an average of 7608 +/- 1321 unique productive clonotypes. The authors interpret this as the minimal Treg TCRbeta diversity required to suppress polyclonal autoreactive T cells, corresponding to approximately 18% of the full Treg repertoire (~42,225 clonotypes) observed in normal mice. In the submodel, we map n_Treg_clones directly to this minimal clonotype count, treating it as an approximate lower bound for the number of distinct self-antigen-specific Treg clones needed for effective tolerance.
+
+key_assumptions:
+- |
+  n_Treg_clones in the QSPIO-PDAC model is interpreted as the effective number of distinct self-antigen-specific Treg clonotypes contributing to tolerance and tumor-related regulation.
+- |
+  The minimal Treg TCRbeta clonotype number required to prevent autoimmunity in IL-2Rbeta-/- mice provides an order-of-magnitude lower bound on the clonal diversity needed for self-tolerance in humans.
+- |
+  Treg functional specificity is well approximated by TCRbeta clonotype counts; alpha-chain diversity and paired alpha/beta diversity are not modeled explicitly.
+- |
+  The reported +/-1321 value for 7608 clonotypes is treated as SEM and converted to SD using an inferred sample size of n=4 primary recipients.
+- |
+  Systemic tolerance requirements captured in the IL-2Rbeta-/- model are assumed to be qualitatively relevant to the balance of effector and regulatory clones in PDAC, but with at least an order-of-magnitude translation uncertainty.
+- |
+  We equate n_Treg_clones with the minimal required clonotype number, recognizing that the full repertoire in unperturbed hosts is larger (~4.2e4 clonotypes in this mouse study).
+
+key_study_limitations:
+- Mouse in vivo model (C57BL/6 IL-2Rbeta-/-) rather than human PDAC patients.
+- |
+  Pathological state with genetic disruption of IL-2 signaling; tolerance may be restored under non-physiological conditions.
+- |
+  Clonotype counts are derived from TCRbeta sequencing only and do not fully capture paired alpha/beta diversity.
+- |
+  Tissue and antigen context (systemic autoimmunity) differ from the PDAC tumor microenvironment.
+- |
+  Sample size for deep sequencing of primary recipients is inferred (n~4) from related spectratyping experiments, not explicitly reported for clonotype counts.
+
+experimental_context:
+  species: mouse
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: CD4+ Foxp3+ regulatory T cells
+    phenotype:
+    isolation_method:
+  culture_conditions:
+  indication: autoimmunity model (IL-2Rbeta-deficient mice rescued with wild-type Tregs)
+
+primary_data_source:
+  doi: 10.4049/jimmunol.1601966
+  title: |
+    The lower limit of regulatory CD4+ Foxp3+ TCRbeta repertoire diversity required to control autoimmunity
+  authors:
+  - Yu A
+  - Dee MJ
+  - Adeegbe D
+  - Dwyer CJ
+  - Altman NH
+  - Malek TR
+  year: 2017
+  source_tag: Yu2017
+
+secondary_data_sources:
+- doi: 10.1111/j.1365-2567.2008.02992.x
+  url:
+  title: The T-cell receptor repertoire of regulatory T cells
+  authors:
+  - Pacholczyk R
+  - Kern J
+  - others
+  year: 2008
+  source_tag: Pacholczyk2008
+  contribution: |
+    Review summarizing that Treg TCR repertoires are highly diverse and overlap only partially with conventional CD4+ T cells, supporting the interpretation of n_Treg_clones as a large clonal pool.
+  source_quality: review_article
+
+target_id: n_Treg_clones_Yu2017_mouse_Treg_TCRdiversity
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511256cb54a11c1879bf8491a05
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: treg_clonotypes_min_mean
+  value: 7608.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Yu2017
+  source_location: |
+    Results, Direct measure of the Treg TCRbeta repertoire by deep sequencing; Figure 6B caption
+  extraction_method: manual
+  value_snippet: |
+    The average number +/- SEM of unique productive clonotypes was: 1deg recipients, 7608 +/- 1321; 2deg recipients, 3309 +/- 604; and 2deg Em1-4 recipients, 4673 +/- 279.
+  source_access: open_access
+- name: treg_clonotypes_min_sem
+  value: 1321.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yu2017
+  source_location: |
+    Results, Direct measure of the Treg TCRbeta repertoire by deep sequencing; Figure 6B caption
+  extraction_method: manual
+  value_snippet: |
+    The average number +/- SEM of unique productive clonotypes was: 1deg recipients, 7608 +/- 1321; 2deg recipients, 3309 +/- 604; and 2deg Em1-4 recipients, 4673 +/- 279.
+  source_access: open_access
+- name: treg_clonotypes_min_n
+  value: 4.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Yu2017
+  source_location: |
+    Figure 5 caption: D-scores for reference normal (Input) Tregs or donor Foxp3/RFP+ Tregs from 1deg (n=4) and 2deg (n=11) IL-2Rbeta-/- mice.
+  extraction_method: manual
+  value_snippet: |
+    D-scores for reference normal (Input) Tregs or donor Foxp3/RFP+ Tregs from 1deg (n=4) and 2deg (n=11) IL-2Rbeta-/- mice.
+  source_access: open_access
+- name: treg_clonotypes_total_mean
+  value: 42225.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Yu2017
+  source_location: |
+    Results, Direct measure of the Treg TCRbeta repertoire by deep sequencing; Figure 6B text
+  extraction_method: manual
+  value_snippet: |
+    On average 42,225 TCRbeta clonotypes were identified after deep sequencing five independent samples of Tregs isolated from normal mice.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: n_Treg_clones
+    units: dimensionless
+    prior:
+      distribution: lognormal
+      mu: 8.94
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered on the mouse estimate of minimal Treg TCRbeta diversity required to maintain tolerance (~7.6e3 clonotypes), with ~1 log-unit uncertainty to allow for species and indication translation and for the fact that the human PDAC setting may require different clonal diversity.
+  forward_model:
+    data_rationale: |
+      Yu et al. quantified the number of unique productive TCRbeta clonotypes in Foxp3+ Tregs in a mouse IL-2Rbeta-/- autoimmunity model using deep sequencing, and identified the minimal repertoire size compatible with control of polyclonal autoreactive T cells.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, n_Treg_clones is a dimensionless factor representing the number of self-antigen-specific Treg clonotypes, scaling both the rate of Treg activation and the amount of self-antigen P0 generated per dying cancer cell. In this submodel, we identify n_Treg_clones directly with the minimal number of distinct Treg TCRbeta clonotypes required to maintain tolerance, providing an order-of-magnitude calibration for this clonal multiplicity factor.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: N_min_clonotypes = n_Treg_clones
+    code: |
+      def compute(params, inputs, ureg):
+          n_clones = params['n_Treg_clones']
+          # n_Treg_clones represents the effective number of distinct
+          # self-antigen-specific Treg clonotypes contributing to tolerance.
+          # The observable in this submodel is the minimal clonotype count
+          # inferred from deep sequencing.
+          return n_clones * ureg('dimensionless')
+    code_julia: |
+      function compute(params, inputs)
+          # n_Treg_clones represents the effective number of distinct
+          # self-antigen-specific Treg clonotypes contributing to tolerance.
+          return params["n_Treg_clones"]
+      end
+  error_model:
+  - name: treg_clone_count_min_mouse
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - treg_clonotypes_min_mean
+    - treg_clonotypes_min_sem
+    - treg_clonotypes_min_n
+    evaluation_points:
+    sample_size: 4
+    sample_size_rationale: |
+      Number of primary recipients inferred from related spectratyping experiment in the same paper.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          import numpy as np
+          mean = inputs['treg_clonotypes_min_mean']  # Quantity
+          sem = inputs['treg_clonotypes_min_sem']    # Quantity
+          n = int(inputs['treg_clonotypes_min_n'].magnitude)
+
+          # Convert SEM to SD: SD = SEM * sqrt(n)
+          sd_linear = sem.magnitude * np.sqrt(n)
+
+          # For a lognormal likelihood, use coefficient of variation (CV)
+          # as the scale parameter in log-space.
+          cv = sd_linear / mean.magnitude
+
+          return {
+              'value': mean,          # Pint Quantity, dimensionless
+              'sd': cv,               # dimensionless CV for lognormal
+              'sd_uncertain': True,   # SD derived from SEM and inferred n
+              'n': n,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Clonotype counts are strictly positive and multiplicative variability (fold-changes) is more appropriate than additive noise on the absolute scale for repertoire size measurements.
+  identifiability_notes: |
+    The algebraic submodel has a single parameter (n_Treg_clones) and a single direct observation (minimal Treg clonotype count in mice), so it is structurally identifiable within the context of the mouse experiment. However, translation to the human PDAC setting is highly uncertain (documented in source_relevance), so the calibrated value should be interpreted as an order-of-magnitude anchor for the clonal multiplicity factor rather than a precise human PDAC estimate.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The primary data are from a murine IL-2Rbeta-/- autoimmunity model, not from PDAC. The quantified minimal Treg TCRbeta clonotype diversity reflects systemic self-tolerance requirements rather than tumor-specific immune regulation. We use this as a mechanistic proxy for the number of distinct self-antigen-specific Treg clones that can participate in tolerance, acknowledging that the clonal diversity needed in human PDAC may differ substantially due to species, tissue, and disease context.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance: |
+    IL-2Rbeta-/- mice lack functional endogenous Tregs, and tolerance is restored by adoptive transfer of wild-type Tregs. The estimated minimal clonotype number therefore reflects a lower bound in a perturbed system. In unperturbed human PDAC, the effective number of relevant Treg clones may be higher; we treat the mouse estimate as an approximate lower bound on n_Treg_clones.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    The experiment measures systemic tolerance in lymphoid organs and multiple non-tumor tissues in autoimmune-prone mice, whereas the QSP model targets a desmoplastic, T cell-excluded PDAC tumor microenvironment with distinct stromal architecture and antigenic landscape. Treg clonal requirements in PDAC may differ by at least an order of magnitude.
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings: []

@@ -1,0 +1,248 @@
+study_interpretation: |
+  Apte et al. (1998) show that freshly isolated rat pancreatic stellate cells, initially alpha-SMA-negative, become alpha-SMA-positive within 48 h when cultured on plastic. This qualitative time course is interpreted as the intrinsic timescale for transition from quiescent vitamin A storing PSCs to myofibroblast-like activated PSCs under strong activating stimuli. Assuming first-order kinetics and negligible proliferation or death over 48 h, these data constrain the activation rate constant k_psc_activation used for the qPSC to aPSC reaction in the PDAC QSP model, in the limit of saturating profibrogenic signals such as PDGF and TGFbeta.
+
+key_assumptions:
+- |
+  Alpha-SMA positivity is treated as a binary marker of PSC activation, so the fraction of alpha-SMA-positive cells approximates the fraction of activated PSCs in the culture.
+- |
+  PSC proliferation and death are negligible over the first 48 h after isolation, so changes in alpha-SMA positivity primarily reflect state transitions rather than net growth or loss of PSCs.
+- |
+  Culture on rigid plastic with serum produces near-saturating activation signals, so the effective in vitro activation rate approximates the intrinsic k_psc_activation parameter in the tumor model under strong TGFbeta and PDGF stimulation.
+- |
+  Qualitative descriptions of alpha-SMA staining at 24 h (negative) and 48 h (positive) are translated into approximate fractions (about 5 percent and 95 percent) with large assumed uncertainty for use in quantitative calibration.
+- |
+  Rat PSC activation kinetics are assumed to be broadly similar in scale to human PSCs, with additional uncertainty captured in the translation uncertainty factor.
+
+key_study_limitations:
+- |
+  Alpha-SMA staining was reported qualitatively without explicit quantitative fractions or replicate counts, so activation fractions at 24 h and 48 h are inferred rather than directly measured.
+- |
+  The in vitro culture system, rat PSCs on plastic in serum, differs substantially from the human PDAC tumor microenvironment, which includes cancer cells, immune cells, hypoxia, and complex extracellular matrix architecture.
+- |
+  Species differences between rat and human PSCs are not directly accounted for beyond an overall translation uncertainty factor.
+- |
+  Only two qualitative time points, 24 h and 48 h, are available, limiting the ability to detect deviations from simple first-order activation kinetics.
+
+experimental_context:
+  species: rat
+  system: in_vitro_primary_cells
+  cell_lines:
+  cell_types:
+  - name: pancreatic stellate cell
+    phenotype: |
+      Quiescent at isolation; spontaneously activated to myofibroblast-like phenotype on plastic in serum-containing medium.
+    isolation_method: Nycodenz gradient from normal rat pancreas
+  culture_conditions:
+    substrate: plastic
+    serum_concentration:
+    serum_concentration_units:
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication: normal_pancreas
+
+primary_data_source:
+  doi: 10.1136/gut.43.1.128
+  title: |
+    Periacinar stellate shaped cells in rat pancreas: identification, isolation, and culture
+  authors:
+  year: 1998
+  source_tag: Apte1998_PSCIsolation
+
+secondary_data_sources:
+- doi: 10.1136/gut.44.4.534
+  url:
+  title: |
+    Pancreatic stellate cells are activated by proinflammatory cytokines: implications for pancreatic fibrogenesis
+  authors:
+  year: 1999
+  source_tag: Apte1999_Cytokines
+  contribution: |
+    Provides evidence that profibrogenic cytokines such as PDGF and TGFbeta drive PSC activation and proliferation, supporting the use of a first-order activation rate constant under strong cytokine stimulation in the submodel.
+  source_quality: primary_animal_in_vitro
+
+target_id: k_psc_activation_apte1998_psc_culture_final
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511243dc8d876e45a6550859d76
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: psc_activation_fraction_24h_mean
+  value: 0.05
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: target
+  source_ref: Apte1998_PSCIsolation
+  source_location: Results, culture on plastic for 24 h vs 48 h
+  extraction_method: manual
+  value_snippet: |
+    Cells cultured for 24 hours had an angular appearance, contained lipid droplets, and stained negatively for alpha-SMA.
+  source_access: open_access
+- name: psc_activation_fraction_24h_sd
+  value: 0.05
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Apte1998_PSCIsolation
+  source_location: |
+    Not reported; SD assumed based on qualitative description of alpha-SMA negativity at 24 h.
+  extraction_method: other
+  value_snippet:
+  source_access: open_access
+- name: psc_activation_fraction_48h_mean
+  value: 0.95
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: target
+  source_ref: Apte1998_PSCIsolation
+  source_location: Results, culture on plastic for 24 h vs 48 h
+  extraction_method: manual
+  value_snippet: At 48 hours, cells were positive for alpha-SMA.
+  source_access: open_access
+- name: psc_activation_fraction_48h_sd
+  value: 0.05
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Apte1998_PSCIsolation
+  source_location: |
+    Not reported; SD assumed based on qualitative description of uniform alpha-SMA positivity at 48 h.
+  extraction_method: other
+  value_snippet:
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_psc_activation
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: 0.0
+      sigma: 1.5
+      lower:
+      upper:
+      rationale: |
+        PSC cultures on plastic convert from alpha-SMA-negative to alpha-SMA-positive over about 2 days; prior centered at 1/day with wide uncertainty spanning roughly 0.1 to 10 per day.
+  forward_model:
+    data_rationale: |
+      Rat pancreatic stellate cells isolated from normal pancreas and cultured on plastic are alpha-SMA-negative at 24 h and alpha-SMA-positive at 48 h, providing a characteristic time scale for quiescent-to-activated transition under strong mechanical and serum-derived stimulation.
+    submodel_rationale: |
+      Submodel represents first-order transition from quiescent PSCs (qPSC) to activated PSCs (aPSC) with rate constant k_psc_activation, matching the full PDAC QSP model qPSC to aPSC reaction in the limit of saturating PDGF and TGFbeta and neglecting proliferation and death over the first 48 h.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 2.0
+      rationale:
+    state_variables:
+    - name: qPSC
+      units: cell
+      initial_condition:
+        value: 1.0
+        rationale: |
+          Total PSC pool normalized to 1 at t=0; all cells are quiescent immediately after isolation.
+    - name: aPSC
+      units: cell
+      initial_condition:
+        value: 0.0
+        rationale: No activated PSCs immediately after isolation.
+    type: two_state
+    forward_rate: k_psc_activation
+  error_model:
+  - name: psc_activation_fraction_24h
+    observable:
+      type: custom
+      state_variables:
+      - qPSC
+      - aPSC
+      rationale:
+      code: |
+        def compute(t, y, y_start):
+            qPSC, aPSC = y
+            return aPSC / (qPSC + aPSC)
+    units: dimensionless
+    uses_inputs:
+    - psc_activation_fraction_24h_mean
+    - psc_activation_fraction_24h_sd
+    evaluation_points:
+    - 1.0
+    sample_size: 1
+    sample_size_rationale: |
+      Original study reports only qualitative staining; this is treated as a single effective observation with large assumed uncertainty.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean = inputs['psc_activation_fraction_24h_mean']
+          sd = inputs['psc_activation_fraction_24h_sd']
+          return {
+              'value': mean,
+              'sd': sd.magnitude,
+              'sd_uncertain': True,
+          }
+    likelihood:
+      distribution: normal
+      rationale: |
+        Measured quantity is a fraction between 0 and 1; given the qualitative nature of the data, a normal likelihood with moderate SD is an adequate approximation.
+  - name: psc_activation_fraction_48h
+    observable:
+      type: custom
+      state_variables:
+      - qPSC
+      - aPSC
+      rationale:
+      code: |
+        def compute(t, y, y_start):
+            qPSC, aPSC = y
+            return aPSC / (qPSC + aPSC)
+    units: dimensionless
+    uses_inputs:
+    - psc_activation_fraction_48h_mean
+    - psc_activation_fraction_48h_sd
+    evaluation_points:
+    - 2.0
+    sample_size: 1
+    sample_size_rationale: |
+      Original study reports only qualitative staining; this is treated as a single effective observation with large assumed uncertainty.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          mean = inputs['psc_activation_fraction_48h_mean']
+          sd = inputs['psc_activation_fraction_48h_sd']
+          return {
+              'value': mean,
+              'sd': sd.magnitude,
+              'sd_uncertain': True,
+          }
+    likelihood:
+      distribution: normal
+      rationale: |
+        Measured quantity is a fraction between 0 and 1; given the qualitative nature of the data, a normal likelihood with moderate SD is an adequate approximation.
+  identifiability_notes: |
+    With a single first-order transition and two time-point measurements (24 h and 48 h fractions of alpha-SMA-positive cells), k_psc_activation is structurally identifiable under the assumption of negligible PSC proliferation and death over 48 h. However, the observations are qualitative and in vitro, so practical and translational uncertainties remain large.
+
+source_relevance:
+  indication_match: related
+  indication_match_justification: |
+    Rat pancreatic stellate cells from normal pancreas are used as a mechanistic proxy for PSC activation kinetics in human PDAC. The same organ and stromal cell type are studied, but disease context and microenvironment, including the presence of cancer and immune cells, differ substantially.
+  species_source: rat
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    Cultured rat PSCs on rigid plastic in serum lack the dense desmoplastic, hypoxic, and immune-suppressive PDAC tumor microenvironment. Activation in this system likely reflects near-maximal kinetics under strong mechanical and growth factor stimulation and may overestimate in vivo activation rates in PDAC.
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings:

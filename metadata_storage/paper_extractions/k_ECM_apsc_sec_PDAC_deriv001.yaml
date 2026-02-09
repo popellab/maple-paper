@@ -1,0 +1,298 @@
+study_interpretation: |
+  The Pickard2025 study quantifies the constitutive secretion rate of type I procollagen by NIH3T3 fibroblasts using CRISPR-tagged collagen and quantitative imaging/proteomics, concluding that fibroblasts secrete approximately 100000 procollagen I molecules per hour per cell, corresponding to turnover of the intracellular procollagen pool on a timescale of a few hours. Converting this molecular flux to mass-per-cell-per-day yields an ECM-production-like rate on the order of 10^-9 mg/(cell*day) for type I collagen. Since activated pancreatic stellate cells (aPSCs) are highly fibrogenic myofibroblast-like cells and a major source of collagenous ECM in PDAC, we use this fibroblast secretion rate as a proxy to inform the PDAC model parameter k_ECM_apsc_sec, with wide uncertainty to account for species, cell type, and microenvironmental differences. PSC-focused reviews and studies consistently report that activated PSCs produce large amounts of collagen I, III, fibronectin, and laminin, supporting the use of a fibroblast-based collagen secretion rate as a mechanistically reasonable starting point for ECM production by aPSCs.
+
+key_assumptions:
+- |
+  Type I collagen dominates the mass of fibrillar ECM produced by activated fibroblast-like cells, so the per-cell mass flux of type I procollagen provides a reasonable proxy for total ECM secretion by aPSCs.
+- |
+  Under strongly profibrotic conditions in vivo (e.g., high TGFbeta), the effective TGFbeta activation factor TGFb/(TGFb_50 + TGFb) in the full model approaches 1, and tumor ECM levels in the local microenvironment can be approximated as low relative to ECM_max for purposes of estimating the intrinsic per-cell secretion rate, so that the production term per cell reduces to k_ECM_apsc_sec.
+- |
+  The order-of-magnitude of per-cell ECM secretion by NIH3T3 fibroblasts and by human aPSCs in PDAC is similar, although the exact value may differ by up to an order of magnitude; this is captured by the wide lognormal likelihood (CV = 1.0) and the translation_uncertainty_fold of 10.
+- |
+  The molecular weight of type I collagen can be approximated as 300000 g/mol for converting molecules to mass; heterogeneity in posttranslational modifications and crosslinking does not strongly affect this conversion at the level of precision needed for the QSP model.
+
+key_study_limitations:
+- |
+  The primary quantitative secretion data are from mouse NIH3T3 fibroblasts, not human pancreatic stellate cells, so both species and cell-type extrapolations are required.
+- |
+  The reported secretion rate pertains specifically to type I procollagen and does not directly account for other ECM components (collagen III, fibronectin, laminin, hyaluronan) that contribute to the PDAC desmoplastic stroma.
+- |
+  The experiments are performed in 2D culture on rigid plastic under relatively simple media conditions, lacking the mechanical and biochemical complexity of the PDAC tumor microenvironment, which can modulate ECM production.
+- |
+  The 100000 molecules/hour estimate is reported as an approximate value without explicit confidence intervals or replicate counts; measurement noise and biological variability are therefore treated implicitly via an assumed coefficient of variation rather than directly derived statistical uncertainty.
+
+experimental_context:
+  species: mouse
+  system: in_vitro_immortalized
+  cell_lines:
+  - name: NIH3T3
+    species: mouse
+    tissue_origin: fibroblast
+    cell_type: fibroblast-like
+  cell_types:
+  culture_conditions:
+    substrate: tissue_culture_plastic
+    serum_concentration:
+    serum_concentration_units:
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication:
+
+primary_data_source:
+  doi: 10.12688/wellcomeopenres.23776.1
+  title: |
+    Collagen fibril formation at the plasma membrane occurs independently from collagen secretion
+  authors:
+  - Pickard A
+  - Garva R
+  - Adamson A
+  - Calverley BC
+  - Hoyle A
+  - Hayward CE
+  - Spiller D
+  - Lu Y
+  - Hodson N
+  - Mandolfo O
+  - Kim K
+  - Bou-Gharios G
+  - Swift J
+  - Bigger B
+  - Kadler KE
+  year: 2025
+  source_tag: Pickard2025
+
+secondary_data_sources:
+- doi: 10.1186/1476-4598-3-26
+  url:
+  title: Molecular regulation of pancreatic stellate cell function
+  authors:
+  - Jaster R
+  year: 2004
+  source_tag: Jaster2004
+  contribution: |
+    Review summarizing biology of pancreatic stellate cells, including their activation into myofibroblast-like cells that produce large amounts of extracellular matrix (collagen I and III, fibronectin, laminin), supporting the mechanistic link between fibroblast collagen secretion and PSC-driven desmoplasia in PDAC.
+  source_quality: review_article
+- doi: 10.1351/goldbook.A00543
+  url:
+  title: Avogadro constant
+  authors:
+  - International Union of Pure and Applied Chemistry
+  year: 2020
+  source_tag: IUPAC_Avogadro
+  contribution: |
+    Provides the exact SI defining value of the Avogadro constant (6.02214076E23 mol^-1), used to convert procollagen molecule counts into moles and then into mass.
+  source_quality: textbook
+- doi:
+  url: https://en.wikipedia.org/wiki/Type_I_collagen
+  title: Type I collagen
+  authors: []
+  year: 2022
+  source_tag: CollagenMW
+  contribution: |
+    Provides a widely cited estimate of the molecular mass of type I collagen (~300000 g/mol), used to convert procollagen molecule flux to mass flux per cell.
+  source_quality: non_peer_reviewed
+
+target_id: k_ECM_apsc_sec_fibroblast_proxy_pickard2025_final
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511252fe4d2c9a9ec09c24e2c66
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: fibroblast_collagen_molecules_per_hour_mean
+  value: 100000.0
+  units: molecule/(cell*hour)
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Pickard2025
+  source_location: Results, "Engineering of tagged procollagen-I in NIH3T3 cells"
+  extraction_method: manual
+  value_snippet: |
+    Our quantification analysis revealed that fibroblasts secrete approximately 100,000 procollagen molecules per hour, equivalent to their entire procollagen content in about 2.5 hours.
+  source_access: open_access
+- name: ecm_secretion_rate_mass_mean
+  value: 1.25e-09
+  units: mg/(cell*day)
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: target
+  source_ref: Pickard2025
+  source_location: |
+    Derived from reported 100,000 procollagen molecules per hour using Avogadro constant and molecular weight 300000 g/mol
+  extraction_method: other
+  value_snippet: |
+    Derived ECM secretion rate 1.25e-09 mg/(cell*day) per fibroblast, calculated from 100,000 procollagen molecules per hour with molecular mass 300,000 g/mol and Avogadro constant 6.022e23 mol^-1.
+  source_access: open_access
+- name: avogadro_constant
+  value: 6.02214076e+23
+  units: molecule/mole
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: IUPAC_Avogadro
+  source_location: IUPAC Gold Book entry for Avogadro constant
+  extraction_method: manual
+  value_snippet: |
+    The Avogadro constant N_A is defined as 6.02214076E23 mol^-1, an exact defining constant in the SI.
+  source_access: open_access
+- name: collagen_typeI_molecular_weight
+  value: 300000.0
+  units: gram/mole
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: fixed_parameter
+  source_ref: CollagenMW
+  source_location: Structure section, type I collagen molecular mass
+  extraction_method: manual
+  value_snippet: |
+    Type I collagen has a molecular mass of about 300000 g/mol (approximately 300 kDa).
+  source_access: open_access
+- name: hours_per_day
+  value: 24.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Pickard2025
+  source_location: Implicit time conversion used in discussion of hourly secretion rates
+  extraction_method: manual
+  value_snippet: One day corresponds to 24 hours.
+  source_access: open_access
+- name: assumed_cv_collagen_rate
+  value: 1.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Jaster2004
+  source_location: |
+    Modeling assumptions based on variability in PSC activation states discussed in review
+  extraction_method: other
+  value_snippet: |
+    Assumed coefficient of variation of 1.0 (approximate order-of-magnitude uncertainty) for per-cell collagen secretion rate, to cover cross-species and cell-type translation.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_ECM_apsc_sec
+    units: mg/(cell*day)
+    prior:
+      distribution: lognormal
+      mu: -20.5
+      sigma: 1.5
+      lower:
+      upper:
+      rationale: |
+        Centered so that exp(mu) is on the order of 10^-9 mg/(cell*day), matching the approximate per-cell type I procollagen secretion rate of fibroblasts inferred from ~100000 molecules/hour and MW 300 kDa. Sigma = 1.5 provides a wide prior (several orders of magnitude) to accommodate uncertainty in extrapolating from NIH3T3 fibroblasts to activated pancreatic stellate cells (aPSCs) in PDAC.
+  forward_model:
+    data_rationale: |
+      The calibration data provide an estimate of the per-cell secretion rate of type I procollagen in fibroblasts, reported as approximately 100000 procollagen molecules per hour per cell. Converting molecules to mass using the molecular weight of type I collagen and Avogadro's constant yields an estimated collagen production rate on the order of 10^-9 mg per cell per day. This is used as a proxy for ECM secretion by activated stellate or myofibroblast-like cells under strong profibrotic signaling.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, ECM production by activated PSCs in the tumor compartment is represented as: rate = k_ECM_apsc_sec * ((ECM_max - ECM_level)/ECM_max) * V_T.aPSC * (V_T.TGFb / (TGFb_50 + V_T.TGFb)). Under conditions of low ECM relative to ECM_max and saturating TGFbeta signaling (TGFb >> TGFb_50), the bracketed factors approach unity and the per-cell secretion rate is approximately k_ECM_apsc_sec. The algebraic submodel captures this limiting regime and directly links k_ECM_apsc_sec to an experimentally informed per-cell ECM secretion rate. It is thus a mechanistically consistent restriction of the full model, appropriate for calibrating k_ECM_apsc_sec from in vitro fibroblast secretion data.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: ecm_secretion_rate_per_cell = k_ECM_apsc_sec
+    code: |
+      def compute(params, inputs, ureg):
+          # Forward model predicts per-cell ECM secretion rate under
+          # conditions where ECM is far below ECM_max and profibrotic
+          # signals (e.g., TGFbeta) are saturating, so that
+          # (ECM_max - ECM_level)/ECM_max ~ 1 and
+          # TGFbeta/(TGFbeta_50 + TGFbeta) ~ 1.
+          #
+          # In this limit, the full QSP model production term
+          #   k_ECM_apsc_sec * ((ECM_max-ECM_level)/ECM_max)
+          #   * aPSC * (TGFbeta/(TGFbeta_50 + TGFbeta))
+          # reduces, on a per-cell basis, to k_ECM_apsc_sec.
+          k = params['k_ECM_apsc_sec']
+          return k * ureg('mg/(cell*day)')
+    code_julia: |
+      function compute(params, inputs)
+          # Julia forward model with the same rationale:
+          # per-cell ECM secretion rate equals k_ECM_apsc_sec
+          # in the low-ECM, saturating-TGFbeta limit.
+          return params["k_ECM_apsc_sec"]
+      end
+  error_model:
+  - name: ecm_secretion_rate_from_fibroblasts
+    observable:
+    units: mg/(cell*day)
+    uses_inputs:
+    - fibroblast_collagen_molecules_per_hour_mean
+    - avogadro_constant
+    - collagen_typeI_molecular_weight
+    - hours_per_day
+    - assumed_cv_collagen_rate
+    evaluation_points:
+    sample_size:
+    sample_size_rationale: |
+      The original study reports an approximate secretion rate derived from quantitative proteomics; an explicit n is not provided in the text. We therefore treat the measurement as a single summary estimate with wide uncertainty encoded via an assumed coefficient of variation.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          import numpy as np
+
+          # Extract literature inputs
+          rate = inputs['fibroblast_collagen_molecules_per_hour_mean']
+          avog = inputs['avogadro_constant']
+          mw = inputs['collagen_typeI_molecular_weight']
+          hours_per_day = inputs['hours_per_day']
+          cv_input = inputs['assumed_cv_collagen_rate']
+
+          # Convert molecules/(cell*hour) to mg/(cell*day)
+          molecules_per_hour = rate.magnitude
+          avog_value = avog.magnitude        # molecules per mole
+          mw_value = mw.magnitude            # grams per mole
+          hours_value = hours_per_day.magnitude
+
+          # grams per day per cell:
+          # (molecules/hour/cell) / (molecules/mole) * (grams/mole) * (hours/day)
+          g_per_day_per_cell = (
+              molecules_per_hour / avog_value * mw_value * hours_value
+          )
+
+          value = g_per_day_per_cell * ureg('g/(cell*day)')
+          value = value.to('mg/(cell*day)')
+
+          # Use an assumed coefficient of variation to represent
+          # combined experimental and translation uncertainty.
+          cv = cv_input.magnitude
+
+          return {
+              'value': value,
+              'sd': cv,
+              'sd_uncertain': True,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Per-cell secretion rates are strictly positive and expected to vary over orders of magnitude across cell types and conditions. A lognormal likelihood with SD given by a coefficient of variation of 1.0 (order-of-magnitude uncertainty) captures this multiplicative variability and the substantial translation uncertainty when using fibroblast data as a proxy for aPSCs.
+  identifiability_notes: |
+    This submodel includes a single parameter, k_ECM_apsc_sec, and a single algebraic observable equal to k_ECM_apsc_sec under specified limiting conditions. Given a single literature-derived estimate of per-cell collagen secretion, k_ECM_apsc_sec is formally identifiable within the assumed lognormal error structure. However, biological identifiability is limited by: (i) use of NIH3T3 fibroblasts rather than human aPSCs; (ii) restriction to type I collagen rather than total ECM mass; (iii) assumptions about saturating profibrotic signaling and low ECM levels. These issues are represented by a wide likelihood (high CV) and a conservative translation_uncertainty_fold in source_relevance. Additional PSC-specific quantitative secretion data (human aPSCs under defined TGFbeta levels, with absolute ECM mass measurements) would substantially sharpen k_ECM_apsc_sec.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The calibration uses NIH3T3 fibroblast collagen I secretion data as a mechanistic proxy for extracellular matrix production by activated pancreatic stellate cells (aPSCs) in PDAC. Both cell types are myofibroblast-like stromal cells that synthesize large amounts of fibrillar collagen and other ECM components, but they differ in tissue of origin, activation context, and exposure to PDAC-specific cytokine and growth factor milieus. We therefore expect similar order-of-magnitude per-cell ECM secretion rates but allow for substantial (multi-fold) deviations.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    The secretion data are obtained from NIH3T3 fibroblasts cultured on rigid 2D plastic under standard conditions, without the dense desmoplastic stroma, hypoxia, and complex cytokine gradients present in PDAC tumors. PDAC aPSCs in vivo experience strong profibrotic cues (e.g., TGFbeta, PDGF, inflammatory cytokines) and mechanical feedback from existing ECM, which can modulate secretion rates. Consequently, we expect potentially order-of-magnitude differences between in vitro fibroblast secretion and in situ aPSC ECM production in PDAC.
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings: []

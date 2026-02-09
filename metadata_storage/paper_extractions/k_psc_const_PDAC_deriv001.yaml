@@ -1,0 +1,347 @@
+study_interpretation: |
+  Wright2020 provides quantitative histology of human pancreases from non-diabetic donors, including average pancreas weight and total acinar cell number, allowing estimation of acinar cell density per milliliter of pancreas. Using ICRU soft-tissue density for pancreas to convert weight to volume yields an acinar cell density of order 1-2 x 10^9 cells/mL. Independent morphometric analyses of desmin-stained PSCs in normal rat pancreas, summarized by Apte and co-workers and by later reviews, indicate that PSCs comprise roughly 4-7% of total parenchymal cells in the healthy pancreas. Acinar cells make up approximately 80% of pancreatic parenchyma, so combining these fractions implies that PSCs represent on the order of several percent of the cells at a density near 1 x 10^8 cells/mL. This density corresponds directly to the constitutive PSC density parameter k_psc_const in the full QSPIO-PDAC model, because the null -> qPSC recruitment term drives quiescent PSC density toward k_psc_const in the absence of tumor or strong perturbations. The submodel therefore uses this composite literature estimate of PSC density in normal pancreas to inform a lognormal prior and likelihood for k_psc_const.
+
+key_assumptions:
+- |
+  Non-diabetic human donor pancreases in Wright2020 are representative of normal adult human pancreatic architecture and cell densities in the population modeled by QSPIO-PDAC.
+- |
+  Tissue density of human pancreas is adequately described by the ICRU soft-tissue value of 1.04 g/mL, allowing conversion from pancreas weight to volume without large systematic bias.
+- |
+  Acinar cells constitute approximately 80% of pancreatic parenchymal cells in humans, so total parenchymal cell density can be estimated by dividing acinar cell density by this fraction.
+- |
+  Morphometric data indicating that PSCs comprise 4-7% of parenchymal cells in normal rat pancreas are applicable as a proxy for human PSC fractions, up to a modest cross-species uncertainty factor captured in the prior and likelihood.
+- |
+  Quiescent PSCs dominate the PSC population in normal pancreas, so the PSC fraction from morphometry primarily reflects quiescent PSCs consistent with the qPSC compartment in the QSP model.
+- |
+  In the absence of tumor, the PSC compartment is at steady state such that the resident quiescent PSC density equals the constitutive density parameter k_psc_const used in the null -> qPSC recruitment term.
+- |
+  An assumed coefficient of variation of 1.0 (100 percent) for PSC density reasonably captures combined uncertainties from donor variability, cross-species translation of PSC fractions, regional heterogeneity, and methodological differences across studies.
+
+key_study_limitations:
+- |
+  PSC fraction (4-7% of parenchymal cells) is derived from morphometric studies in rat pancreas summarized in a book chapter, not from a single primary human morphometric data set, introducing cross-species and source-to-source variability.
+- |
+  Acinar cells in Wright2020 were quantified in pancreases from non-diabetic organ donors; subtle differences in exocrine architecture between these donors and PDAC patients (for example due to age, subclinical inflammation, or metabolic status) may affect true PSC densities.
+- |
+  Pancreatic tissue composition and PSC content may vary regionally within the gland (head, body, tail), whereas the QSP model uses a single effective PSC density parameter for the tumor-bearing region.
+- |
+  The calculation treats acinar cells as a fixed 80% of parenchymal cells based on textbook-level summaries, which may not hold exactly across individuals or in the presence of mild pathology.
+- |
+  No direct human data were found that report PSC counts per unit volume in normal pancreas; instead, PSC density is inferred indirectly from PSC fractions and total parenchymal cell density, necessitating a relatively wide assumed coefficient of variation.
+- |
+  The algebraic submodel does not explicitly represent dynamic PSC recruitment, activation, or death, and therefore cannot constrain k_psc_encounter or k_qpsc_death; it assumes that the steady-state relationship between k_psc_const and observed PSC density holds in the relevant physiological context.
+
+experimental_context:
+  species: human
+  system: in_vivo_clinical
+  cell_lines:
+  cell_types:
+  - name: pancreatic stellate cell
+    phenotype: quiescent
+    isolation_method: |
+      in situ morphometry in rat combined with histology-based estimates and reviews for human pancreas
+  - name: acinar cell
+    phenotype: exocrine parenchymal cell
+    isolation_method: |
+      histological quantification of acinar cells and pancreas weight in cadaveric human donors
+  culture_conditions:
+  indication: normal pancreas (non-diabetic adult donors)
+
+primary_data_source:
+  doi: 10.1007/s00125-020-05155-y
+  title: Decreased pancreatic acinar cell number in type 1 diabetes
+  authors:
+  - Jordan J Wright
+  - Diane C Saunders
+  - Chunhua Dai
+  - Greg Poffenberger
+  - Brynn Cairns
+  - David V Serreze
+  - David M Harlan
+  - Rita Bottino
+  - Marcela Brissova
+  - Alvin C Powers
+  year: 2020
+  source_tag: Wright2020
+
+secondary_data_sources:
+- doi:
+  url: https://www.sciencedirect.com/science/article/pii/B9780123985231000264
+  title: |
+    Pancreatic Stellate Cells Isolation and Characterization (Chapter 16.2, Stellate Cells in Health and Disease)
+  authors:
+  - Minoti V Apte
+  - Jeremy S Wilson
+  year: 2015
+  source_tag: Apte2015_PSCChapter
+  contribution: |
+    Summarizes morphometric analysis of desmin-stained PSCs in normal rat pancreas, reporting that PSCs comprise 4-7% of total parenchymal cells and describing the quiescent PSC phenotype in situ.
+  source_quality: review_article
+- doi: 10.3390/molecules28145586
+  url:
+  title: |
+    Pancreatic Stellate Cells and the Targeted Therapeutic Strategies in Chronic Pancreatitis
+  authors:
+  - Man Chang
+  - Wenjuan Chen
+  - Ruting Xia
+  - Yangyue Peng
+  - Pandi Niu
+  - Hui Fan
+  year: 2023
+  source_tag: Chang2023_CPReview
+  contribution: |
+    Review of PSC biology and chronic pancreatitis that reiterates PSCs account for approximately 4-7% of parenchymal cells in the pancreas and emphasizes their quiescent phenotype in normal tissue.
+  source_quality: review_article
+- doi: 10.1186/1476-4598-3-26
+  url:
+  title: Molecular regulation of pancreatic stellate cell function
+  authors:
+  - Robert Jaster
+  year: 2004
+  source_tag: Jaster2004
+  contribution: |
+    Provides an overview of PSC biology and states that in the healthy organ, PSCs comprise about 4% of all pancreatic cells, supporting the order-of-magnitude estimate for PSC fractions used here.
+  source_quality: review_article
+- doi:
+  url: https://link.springer.com/article/10.1186/s13014-018-0971-8/tables/1
+  title: |
+    A new tissue segmentation method to calculate 3D dose in small animal radiation therapy
+  authors:
+  - Debjani Phani
+  - Rajasekhar K V
+  - Anjali Thomas
+  - Raghukumar Paramu
+  - M Suheshkumar Singh
+  - Shaiju V S
+  - Venugopal Muraleedharan
+  - R K Nair
+  year: 2018
+  source_tag: ICRU_TissueDensities2018
+  contribution: |
+    Reports ICRU reference physical densities for multiple tissues including pancreas (1.04 g.cm^3), used here to convert pancreas weight to volume.
+  source_quality: review_article
+- doi:
+  url: https://www.sciencedirect.com/science/article/pii/B9781416051831000035
+  title: Acinar Cell Carcinoma (chapter in Fundamentals of Body MRI)
+  authors:
+  - Sandeep Deshmukh
+  - Christopher G Roth
+  year: 2012
+  source_tag: Deshmukh2012_Acinar80pct
+  contribution: |
+    States that acinar cells constitute approximately 80% of the pancreatic parenchyma, providing the acinar fraction used to relate acinar cell density to total parenchymal cell density.
+  source_quality: textbook
+
+target_id: k_psc_const_psc_density_normal_pancreas
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c2511246462420d0f4f6f08696512
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: acinar_cells_per_pancreas_mean
+  value: 121600000000.0
+  units: cell
+  uncertainty:
+  n: 11
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Wright2020
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: |
+    Results: pancreases from donors with type 1 diabetes were approximately 45% smaller than those from donors without diabetes (47.4 +/- 2.6 vs 85.7 +/- 3.7 g). Diabetic acinar cells were similar in size but fewer in number compared with those in pancreases from non-diabetic donors (63.7 +/- 8.1 x 10^9 vs 121.6 +/- 12.2 x 10^9 cells/pancreas), where 121.6 x 10^9 cells equals 121600000000 cells/pancreas.
+  source_access: open_access
+- name: acinar_cells_per_pancreas_sd
+  value: 12200000000.0
+  units: cell
+  uncertainty:
+  n: 11
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Wright2020
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: |
+    Diabetic acinar cells were similar in size but fewer in number compared with those in pancreases from non-diabetic donors (63.7 +/- 8.1 x 10^9 vs 121.6 +/- 12.2 x 10^9 cells/pancreas); the standard deviation 12.2 x 10^9 corresponds to 12200000000 cells/pancreas.
+  source_access: open_access
+- name: pancreas_weight_nd_mean
+  value: 85.7
+  units: gram
+  uncertainty:
+  n: 11
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Wright2020
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: |
+    Pancreases from donors with type 1 diabetes were approximately 45% smaller than those from donors without diabetes (47.4 +/- 2.6 vs 85.7 +/- 3.7 g).
+  source_access: open_access
+- name: pancreas_weight_nd_sd
+  value: 3.7
+  units: gram
+  uncertainty:
+  n: 11
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Wright2020
+  source_location: Abstract, Results
+  extraction_method: manual
+  value_snippet: |
+    Pancreases from donors with type 1 diabetes were approximately 45% smaller than those from donors without diabetes (47.4 +/- 2.6 vs 85.7 +/- 3.7 g).
+  source_access: open_access
+- name: pancreas_density_mean
+  value: 1.04
+  units: gram / milliliter
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: ICRU_TissueDensities2018
+  source_location: Table 1, ICRU tissues
+  extraction_method: manual
+  value_snippet: |
+    Table 1: ICRU tissues. Pancreas, physical density 1.04 g.cm^3 (row: Pancreas 1.04 7.70 8.01).
+  source_access: open_access
+- name: fraction_acinar_parenchyma_mean
+  value: 0.8
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Deshmukh2012_Acinar80pct
+  source_location: Acinar Cell Carcinoma, key points
+  extraction_method: manual
+  value_snippet: |
+    Although acinar cells constitute approximately 80% of the pancreatic parenchyma, acinar cell carcinoma of the pancreas is a rare malignancy. Here we use 80% as 0.8 in fractional units.
+  source_access: restricted
+- name: psc_fraction_parenchyma_mean
+  value: 0.055
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Apte2015_PSCChapter
+  source_location: Section 16.2, Pancreatic Stellate Cells Isolation and Characterization
+  extraction_method: manual
+  value_snippet: |
+    Morphometric analysis of desmin-stained PSCs suggests that in the normal pancreas, PSCs comprise 4-7% of total parenchymal cells; the midpoint 5.5% is used here as 0.055 in fractional units.
+  source_access: restricted
+- name: assumed_cv_psc_density
+  value: 1.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Wright2020
+  source_location: Not directly reported; modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed coefficient of variation of 1.0 (100 percent) for PSC density to capture cross-species translation and regional variability; not measured directly in Wright2020.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_psc_const
+    units: cell / milliliter
+    prior:
+      distribution: lognormal
+      mu: 18.4
+      sigma: 1.1
+      lower:
+      upper:
+      rationale: |
+        k_psc_const is the constitutive density of quiescent pancreatic stellate cells (PSCs) in pancreatic tissue. Combining human acinar cell counts (about 1.2 x 10^11 acinar cells per 85.7 g pancreas in non-diabetic donors) with pancreas density (1.04 g/mL) and a PSC fraction of 4-7% of parenchymal cells yields an estimated PSC density of order 1 x 10^8 cells/mL. We place a lognormal prior centered on this value with sigma = 1.1 in log-space to allow roughly 3-fold uncertainty due to cross-species translation and regional heterogeneity.
+  forward_model:
+    data_rationale: |
+      Literature provides estimates of PSC fraction among parenchymal cells in normal pancreas and total parenchymal cell density derived from human acinar cell counts and pancreas volume. In the full QSP model, k_psc_const is defined as the constitutive PSC density in pancreatic tissue; therefore, the measured PSC density in normal pancreas can be mapped directly to this parameter without simulating time dynamics.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, recruitment of resident quiescent PSCs into the tumor compartment is represented by the reaction null -> V_T.qPSC with rate k_psc_encounter * V_T * ((k_psc_const - (V_T.qPSC/V_T))/k_psc_const). When tumor volume V_T is approximately constant and other sources/sinks are small, this term drives the PSC density V_T.qPSC/V_T toward the constant k_psc_const. Thus, at steady state in a normal pancreas without tumor, the resident quiescent PSC density equals k_psc_const. Our algebraic submodel therefore identifies the observable PSC density in normal pancreas directly with k_psc_const, preserving the mechanistic role of k_psc_const as the carrying capacity (constitutive density) for quiescent PSCs.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: psc_density = k_psc_const
+    code: |
+      def compute(params, inputs, ureg):
+          k = params['k_psc_const']
+          return k * ureg('cell / milliliter')
+    code_julia: |
+      function compute(params, inputs)
+          return params["k_psc_const"]
+      end
+  error_model:
+  - name: psc_density_normal_pancreas
+    observable:
+    units: cell / milliliter
+    uses_inputs:
+    - acinar_cells_per_pancreas_mean
+    - pancreas_weight_nd_mean
+    - pancreas_density_mean
+    - fraction_acinar_parenchyma_mean
+    - psc_fraction_parenchyma_mean
+    - assumed_cv_psc_density
+    evaluation_points:
+    sample_size: 11
+    sample_size_rationale: |
+      Effective sample size taken as the number of non-diabetic human donors (n = 11) in Wright2020 used to estimate acinar cell counts and pancreas weight. PSC fraction data are derived from rat morphometry and reviews and are treated as additional uncertainty captured in the assumed coefficient of variation.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          # Human acinar cell count per pancreas
+          acinar_cells = inputs['acinar_cells_per_pancreas_mean']  # cell
+          # Human pancreas weight for non-diabetic donors
+          pancreas_weight = inputs['pancreas_weight_nd_mean']      # gram
+          # Physical density of pancreas tissue (ICRU soft-tissue reference)
+          density = inputs['pancreas_density_mean']                # gram / milliliter
+          # Fraction of parenchymal cells that are acinar cells
+          frac_acinar = inputs['fraction_acinar_parenchyma_mean']  # dimensionless
+          # Fraction of parenchymal cells that are PSCs
+          psc_frac = inputs['psc_fraction_parenchyma_mean']        # dimensionless
+          # Assumed coefficient of variation for PSC density (lognormal SD)
+          cv_assumed = inputs['assumed_cv_psc_density']            # dimensionless
+
+          # Convert pancreas weight to volume using tissue density
+          pancreas_volume = pancreas_weight / density              # milliliter
+          # Acinar cell density (cells per milliliter)
+          acinar_density = acinar_cells / pancreas_volume          # cell / milliliter
+          # Total parenchymal cell density, assuming acinar cells make up frac_acinar of parenchymal cells
+          total_parenchymal_density = acinar_density / frac_acinar # cell / milliliter
+          # PSC density from PSC fraction of parenchymal cells
+          psc_density = total_parenchymal_density * psc_frac       # cell / milliliter
+
+          return {
+              'value': psc_density.to('cell / milliliter'),
+              'sd': cv_assumed.magnitude,
+              'sd_uncertain': True,
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        PSC density is strictly positive and constructed from multiplicative components (cell counts, tissue density, and cell-type fractions), so a lognormal likelihood with coefficient of variation specified by an assumed_cv_psc_density captures multiplicative biological and translation variability.
+  identifiability_notes: |
+    With an algebraic forward model psc_density = k_psc_const and a single measurement of PSC density in normal pancreas, k_psc_const is identifiable up to the uncertainty specified by the likelihood. The submodel does not constrain k_psc_encounter or PSC death/activation rates; it assumes that in the absence of tumor, the PSC compartment is at steady state and that the measured quiescent PSC density equals the carrying capacity parameter k_psc_const. Additional data on regional PSC densities in human pancreas or direct PSC counts in PDAC-adjacent normal tissue could refine this estimate and reduce reliance on cross-species morphometry and assumed variability.
+
+source_relevance:
+  indication_match: related
+  indication_match_justification: |
+    The QSPIO-PDAC model targets pancreatic ductal adenocarcinoma, whereas the primary quantitative data for this target come from histological measurements in normal human pancreas (non-diabetic donors) and morphometry in normal rat pancreas. These sources describe the baseline quiescent PSC pool and overall parenchymal cell composition in healthy pancreas, which is mechanistically relevant as the constitutive PSC density that tumor cells initially encounter as they invade pancreatic tissue, but does not capture the expanded, activated PSC population in established PDAC stroma.
+  species_source: human_and_rat
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Baseline PSC density and cell-type fractions are derived from healthy pancreas, whereas PDAC tumors develop in a fibrotic, highly desmoplastic stroma with expanded activated PSCs and altered extracellular matrix. Because k_psc_const represents the resident quiescent PSC population in normal pancreas that tumor cells encounter as they grow into surrounding tissue, healthy-organ measurements are an appropriate starting point, but actual PSC densities in PDAC-adjacent tissue may differ by several fold due to chronic inflammation, fibrosis, and patient-to-patient variability.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:

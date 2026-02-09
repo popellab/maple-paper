@@ -1,0 +1,193 @@
+study_interpretation: |
+  Serial CT imaging in Ahn2017 quantified tumor volume doubling times for untreated primary PDAC across 100 patients, reporting a mean VDT of 132.3 days with SD 132.1 days. We interpret this as the net macroscopic growth rate of PDAC lesions in vivo, integrating cancer cell proliferation, baseline cell loss, and stromal contributions. Under the assumption that tumors are well below their carrying capacity during the observation window, this net growth rate can be mapped to the intrinsic logistic growth rate k_C1_growth in the QSPIO-PDAC model via the relationship TVDT = ln(2)/k_C1_growth.
+
+key_assumptions:
+- |
+  Tumor volume measured by CT is proportional to the total number of viable cancer cells C1 in the PDAC lesion, despite contributions from stroma and necrotic regions.
+- |
+  During the CT follow-up interval, primary PDAC lesions are far from their carrying capacity (C_total << C_max), so logistic growth reduces to approximate exponential growth with rate k_C1_growth.
+- |
+  Baseline apoptosis and immune-mediated killing are modest relative to proliferation in these untreated patients; thus the observed net tumor growth rate primarily reflects k_C1_growth.
+- |
+  Population-averaged VDT from Ahn2017 is representative of typical PDAC growth dynamics for the virtual patient cohort modeled in QSPIO-PDAC, acknowledging substantial interpatient heterogeneity.
+
+key_study_limitations:
+- |
+  CT-derived tumor volumes include both cancer and stromal components; PDAC is highly desmoplastic, so the measured VDT may under- or overestimate the true proliferation rate of cancer cells alone.
+- |
+  Ahn2017 reports a very wide range of VDTs (20.0 to 976.8 days), indicating strong interpatient and tumor-size-dependent heterogeneity; using the cohort mean to calibrate k_C1_growth neglects this variability.
+- |
+  The analysis provides net tumor growth under real-patient conditions, where occult metastases, hypoxia, and variable immune infiltration may alter effective growth rates relative to an idealized, spatially homogeneous tumor compartment in the QSPIO-PDAC model.
+- |
+  The study cohort is from a single geographic region (Korean centers) and may not fully capture demographic or biological variability in broader PDAC populations.
+
+experimental_context:
+  species: human
+  system: in_vivo_clinical
+  cell_lines:
+  cell_types:
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.1007/s12029-016-9876-7
+  title: |
+    Time to Progression of Pancreatic Cancer: Evaluation with Multi-Detector Computed Tomography
+  authors:
+  - Su Joa Ahn
+  - Seung Joon Choi
+  - Hyung Sik Kim
+  year: 2016
+  source_tag: Ahn2017
+
+secondary_data_sources:
+- doi: 10.1097/00006676-200105000-00005
+  url:
+  title: 'Growth rate of pancreatic adenocarcinoma: initial clinical experience'
+  authors:
+  - H Furukawa
+  - R Iwata
+  - N Moriyama
+  year: 2001
+  source_tag: Furukawa2001
+  contribution: |
+    Earlier CT-based study reporting mean tumor volume doubling time 159 +/- 67 days (range 64-255 days) for nine primary pancreatic carcinoma lesions, supporting the 4-5 month VDT scale used to calibrate k_C1_growth.
+  source_quality: primary_human_clinical
+- doi: 10.1208/s12248-019-0302-5
+  url:
+  title: |
+    Estimation of Solid Tumor Doubling Times from Progression-Free Survival Plots Using a Novel Statistical Approach
+  authors:
+  - Katherine Kay
+  - Keith Dolcy
+  - Robert Bies
+  - Dhaval K Shah
+  year: 2019
+  source_tag: Kay2019
+  contribution: |
+    Methodological study extracting solid tumor growth rates from clinical progression-free survival curves; reports a mean pancreatic cancer doubling time of 5.06 months, consistent with CT-based PDAC VDT estimates and supporting the chosen prior for k_C1_growth.
+  source_quality: review_article
+
+target_id: k_C1_growth_pdac_tvdt_ahn2017
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c251125590d0f224f2447904a1c6b
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: tvdt_mean_ahn2017
+  value: 132.3
+  units: day
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Ahn2017
+  source_location: 'Abstract, Results: "VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days)"'
+  extraction_method: manual
+  value_snippet: '... VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days).'
+  source_access: open_access
+- name: tvdt_sd_ahn2017
+  value: 132.1
+  units: day
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Ahn2017
+  source_location: 'Abstract, Results: "VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days)"'
+  extraction_method: manual
+  value_snippet: '... VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1 days).'
+  source_access: open_access
+- name: n_patients_ahn2017
+  value: 100.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Ahn2017
+  source_location: |
+    Methods: "One hundred patients with histologically proven pancreatic ductal adenocarcinoma examined with at least two CT scans with no intervening treatment were included."
+  extraction_method: manual
+  value_snippet: |
+    One hundred patients with histologically proven pancreatic ductal adenocarcinoma examined with at least two CT scans with no intervening treatment were included.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_C1_growth
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -5.25
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Prior centered on net growth rate corresponding to TVDT approximately 132 days from Ahn2017, with sigma=1 (natural log) allowing about 7-fold variability around the mean to cover observed interpatient heterogeneity and cross-study differences.
+  forward_model:
+    data_rationale: |
+      Ahn2017 reports tumor volume doubling times (VDTs) for untreated primary PDAC lesions measured by serial CT, which directly constrain net tumor growth rate.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, viable cancer cells C1 grow logistically with rate k_C1_growth: dC1/dt = k_C1_growth * C1 * (1 - C_total/C_max). For tumors far from carrying capacity (C_total << C_max), growth is approximately exponential with intrinsic rate k_C1_growth, giving TVDT = ln(2)/k_C1_growth. The algebraic submodel uses this analytical relationship to infer k_C1_growth from clinical VDT data, consistent with the mechanistic usage of k_C1_growth in the full model.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: tvdt = ln(2) / k_C1_growth
+    code: |
+      def compute(params, inputs, ureg):
+          import numpy as np
+          k = params['k_C1_growth']
+          return np.log(2) / k * ureg('day')
+    code_julia: |
+      function compute(params, inputs)
+          return log(2) / params["k_C1_growth"]
+      end
+  error_model:
+  - name: tvdt_pdac_ahn2017
+    observable:
+    units: day
+    uses_inputs:
+    - tvdt_mean_ahn2017
+    - tvdt_sd_ahn2017
+    evaluation_points:
+    sample_size: 100
+    sample_size_rationale: Number of PDAC patients included in the Ahn2017 cohort.
+    observation_code: |
+      def derive_observation(inputs, sample_size, ureg):
+          tvdt = inputs['tvdt_mean_ahn2017']
+          tvdt_sd = inputs['tvdt_sd_ahn2017']
+          cv = tvdt_sd.magnitude / tvdt.magnitude
+          return {
+              'value': tvdt,
+              'sd': cv,
+              'sd_uncertain': False,
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Tumor volume doubling times are positive and show multiplicative interpatient variability; a lognormal observation model is appropriate.
+  identifiability_notes: |
+    With a single clinical TVDT measurement, k_C1_growth is identifiable as the net tumor-level growth rate under the assumption that tumors are far from carrying capacity and that other loss processes (baseline apoptosis, immune-mediated killing) are relatively small over the observation window. This submodel constrains k_C1_growth as an effective net proliferation rate; it does not permit separation of proliferation from death processes, which must be handled via independent data or priors for k_C1_death and immune killing parameters.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The data are from untreated human primary pancreatic ductal adenocarcinoma lesions imaged by CT. This directly matches the QSPIO-PDAC model indication, which represents human PDAC tumor growth in vivo in the absence of therapy.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Primary PDAC lesions in patients include the native desmoplastic stroma and immunosuppressive microenvironment characteristic of PDAC, which aligns with the tumor microenvironment represented in the QSPIO-PDAC model.
+  estimated_translation_uncertainty_fold: 2.0
+  validation_warnings: []
