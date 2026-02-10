@@ -81,8 +81,8 @@ extraction_reasoning_effort: medium
 
 inputs:
 - name: t_reprogram_max_90min
-  value: 90.0
-  units: minute
+  value: 0.0625
+  units: day
   uncertainty:
   n:
   input_type: direct_measurement
@@ -136,12 +136,12 @@ calibration:
     type: algebraic
     formula: k_M1_pol = ln(2) / t_half_days
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_M1_pol, predict reprogramming half-time in days."""
           import numpy as np
           k = params['k_M1_pol']  # 1/day
           t_half_days = np.log(2) / k
-          return t_half_days * ureg.day
+          return t_half_days
     code_julia: |
       function compute(params, inputs)
           k = params["k_M1_pol"]
@@ -164,7 +164,7 @@ calibration:
     sample_size_rationale: |
       Not explicitly reported; the abstract summarizes consistent findings across multiple in vivo and in vitro experiments, so we treat the reported <90 min timescale as a single summarized observation.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from reprogramming timescale.
 
@@ -173,13 +173,13 @@ calibration:
           """
           import math
 
-          fraction = inputs['assumed_half_life_fraction'].magnitude
-          fold_unc = inputs['assumed_fold_uncertainty'].magnitude
+          fraction = inputs['assumed_half_life_fraction']
+          fold_unc = inputs['assumed_fold_uncertainty']
 
-          # Point estimate: half-life is fraction of upper bound, convert to days via ureg
-          t_max = inputs['t_reprogram_max_90min']
+          # Point estimate: half-life is fraction of upper bound
+          t_max = inputs['t_reprogram_max_90min']  # day
           t_half = fraction * t_max
-          observed_value = t_half.to('day')
+          observed_value = t_half
 
           # Log-scale SD from assumed fold uncertainty
           sigma_log = math.log(fold_unc) / 1.96

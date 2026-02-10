@@ -131,12 +131,12 @@ calibration:
     type: algebraic
     formula: k_apsc_death = ln(2) / half_life_apsc
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_apsc_death, predict half-life."""
           import numpy as np
           k = params['k_apsc_death']
           t_half = np.log(2) / k
-          return t_half * ureg.day
+          return t_half
     code_julia: |
       function compute(params, inputs)
           k = params["k_apsc_death"]
@@ -158,16 +158,16 @@ calibration:
     sample_size_rationale: |
       Single inferred half-life estimate from the 5-day culture period.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from PSC half-life estimate.
 
           The forward model predicts half-life in days, so we return
           the observed half-life with log-scale SD.
           """
-          t_half = inputs['half_life_apsc'].magnitude
-          sigma_log = inputs['assumed_sigma_log'].magnitude
-          observed_value = t_half * ureg.day
+          t_half = inputs['half_life_apsc']
+          sigma_log = inputs['assumed_sigma_log']
+          observed_value = t_half
 
           return {
               'value': observed_value,

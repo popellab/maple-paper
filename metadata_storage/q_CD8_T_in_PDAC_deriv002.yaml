@@ -137,7 +137,7 @@ calibration:
     formula: |
       q_CD8_T_in = (3.0 / t_peak) / V_ref, where t_peak ~ time to near-maximal tumor-site CD8+ T cell accumulation (5-7 days) and V_ref = 1 cm^3
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given q_CD8_T_in, predict peak accumulation time."""
           import numpy as np
           def _val(x):
@@ -147,7 +147,7 @@ calibration:
           k_in_per_min = q * V_ref
           t_peak_min = 3.0 / k_in_per_min
           t_peak_days = t_peak_min / (24.0 * 60.0)
-          return t_peak_days * ureg.day
+          return t_peak_days
     code_julia: |
       function compute(params, inputs)
           q = params["q_CD8_T_in"]
@@ -172,7 +172,7 @@ calibration:
     sample_size_rationale: |
       Yorty2007 reports a single characteristic peak time window (5-7 days) for tumor-site accumulation of Tag-specific CD8+ T cells after transfer of a high dose of immune donor cells; no explicit n is given for this summary statement, so we treat it as one aggregated measurement with broad uncertainty captured by the 5-7 day range.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from peak CD8+ T cell accumulation time.
 
@@ -189,7 +189,7 @@ calibration:
 
           # Point estimate: geometric mean of the time range
           t_geomean = np.sqrt(t_lo * t_hi)
-          observed_value = t_geomean * ureg.day
+          observed_value = t_geomean
 
           # Log-scale SD from the range (treat as ~95% CI)
           sigma_log = (np.log(t_hi) - np.log(t_lo)) / (2.0 * 1.96)

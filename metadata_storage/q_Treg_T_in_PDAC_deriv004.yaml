@@ -365,17 +365,17 @@ calibration:
     sample_size_rationale: |
       Jiang2014 analyzed FOXP3+ lymphocyte density in primary pancreatic cancer tissue from 50 patients who underwent radical resection of pancreatic head adenocarcinoma.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           import numpy as np
-          mean_per_hpf = inputs['foxp3_density_tumor_mean_per_hpf'].magnitude
-          sd_per_hpf = inputs['foxp3_density_tumor_sd_per_hpf'].magnitude
-          hpf_area_mm2 = inputs['hpf_area'].to('millimeter**2').magnitude
+          mean_per_hpf = inputs['foxp3_density_tumor_mean_per_hpf']
+          sd_per_hpf = inputs['foxp3_density_tumor_sd_per_hpf']
+          hpf_area_mm2 = inputs['hpf_area']
           mean_per_mm2 = mean_per_hpf / hpf_area_mm2
           sd_per_mm2 = sd_per_hpf / hpf_area_mm2
           cv = sd_per_mm2 / mean_per_mm2
           sigma_log = np.sqrt(np.log(1 + cv**2))
           return {
-              'value': mean_per_mm2 * ureg('cell / millimeter**2'),
+              'value': mean_per_mm2,
               'sd': sigma_log,
               'sd_uncertain': True,
               'n': sample_size,

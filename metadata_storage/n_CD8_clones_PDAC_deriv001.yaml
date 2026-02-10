@@ -147,13 +147,13 @@ calibration:
     type: algebraic
     formula: n_CD8_clones = total_TR_clonotypes_Meng2023 / n_PDAC_tumors_Meng2023
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given n_CD8_clones, predict total clonotypes."""
           n_clones = params['n_CD8_clones']
           n_tumors_input = inputs['n_PDAC_tumors_Meng2023']
           n_tumors = getattr(n_tumors_input, 'magnitude', n_tumors_input)
           total_tr = n_clones * n_tumors
-          return total_tr * ureg.dimensionless
+          return total_tr
     code_julia: |
       function compute(params, inputs)
           n_clones = params["n_CD8_clones"]
@@ -176,7 +176,7 @@ calibration:
     sample_size_rationale: |
       Meng et al. 2023 report 93 tumor-reactive TCR clonotypes identified across 3 genetically unstable and 6 genetically stable PDAC tumors (9 tumors total). We treat these 9 tumors as independent samples for the average number of tumor-reactive clones per tumor.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation (point estimate + uncertainty) from clonotype data.
 
@@ -192,10 +192,10 @@ calibration:
           """
           import numpy as np
 
-          total_tr = inputs['total_TR_clonotypes_Meng2023'].magnitude
+          total_tr = inputs['total_TR_clonotypes_Meng2023']
 
           # Point estimate: total observed clonotypes
-          observed_value = total_tr * ureg.dimensionless
+          observed_value = total_tr
 
           # Uncertainty from Poisson counting statistics
           # CV = sqrt(count) / count = 1 / sqrt(count)

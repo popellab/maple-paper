@@ -159,12 +159,12 @@ calibration:
     type: algebraic
     formula: t_activation = 1 / k_psc_activation
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_psc_activation, predict activation time."""
           k = params['k_psc_activation']
           t_days = 1.0 / k
           t_hours = t_days * 24.0
-          return t_hours * ureg.hour
+          return t_hours
     code_julia: |
       function compute(params, inputs)
           k = params["k_psc_activation"]
@@ -187,7 +187,7 @@ calibration:
     sample_size_rationale: |
       Single primary culture timing estimate for onset of alpha-SMA positivity from Apte 1998 Gut.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from PSC activation time.
 
@@ -195,9 +195,9 @@ calibration:
           the observed activation time with log-scale SD based on assumed CV.
           """
           import numpy as np
-          t_hours = inputs['psc_activation_time_48h'].magnitude
-          cv = inputs['assumed_cv'].magnitude
-          observed_value = t_hours * ureg.hour
+          t_hours = inputs['psc_activation_time_48h']
+          cv = inputs['assumed_cv']
+          observed_value = t_hours
           sigma_log = np.sqrt(np.log(1.0 + cv**2))
 
           return {

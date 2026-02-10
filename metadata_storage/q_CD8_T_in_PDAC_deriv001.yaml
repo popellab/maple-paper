@@ -215,7 +215,7 @@ calibration:
     type: algebraic
     formula: q_CD8_T_in = k_CD8_death * N_Tumor / (V_T * CD8_C)
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given q_CD8_T_in, predict OT1 density."""
           import numpy as np
           def _val(x):
@@ -227,7 +227,7 @@ calibration:
           thickness_mm = _val(inputs['section_thickness_um']) / 1000.0
           rho = q * CD8_C / k_death / 1000.0
           d_2d = rho * thickness_mm
-          return d_2d * ureg('cell/millimeter**2')
+          return d_2d
     code_julia: |
       function compute(params, inputs)
           q = params["q_CD8_T_in"]
@@ -261,7 +261,7 @@ calibration:
     sample_size_rationale: |
       Analytical conversion of pooled literature values into an implied distribution for q_CD8_T_in; treated as a single composite measurement.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from OT1 infiltration data.
 
@@ -281,7 +281,7 @@ calibration:
           t_half_sd = _val('CD8_eff_half_life_sd')
 
           # Point estimate: observed OT1 density
-          observed_value = d_mean * ureg('cell/millimeter**2')
+          observed_value = d_mean
 
           # Propagate uncertainty from density SD and half-life SD
           cv_d = d_sd / d_mean

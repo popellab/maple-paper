@@ -149,7 +149,7 @@ calibration:
     formula: |
       q_Treg_T_in = (ln(2) / t_half) / V_T_ref, with t_half approximated from the observed 24 h time to MRI-visible Treg accumulation.
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given q_Treg_T_in, predict MRI visibility time."""
           import numpy as np
           def _val(x):
@@ -159,7 +159,7 @@ calibration:
           k_extrav_per_min = q * V_ref
           t_half_min = np.log(2) / k_extrav_per_min
           t_half_h = t_half_min / 60.0
-          return t_half_h * ureg.hour
+          return t_half_h
     code_julia: |
       function compute(params, inputs)
           q = params["q_Treg_T_in"]
@@ -185,7 +185,7 @@ calibration:
     sample_size_rationale: |
       Not a direct experimental sample distribution; a synthetic distribution over q_Treg_T_in is derived from the single reported trafficking time scale using Monte Carlo propagation of heuristic uncertainty.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from MRI cell tracking data.
 
@@ -194,11 +194,11 @@ calibration:
           """
           import math
 
-          t_vis = inputs['t_vis_Treg'].magnitude  # hours
-          fold_unc = inputs['assumed_fold_uncertainty'].magnitude
+          t_vis = inputs['t_vis_Treg']  # hours
+          fold_unc = inputs['assumed_fold_uncertainty']
 
           # Point estimate: observed visibility time as proxy for half-time
-          observed_value = t_vis * ureg.hour
+          observed_value = t_vis
 
           # Log-scale SD from assumed fold uncertainty (fold = exp(1.96*sigma))
           sigma_log = math.log(fold_unc) / 1.96

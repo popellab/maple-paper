@@ -222,7 +222,7 @@ calibration:
     formula: |
       q_Treg_T_in = -ln(1 - f_Treg) / (migration_time_4h_hr * 60 * V_T_ref); here f_Treg is inferred from cd34_migration_fraction_4h scaled by the ratio treg_transmigration_treg_invitro_cells / treg_transmigration_conventional_invitro_cells, migration_time_4h_hr is in hours, and V_T_ref is a nominal tumor volume of 1 cm^3.
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given q_Treg_T_in, predict migration fraction."""
           import numpy as np
           def _val(x):
@@ -233,7 +233,7 @@ calibration:
           V_T_ref = 1.0
           k_in = q * V_T_ref
           f_treg = 1.0 - np.exp(-k_in * tau_min)
-          return f_treg * ureg.dimensionless
+          return f_treg
     code_julia: |
       function compute(params, inputs)
           q = params["q_Treg_T_in"]
@@ -263,7 +263,7 @@ calibration:
     sample_size_rationale: |
       The CD34+ migration fraction and PDAC Treg transmigration counts are summary values from in vitro assays; replicate numbers are not clearly specified in the abstracts, so we treat them as point estimates and reflect uncertainty via broad assumed coefficients of variation in the distribution code rather than explicit n.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from transendothelial migration data.
 
@@ -286,7 +286,7 @@ calibration:
           # Effective Treg migration fraction (cap for numerical stability)
           max_f = _val(inputs['max_migration_fraction'])
           f_treg = min(f_hpc * r, max_f)
-          observed_value = f_treg * ureg.dimensionless
+          observed_value = f_treg
 
           # Propagate CVs through the product
           cv_f = _val(inputs['assumed_cv_migration_fraction'])

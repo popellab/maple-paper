@@ -220,7 +220,7 @@ calibration:
     sample_size_rationale: |
       Number of primary PDAC tumors in which CD86+ M1 macrophages were quantified (Gu 2023, Table 2).
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from PDAC M1 macrophage density.
 
@@ -230,17 +230,17 @@ calibration:
           """
           import numpy as np
 
-          M1_mean = inputs['M1_per_HPF_primary_PDAC'].magnitude  # cells/HPF
-          M1_low = inputs['M1_per_HPF_range_low'].magnitude      # cells/HPF
-          M1_high = inputs['M1_per_HPF_range_high'].magnitude     # cells/HPF
-          hpf_area = inputs['HPF_area_400x_microscope'].magnitude  # mm^2
+          M1_mean = inputs['M1_per_HPF_primary_PDAC']  # cells/HPF
+          M1_low = inputs['M1_per_HPF_range_low']      # cells/HPF
+          M1_high = inputs['M1_per_HPF_range_high']     # cells/HPF
+          hpf_area = inputs['HPF_area_400x_microscope']  # mm^2
 
           # Convert to areal density
           density_mean = M1_mean / hpf_area   # cells/mm^2
           density_low = M1_low / hpf_area
           density_high = M1_high / hpf_area
 
-          observed_value = density_mean * ureg('cell / millimeter**2')
+          observed_value = density_mean
 
           # Log-scale SD from reported range (treat as approximate 95% CI)
           sigma_log = (np.log(density_high) - np.log(density_low)) / (2.0 * 1.96)

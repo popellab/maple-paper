@@ -177,7 +177,7 @@ calibration:
     sample_size_rationale: |
       Nam et al. likely used triplicate cultures, but the review summarizing their data did not report n; we assume a typical n=3 for ELISA-based secretion assays.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from breast cancer cell line CCL2 secretion data.
 
@@ -186,11 +186,11 @@ calibration:
           """
           import numpy as np
 
-          mass_ng = inputs['MDA_MB231_CCL2_mass_48h'].magnitude
-          cv = inputs['assumed_cv'].magnitude
+          mass_ng = inputs['MDA_MB231_CCL2_mass_48h']
+          cv = inputs['assumed_cv']
 
           # Point estimate: observed CCL2 mass
-          observed_value = mass_ng * ureg.nanogram
+          observed_value = mass_ng
 
           # Log-scale SD from assumed CV
           sigma_log = np.sqrt(np.log(1 + cv**2))

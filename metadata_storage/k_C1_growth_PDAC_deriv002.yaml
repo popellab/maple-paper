@@ -159,11 +159,11 @@ calibration:
     type: algebraic
     formula: TVDT = ln(2) / k_C1_growth
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           import numpy as np
           k = params['k_C1_growth']  # 1/day
           t_double = np.log(2) / k
-          return t_double * ureg('day')
+          return t_double
     code_julia: |
       function compute(params, inputs)
           k = params["k_C1_growth"]  # 1/day
@@ -183,22 +183,22 @@ calibration:
     sample_size_rationale: |
       Number of patients with prediagnostic MR imaging used to calculate PDAC VDT in Jang2015.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           import numpy as np
-          mean_vdt = inputs['jang_vdT_mean'].to('day')
-          vdt_min = inputs['jang_vdT_min'].to('day')
-          vdt_max = inputs['jang_vdT_max'].to('day')
+          mean_vdt = inputs['jang_vdT_mean']
+          vdt_min = inputs['jang_vdT_min']
+          vdt_max = inputs['jang_vdT_max']
 
           # Approximate log-space standard deviation assuming the observed range
           # corresponds roughly to a 95% interval of a lognormal distribution.
-          log_min = np.log(vdt_min.magnitude)
-          log_max = np.log(vdt_max.magnitude)
+          log_min = np.log(vdt_min)
+          log_max = np.log(vdt_max)
           sd_log = (log_max - log_min) / (2.0 * 1.96)
 
           # Convert log-space SD to coefficient of variation (CV) for a lognormal.
           cv = np.sqrt(np.exp(sd_log**2) - 1.0)
 
-          n_patients = int(inputs['jang_n_patients'].magnitude)
+          n_patients = int(inputs['jang_n_patients'])
 
           return {
               'value': mean_vdt,

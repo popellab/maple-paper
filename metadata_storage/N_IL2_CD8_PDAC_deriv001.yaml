@@ -197,12 +197,12 @@ calibration:
     type: algebraic
     formula: N_IL2_CD8 = log2(fold_increase_IL2_memory)
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given N_IL2_CD8, predict fold increase."""
           import numpy as np
           N = params['N_IL2_CD8']
           fold_increase = 2.0 ** N
-          return fold_increase * ureg.dimensionless
+          return fold_increase
     code_julia: |
       function compute(params, inputs)
           N = params["N_IL2_CD8"]
@@ -224,15 +224,15 @@ calibration:
     sample_size_rationale: |
       Castro et al. report data as mean ± SE from 3-9 mice per time point; using n=6 as midpoint.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from day 10 fold expansion data.
 
           The forward model predicts fold increase (2^N), so we compare against
           the observed fold increase at day 10 with its estimated uncertainty.
           """
-          observed_value = inputs['fold_increase_memory_day10'].magnitude * ureg.dimensionless
-          sem = inputs['fold_increase_memory_day10_sem'].magnitude
+          observed_value = inputs['fold_increase_memory_day10']
+          sem = inputs['fold_increase_memory_day10_sem']
 
           return {
               'value': observed_value,
@@ -255,15 +255,15 @@ calibration:
     sample_size_rationale: |
       Castro et al. report data as mean ± SE from 3-9 mice per time point; using n=6 as midpoint.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from day 30 fold expansion data.
 
           The forward model predicts fold increase (2^N), so we compare against
           the observed fold increase at day 30 with its estimated uncertainty.
           """
-          observed_value = inputs['fold_increase_memory_day30'].magnitude * ureg.dimensionless
-          sem = inputs['fold_increase_memory_day30_sem'].magnitude
+          observed_value = inputs['fold_increase_memory_day30']
+          sem = inputs['fold_increase_memory_day30_sem']
 
           return {
               'value': observed_value,

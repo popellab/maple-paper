@@ -273,7 +273,7 @@ calibration:
     sample_size_rationale: |
       Seventy PDAC patients were included in the immunohistochemical analysis for CD68/CD163; for each case, counts from three random peripheral high-power fields were averaged.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           import numpy as np
           med = inputs['cd68_peri_median_per_hpf']      # cell
           low = inputs['cd68_peri_range_low_per_hpf']   # cell
@@ -281,13 +281,13 @@ calibration:
           hpf_area = inputs['hpf_area_mm2']             # millimeter**2
 
           # Convert counts per HPF to areal density (cells/mm^2)
-          density_med = (med / hpf_area).to('cell / millimeter**2')
-          density_low = (low / hpf_area).to('cell / millimeter**2')
-          density_high = (high / hpf_area).to('cell / millimeter**2')
+          density_med = med / hpf_area
+          density_low = low / hpf_area
+          density_high = high / hpf_area
 
-          med_val = density_med.magnitude
-          low_val = density_low.magnitude
-          high_val = density_high.magnitude
+          med_val = density_med
+          low_val = density_low
+          high_val = density_high
 
           # Approximate SD from reported range assuming ~95% of observations between low and high
           sd_val = (high_val - low_val) / (2.0 * 1.96)

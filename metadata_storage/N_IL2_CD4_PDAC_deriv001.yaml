@@ -153,10 +153,10 @@ calibration:
     type: algebraic
     formula: N_IL2_CD4 = max_divisions_cd4_antiCD3_IL2_IL4
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: N_IL2_CD4 is directly the max divisions."""
           N = params['N_IL2_CD4']
-          return N * ureg.dimensionless
+          return N
     code_julia: |
       function compute(params, inputs)
           N = params["N_IL2_CD4"]
@@ -177,17 +177,17 @@ calibration:
     sample_size_rationale: |
       Approximate number of independent cultures implied by "two experiments" and multiple replicate wells; exact n is not specified, so n=5 is treated as an approximate effective sample size for uncertainty calibration.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from CFSE division tracking.
 
           The forward model predicts max divisions directly, so we return
           the observed max divisions with SD based on assumed CV.
           """
-          max_div = inputs['max_divisions_cd4_antiCD3_IL2_IL4'].magnitude
-          cv = inputs['assumed_cv'].magnitude
+          max_div = inputs['max_divisions_cd4_antiCD3_IL2_IL4']
+          cv = inputs['assumed_cv']
           sd = cv * max_div  # ~2 divisions for max_div=8, CV=0.25
-          observed_value = max_div * ureg.dimensionless
+          observed_value = max_div
 
           return {
               'value': observed_value,

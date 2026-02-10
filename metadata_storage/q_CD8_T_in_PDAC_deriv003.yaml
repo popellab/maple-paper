@@ -260,15 +260,15 @@ calibration:
     sample_size_rationale: |
       214 resected PDAC specimens with whole-tissue multiplex IHC quantification of CD8+ cell density.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           mean = inputs['pdac_cd8_center_mean']
           q1 = inputs['pdac_cd8_center_q1']
           q3 = inputs['pdac_cd8_center_q3']
           factor = inputs['iqr_to_sd_factor']
-          iqr = (q3 - q1).to(mean.units)
+          iqr = q3 - q1
           sd = iqr / factor
-          cv = sd.magnitude / mean.magnitude
-          n = int(inputs['pdac_cd8_center_n'].magnitude)
+          cv = sd / mean
+          n = int(inputs['pdac_cd8_center_n'])
           return {
               'value': mean,
               'sd': cv,

@@ -219,7 +219,7 @@ calibration:
     formula: |
       k_MDSC_rec = bm_cells_migrated_PDS1_9h_per_field / (imaging_volume_per_field * migration_time_days)
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_MDSC_rec, predict migrated cells per field."""
           import numpy as np
           def _val(x):
@@ -229,7 +229,7 @@ calibration:
           t_hours = _val(inputs['migration_time_9h'])
           t_days = t_hours / 24.0
           migrated = k_rec * V_eff * t_days
-          return migrated * ureg.cell
+          return migrated
     code_julia: |
       function compute(params, inputs)
           k_rec = params["k_MDSC_rec"]
@@ -257,7 +257,7 @@ calibration:
     sample_size_rationale: |
       Oo2022 reports Transwell migration data as mean ± SD over n = 3 independent experiments, with 5 fields per group.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from Transwell migration data.
 
@@ -272,7 +272,7 @@ calibration:
           cv_migrated = _val(inputs['assumed_cv_migrated'])
           fold_unc = _val(inputs['imaging_volume_uncertainty_fold'])
 
-          observed_value = migrated_mean * ureg.cell
+          observed_value = migrated_mean
 
           # Combine CV on migrated cells with geometric uncertainty on volume
           sigma_m = np.sqrt(np.log(1.0 + cv_migrated**2))

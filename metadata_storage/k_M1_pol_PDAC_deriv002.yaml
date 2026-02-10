@@ -129,13 +129,13 @@ calibration:
     type: algebraic
     formula: k_M1_pol = ln(2) / t_half_M2_to_M1
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_M1_pol, predict repolarization half-time in hours."""
           import numpy as np
           k = params['k_M1_pol']  # 1/day
           t_half_days = np.log(2) / k
           t_half_h = t_half_days * 24.0
-          return t_half_h * ureg.hour
+          return t_half_h
     code_julia: |
       function compute(params, inputs)
           k = params["k_M1_pol"]
@@ -157,7 +157,7 @@ calibration:
     sample_size_rationale: |
       Hörhold et al. report biological duplicate experiments for gene expression and cytokine secretion (two biological replicates with technical replicates). We treat n=2 biological replicates as the effective sample size for the repolarization time scale.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from repolarization timescale range.
 
@@ -165,13 +165,13 @@ calibration:
           the geometric mean of the range with log-scale SD from the range.
           """
           import numpy as np
-          # Convert to days using ureg
-          low_d = inputs['m2_to_m1_repol_time_low'].to('day').magnitude
-          high_d = inputs['m2_to_m1_repol_time_high'].to('day').magnitude
+          # Convert to days manually
+          low_d = inputs['m2_to_m1_repol_time_low']
+          high_d = inputs['m2_to_m1_repol_time_high']
 
           # Geometric mean as point estimate
           t_half_days = np.sqrt(low_d * high_d)
-          observed_value = t_half_days * ureg.day
+          observed_value = t_half_days
 
           # Log-scale SD from the range (treat as ~95% CI)
           sigma_log = (np.log(high_d) - np.log(low_d)) / (2.0 * 1.96)

@@ -223,7 +223,7 @@ calibration:
     sample_size_rationale: |
       Figure 1 caption states that data are representative of three to four independent experiments; we conservatively assume n≈3 for viability under 1 mM melatonin.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from PSC viability data.
 
@@ -232,13 +232,13 @@ calibration:
           """
           import numpy as np
 
-          viability = inputs['psc_viability_mel_1mM_48h'].magnitude
-          # Convert SEM from percent to fraction using ureg
-          sem = inputs['psc_viability_sem'].to('').magnitude
+          viability = inputs['psc_viability_mel_1mM_48h']
+          # Convert SEM from percent to fraction manually
+          sem = inputs['psc_viability_sem']
           sd = sem * np.sqrt(sample_size)
 
           return {
-              'value': viability * ureg.dimensionless,
+              'value': viability,
               'sd': sd,  # dimensional for normal likelihood
               'sd_uncertain': False,  # SD derived from reported SEM
               'n': sample_size,

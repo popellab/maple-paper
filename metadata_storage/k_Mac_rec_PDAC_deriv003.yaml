@@ -188,16 +188,16 @@ calibration:
     sample_size_rationale: |
       12 resected PDAC specimens with ImageJ-based IHC quantification.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
-          cd163 = inputs['cd163_pixels_mean'].magnitude
-          hladr = inputs['hladr_pixels_mean'].magnitude
+      def derive_observation(inputs, sample_size):
+          cd163 = inputs['cd163_pixels_mean']
+          hladr = inputs['hladr_pixels_mean']
           ratio = cd163 / hladr
-          cv = inputs['assumed_cv_m2m1_ratio'].magnitude
+          cv = inputs['assumed_cv_m2m1_ratio']
           return {
-              'value': ratio * ureg('dimensionless'),
+              'value': ratio,
               'sd': cv,
               'sd_uncertain': True,
-              'n': int(inputs['n_patients_cd40'].magnitude),
+              'n': int(inputs['n_patients_cd40']),
           }
     likelihood:
       distribution: lognormal

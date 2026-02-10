@@ -187,7 +187,7 @@ calibration:
     formula: |
       k_MDSC_rec = ln(2) / MDSC_half_life * (B16_MDSC_fraction_control/100.0) * tumor_cell_density
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_MDSC_rec, predict MDSC fraction."""
           import numpy as np
           def _val(x):
@@ -197,7 +197,7 @@ calibration:
           half_life = _val(inputs['MDSC_half_life'])
           k_death = np.log(2) / half_life
           frac = k_rec / (k_death * cell_density) * 100.0
-          return frac * ureg.percent
+          return frac
     code_julia: |
       function compute(params, inputs)
           k_rec = params["k_MDSC_rec"]
@@ -224,7 +224,7 @@ calibration:
     sample_size_rationale: |
       Effective sample size taken as the number of tumors in the control B16 group (n = 10-15); used here only qualitatively since the model is an algebraic conversion.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from B16 MDSC fraction data.
 
@@ -238,7 +238,7 @@ calibration:
           mean_perc = _val(inputs['B16_MDSC_fraction_control'])
           sd_perc = _val(inputs['B16_MDSC_fraction_control_sd'])
 
-          observed_value = mean_perc * ureg.percent
+          observed_value = mean_perc
 
           # Convert reported mean and SD to log-scale SD
           cv = sd_perc / mean_perc

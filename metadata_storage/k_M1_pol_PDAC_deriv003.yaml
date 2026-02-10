@@ -229,7 +229,7 @@ calibration:
     formula: |
       fraction_CD86pos(t) = 1 - (1 - f0) * exp(-k_M1_pol * t) where f0 is the baseline CD86+ fraction in M2-polarized macrophages and t is time in days.
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           import numpy as np
           k = params['k_M1_pol']
           # Stimulation time in days (stored directly in inputs)
@@ -237,7 +237,7 @@ calibration:
           # Baseline CD86+ fraction in vehicle-treated M2 macrophages
           f0 = inputs['rp182_cd86pos_cd206pos_frac_vehicle']
           frac = 1.0 - (1.0 - f0) * np.exp(-k * t)
-          return frac * ureg('dimensionless')
+          return frac
     code_julia: |
       function compute(params::Dict, inputs::Dict)
           k = params["k_M1_pol"]
@@ -261,12 +261,12 @@ calibration:
     sample_size_rationale: |
       Yates et al. report that flow cytometry data are representative of three independent experiments conducted in triplicate; we treat n=3 biological replicates as the effective sample size for the fraction of CD86+CD206+ cells at 30 minutes.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           frac = inputs['rp182_cd86pos_cd206pos_frac_30min']
           cv = inputs['rp182_cd86pos_frac_cv']
           sd = frac * cv
           return {
-              'value': frac * ureg('dimensionless'),
+              'value': frac,
               'sd': sd,
           }
     likelihood:

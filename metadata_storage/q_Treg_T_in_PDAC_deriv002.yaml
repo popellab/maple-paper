@@ -193,7 +193,7 @@ calibration:
     formula: |
       q_Treg_T_in = (PDAC_TIL_Treg_fraction_mean / PBMC_Treg_fraction_mean) * (ln(2) / Treg_doubling_time_mean) / (1 centimeter**3)
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given q_Treg_T_in, predict tumor Treg fraction."""
           import numpy as np
           def _val(x):
@@ -206,7 +206,7 @@ calibration:
           V_ref = 1.0
           ratio = q * V_ref / k_per_min
           f_tumor = ratio * f_pbmc
-          return f_tumor * ureg.dimensionless
+          return f_tumor
     code_julia: |
       function compute(params, inputs)
           q = params["q_Treg_T_in"]
@@ -237,7 +237,7 @@ calibration:
     sample_size_rationale: |
       Tang et al. report flow cytometry data from 45 PDAC patients with paired PBMC and tumor TIL measurements. The Treg turnover estimate is based on 8 healthy donors, but is treated as a fixed auxiliary parameter here.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation from PDAC Treg enrichment data.
 
@@ -246,15 +246,15 @@ calibration:
           """
           import numpy as np
 
-          f_tumor = inputs['PDAC_TIL_Treg_fraction_mean'].magnitude
-          sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem'].magnitude
-          f_pbmc = inputs['PBMC_Treg_fraction_mean'].magnitude
-          sem_pbmc = inputs['PBMC_Treg_fraction_sem'].magnitude
-          n_patients = int(inputs['n_patients'].magnitude)
+          f_tumor = inputs['PDAC_TIL_Treg_fraction_mean']
+          sem_tumor = inputs['PDAC_TIL_Treg_fraction_sem']
+          f_pbmc = inputs['PBMC_Treg_fraction_mean']
+          sem_pbmc = inputs['PBMC_Treg_fraction_sem']
+          n_patients = int(inputs['n_patients'])
 
           # Point estimate: ratio of tumor to blood Treg fractions
           ratio = f_tumor / f_pbmc
-          observed_value = ratio * ureg.dimensionless
+          observed_value = ratio
 
           # Convert SEM to SD: SD = SEM × sqrt(n)
           sd_tumor = sem_tumor * np.sqrt(n_patients)

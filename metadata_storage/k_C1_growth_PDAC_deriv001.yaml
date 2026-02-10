@@ -158,12 +158,12 @@ calibration:
     submodel_rationale: |
       In the full QSPIO-PDAC model, viable cancer cells C1 in the tumor compartment grow according to dC1/dt = k_C1_growth * C1 * (1 - C_total/C_max). When total cancer cell burden C_total is well below the carrying capacity C_max, the logistic term (1 - C_total/C_max) ~ 1 and the dynamics reduce to exponential growth dC1/dt ~ k_C1_growth * C1. Under this regime, the tumor cell population has a doubling time VDT related to k_C1_growth by k_C1_growth = ln(2)/VDT. The clinical VDT measurements thus provide a mechanistically consistent way to infer k_C1_growth during early-to-intermediate tumor growth where saturation effects are modest.
     code: |
-      def compute(params, inputs, ureg):
+      def compute(params, inputs):
           """Forward model: given k_C1_growth, predict VDT."""
           import numpy as np
           k = params['k_C1_growth']
           vdt = np.log(2) / k  # VDT in days (since k is 1/day)
-          return vdt * ureg.day
+          return vdt
     code_julia: |
       function compute(params, inputs)
           k = params["k_C1_growth"]
@@ -181,7 +181,7 @@ calibration:
     sample_size_rationale: |
       The imaging study included 100 patients with histologically confirmed PDAC and at least two untreated CT scans; all contributed to the reported VDT distribution.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation (point estimate + uncertainty) from literature data.
 
@@ -195,11 +195,11 @@ calibration:
           """
           import numpy as np
 
-          vdt_mean = inputs['vdtime_mean'].magnitude  # days
-          vdt_sd = inputs['vdtime_sd'].magnitude  # days
+          vdt_mean = inputs['vdtime_mean']  # days
+          vdt_sd = inputs['vdtime_sd']  # days
 
           # Point estimate: use arithmetic mean as observed value
-          observed_value = vdt_mean * ureg('day')
+          observed_value = vdt_mean
 
           # Convert to log-scale SD for lognormal likelihood
           # σ_log = sqrt(ln(1 + CV²)) where CV = SD/mean

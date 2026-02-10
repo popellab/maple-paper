@@ -201,7 +201,7 @@ calibration:
     sample_size: 3
     sample_size_rationale: Same replicate number as the underlying ELISA measurement (assumed n=3).
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation (point estimate + uncertainty) from PrSC secretion data.
 
@@ -214,11 +214,11 @@ calibration:
           """
           import numpy as np
 
-          conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude  # pg/mL
-          conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude  # pg/mL
+          conc_mean = inputs['CCL2_prsc_unstim_mean']  # pg/mL
+          conc_sd = inputs['CCL2_prsc_unstim_sd']  # pg/mL
 
           # Point estimate: use arithmetic mean as observed value
-          observed_value = conc_mean * ureg('pg/milliliter')
+          observed_value = conc_mean
 
           # Convert to log-scale SD for lognormal likelihood
           # σ_log = sqrt(ln(1 + CV²)) where CV = SD/mean

@@ -150,7 +150,7 @@ calibration:
     sample_size_rationale: |
       Four human myelomonocytic leukemia cell lines (HL-60, ML-2, MONO-MAC-6, MUTZ-3) were assayed for constitutive MCP-1 secretion; the reported range 440 to 1400 pg/ml per 10^6 cells reflects variability across these lines.
     observation_code: |
-      def derive_observation(inputs, sample_size, ureg):
+      def derive_observation(inputs, sample_size):
           """
           Derive observation (point estimate + uncertainty) from literature data.
 
@@ -161,11 +161,11 @@ calibration:
           """
           import numpy as np
 
-          min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells'].magnitude
-          max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells'].magnitude
+          min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells']
+          max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells']
 
           # Point estimate: geometric mean for lognormal data
-          observed_value = np.sqrt(min_pg * max_pg) * ureg('pg/milliliter')
+          observed_value = np.sqrt(min_pg * max_pg)
 
           # Uncertainty: derive log-scale SD from the range (assumed 95% CI)
           log_min = np.log(min_pg)
