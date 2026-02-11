@@ -1,0 +1,204 @@
+study_interpretation: |
+  Chopra et al. (2013) quantified immune infiltrates, including CD11b+GR-1+ myeloid cells, in orthotopic Panc02 pancreatic tumors one month after implantation in C57Bl/6 mice. In wild-type hosts (B6.WT), CD11b+GR-1+ density reached ~172 cells/mm2 with substantial inter-mouse variability, indicating robust accumulation of MDSC-like cells in established tumors. Under a quasi–steady-state assumption for late-stage tumors, this density can be mapped to a steady-state fraction of MDSC among CD45+ leukocytes, which in turn constrains the ratio of MDSC recruitment to loss in the tumor compartment. Because the full QSPIO-PDAC model defines MDSC recruitment as k_MDSC_rec * V_T * f(CCL2,IL6), balancing k_MDSC_death * MDSC at steady state, the observed MDSC fraction provides a direct albeit noisy constraint on k_MDSC_rec when combined with an external prior on k_MDSC_death and a reference CD45+ density in PDAC.
+
+key_assumptions:
+- |
+  CD11b+GR-1+ cells quantified in Panc02 tumors predominantly represent tumor-infiltrating MDSC-like populations relevant to the QSPIO-PDAC MDSC compartment.
+- |
+  Orthotopic Panc02 tumors at one month post-implantation are in a quasi–steady state with respect to MDSC influx and loss, so a steady_state_fraction approximation is reasonable.
+- |
+  Conversion from MDSC density (cells/mm2) to a fraction among CD45+ leukocytes using a reference PDAC CD45+ density (1000 cells/mm2) is a valid order-of-magnitude approximation despite inter-study and species variability.
+- |
+  Chemokine-mediated recruitment factors f(CCL2,IL6) are near saturation in established PDAC, allowing them to be absorbed into an effective k_MDSC_rec for baseline calibration.
+- |
+  Reported errors are SEM; conversion to SD using sqrt(n) is appropriate for deriving variability across animals.
+
+key_study_limitations:
+- |
+  MDSC infiltration is quantified at a single late timepoint (approximately day 30); early-time kinetics are described qualitatively but not reported with numerical values, limiting dynamic inference.
+- |
+  Sample size for immune infiltrate quantification in the wild-type group is small (n=4), and reported uncertainty is SEM rather than SD, contributing to substantial statistical uncertainty.
+- |
+  The syngeneic orthotopic Panc02 model, while PDAC-like, does not fully capture the fibrosis, heterogeneity, and chronic evolution of human PDAC or KPC GEMMs; MDSC recruitment rates may differ quantitatively.
+- |
+  The mapping from CD11b+GR-1+ density to MDSC fraction relies on an external estimate of PDAC CD45+ leukocyte density, introducing additional cross-study and cross-species uncertainty.
+- |
+  CD11b+GR-1+ cells include heterogeneous myeloid subsets; not all such cells may correspond strictly to the MDSC compartment as defined in the QSP model.
+
+experimental_context:
+  species: mouse
+  system: in_vivo_syngeneic
+  cell_lines:
+  - name: Panc02-FUGLW
+    species: mouse
+    tissue_origin: pancreas
+    cell_type: ductal adenocarcinoma
+  cell_types:
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.1371/journal.pone.0075737
+  title: |
+    Tumor Necrosis Factor Induces Tumor Promoting and Anti-Tumoral Effects on Pancreatic Cancer via TNFR1
+  authors:
+  - Martin Chopra
+  - Isabell Lang
+  - Steffen Salzmann
+  - Christina Pachel
+  - Sabrina Kraus
+  - Carina A Bauerlein
+  - Christian Brede
+  - Ana-Laura Jordan Garrote
+  - Katharina Mattenheimer
+  - Miriam Ritz
+  - Stefanie Schwinn
+  - Carolin Graf
+  - Viktoria Schafer
+  - Stefan Frantz
+  - Hermann Einsele
+  - Harald Wajant
+  - Andreas Beilhack
+  year: 2013
+  source_tag: Chopra2013
+
+secondary_data_sources: []
+
+target_id: k_MDSC_rec_panc02_tnfr1_chopra2013
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c463358886eb0da15cab854671aa6
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: mdsc_fraction_panc02_pancreas_mean
+  value: 0.1717
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Chopra2013
+  source_location: |
+    Table 2, B6.WT row (CD11b+GR-1+ density), one month after orthotopic Panc02-FUGLW injection
+  extraction_method: manual
+  value_snippet: |
+    Table 2. Loss of host TNFR1 perturbs the immunologic control of Panc02 tumors. Genotype ... CD11b+GR-1+ (mm-2) ... B6.WT 171.7+/-70.2 ...
+  source_access: open_access
+- name: mdsc_fraction_panc02_pancreas_sem
+  value: 0.0702
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Chopra2013
+  source_location: |
+    Derived from Table 2 B6.WT CD11b+GR-1+ density (171.7+/-70.2 cells/mm-2) assuming total CD45+ density 1000 cells/mm-2
+  extraction_method: manual
+  value_snippet: |
+    All data are shown as mean +/- standard error of mean. Table 2 B6.WT CD11b+GR-1+ (mm-2) 171.7+/-70.2; converted to fractional SEM by dividing by assumed total CD45+ density (1000 cells/mm-2).
+  source_access: open_access
+- name: n_panc02_pancreas_wt_tumors
+  value: 4.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Chopra2013
+  source_location: 'Table 2 legend: B6.WT n = 4'
+  extraction_method: manual
+  value_snippet: |
+    Panc02-tumors were explanted one month after tumor cell inoculation... (B6.WT n = 4, B6.TNF KO n = 5, B6.TNFR1 KO n = 5, B6.TNFR2 KO n = 6, B6.TNFR1R2 KO n = 4).
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_MDSC_rec
+    units: cell / (milliliter * day)
+    prior:
+      distribution: lognormal
+      mu: 16.8
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Wide lognormal prior (approximately 4–5 orders of magnitude) centered near the value implied by a ~0.17 MDSC fraction in established PDAC tumors assuming k_MDSC_death ~0.5/day and pdac_cd45_density_volumetric ~2.5e8 cell/mL.
+  - name: k_MDSC_death
+    units: 1 / day
+    prior:
+      distribution: lognormal
+      mu: -0.693
+      sigma: 0.7
+      lower:
+      upper:
+      rationale: |
+        Mouse tumor-infiltrating myeloid cells (including MDSC-like populations) typically have lifespans on the order of 1–3 days in vivo. Prior centered at 0.5/day (half-life ~1.4 days) with ~2-fold uncertainty.
+  forward_model:
+    data_rationale: |
+      Chopra et al. (2013) report CD11b+GR-1+ (MDSC-like) cell densities per mm2 in orthotopic Panc02 pancreatic tumors one month after implantation. These tumors are large and established, so MDSC influx and loss can be approximated as quasi–steady state. Densities were converted to an approximate fraction of CD45+ leukocytes using a reference PDAC CD45+ density, providing a steady-state MDSC fraction target.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, intratumoral MDSC dynamics follow d(MDSC)/dt = k_MDSC_rec * V_T * f(CCL2,IL6) - k_MDSC_death * MDSC. For established tumors with roughly constant chemokine drive f(CCL2,IL6) and tumor volume V_T, the steady-state MDSC volumetric density is proportional to k_MDSC_rec / k_MDSC_death. The fraction of MDSC among total CD45+ leukocytes then satisfies fraction_MDSC ≈ k_MDSC_rec / (k_MDSC_death * parent_density). This is exactly the steady_state_fraction form with target_rate = k_MDSC_rec, loss_rate = k_MDSC_death, and parent_density given by PDAC CD45+ cell density.
+    independent_variable:
+    state_variables:
+    unit_conversion_factor: '1.0'
+    type: steady_state_fraction
+    target_rate: k_MDSC_rec
+    loss_rate: k_MDSC_death
+    parent_density:
+      reference_ref: pdac_cd45_density_volumetric
+    drive_factor: '1.0'
+  error_model:
+  - name: mdsc_fraction_panc02_pancreas
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - mdsc_fraction_panc02_pancreas_mean
+    - mdsc_fraction_panc02_pancreas_sem
+    evaluation_points:
+    sample_size: 4
+    sample_size_rationale: |
+      Table 2 legend reports B6.WT n = 4 for immune cell density quantification in orthotopic Panc02 tumors at one month.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          import numpy as np
+          mean = inputs['mdsc_fraction_panc02_pancreas_mean']
+          sem = inputs['mdsc_fraction_panc02_pancreas_sem']
+          n = int(sample_size)
+          # Convert SEM to SD
+          sd = sem * np.sqrt(n)
+          # For lognormal likelihood, use coefficient of variation as SD parameter
+          cv = sd / mean
+          return {
+              'value': mean,
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': n,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Fractions are positive and typically right-skewed across animals; a lognormal likelihood with CV derived from SEM captures this.
+  identifiability_notes: |
+    This target primarily constrains the combination k_MDSC_rec / (k_MDSC_death * parent_density). With only a single steady-state fraction measurement from one tumor age (approximately day 30), k_MDSC_rec and k_MDSC_death are strongly correlated and not separately identifiable from this dataset alone. The prior on k_MDSC_death incorporates external knowledge of myeloid cell lifespans but residual non-identifiability remains; full identifiability of k_MDSC_rec will rely on additional submodels (e.g., systemic MDSC kinetics, depletion and recovery experiments, or independent constraints on k_MDSC_death). The conversion from density (cells/mm2) to fraction uses a reference PDAC CD45+ density, introducing additional systematic uncertainty, which is reflected in the wide prior on k_MDSC_rec and the elevated CV in the likelihood.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The study uses an orthotopic syngeneic Panc02 pancreatic ductal adenocarcinoma model in immunocompetent C57Bl/6 mice, which recapitulates key features of human PDAC, including desmoplastic stroma and myeloid-rich immunosuppressive infiltrates. Thus the indication (PDAC) matches the QSPIO-PDAC model; remaining uncertainties arise from species (mouse vs human) and specific model differences rather than disease type.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Orthotopic Panc02 tumors reproduce many PDAC microenvironment features (desmoplasia, strong myeloid infiltration) but are still faster-growing, less heterogeneous, and less fibrotic than human PDAC or KPC GEMMs. MDSC recruitment levels and cell turnover may therefore differ by several-fold from human PDAC.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings: []

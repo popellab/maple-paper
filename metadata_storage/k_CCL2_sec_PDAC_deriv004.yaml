@@ -1,0 +1,237 @@
+study_interpretation: |
+  Michalski et al. demonstrate that human pancreatic stellate cells isolated from chronic pancreatitis patients secrete substantial amounts of MCP-1 (CCL2) into culture supernatants over 48 h and that this secretion is modulated by cannabinoid receptor ligands. Using the reported seeding density (40,000 PSC per 0.5 mL well), incubation time (48 h), and MCP-1 ELISA readouts, we treat the control-condition MCP-1 concentration as an approximate quantitative constraint on per-cell CCL2 secretion. This provides a mechanistically matched in vitro estimate of k_CCL2_sec for activated human PSC in a pancreas-specific fibrotic context, which is closely related to but distinct from PDAC CAFs.
+
+key_assumptions:
+- |
+  MCP-1 ELISA bar heights in Figure 7A are approximately 200 pg/mL for untreated control PSC supernatants at 48 h; this value was approximated by digitizing the figure and should be interpreted with at least ~30% error margin.
+- |
+  PSC proliferation over the 48 h accumulation period is modest once cultures are near confluence, so cell number is approximated as constant at the reported seeding density (40,000 cells/well).
+- |
+  All secreted MCP-1 during the 48 h period remains in the measured supernatant (no significant degradation, binding, or medium exchange), consistent with standard batch accumulation assays.
+- |
+  Activated PSC from chronic pancreatitis have CCL2 secretion rates within an order of magnitude of PDAC CAF/PSC in the PDAC tumor microenvironment.
+- |
+  Biological and technical variability for MCP-1 ELISA in PSC cultures is captured by an assumed coefficient of variation of 30% (used as SD for the lognormal likelihood).
+
+key_study_limitations:
+- |
+  PSC were derived from chronic pancreatitis rather than PDAC, so tumor-specific oncogenic and immune cues that may further upregulate CCL2 are absent.
+- |
+  Absolute MCP-1 concentrations are only available from plotted ELISA bar graphs, requiring approximate digitization rather than exact tabulated values.
+- |
+  Cultures are 2D monolayers in low serum, which do not fully recapitulate the 3D, hypoxic, and heterogeneous PDAC stroma.
+- |
+  The study focuses on pharmacologic modulation of PSC via cannabinoids; control-condition CCL2 secretion is not extensively characterized across multiple donors or culture conditions, limiting generalizability.
+
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines:
+  cell_types:
+  - name: pancreatic stellate cell
+    phenotype: activated PSC derived from human chronic pancreatitis tissue
+    isolation_method: |
+      Outgrowth method from chronic pancreatitis surgical specimens, cultured to passages 3-5
+  culture_conditions:
+    substrate:
+    serum_concentration: 1.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication: chronic pancreatitis (non-malignant)
+
+primary_data_source:
+  doi: 10.1371/journal.pone.0001701
+  title: |
+    Cannabinoids reduce markers of inflammation and fibrosis in pancreatic stellate cells
+  authors:
+  - Christoph W. Michalski
+  - Milena Maier
+  - Mert Erkan
+  - Danguole Sauliunaite
+  - Frank Bergmann
+  - Pal Pacher
+  - Sandor Batkai
+  - Nathalia A. Giese
+  - Thomas Giese
+  - Helmut Friess
+  - Jorg Kleeff
+  year: 2008
+  source_tag: Michalski2008
+
+secondary_data_sources:
+- doi: 10.3748/wjg.v23.i3.382
+  url:
+  title: "Pancreatic stellate cell: Pandora's box for pancreatic disease biology"
+  authors:
+  - Ratnakar R. Bynigeri
+  - Aparna Jakkampudi
+  - Ramaiah Jangala
+  - Chivukula Subramanyam
+  - Mitnala Sasikala
+  - G. Venkat Rao
+  - D. Nageshwar Reddy
+  - Rupjyoti Talukdar
+  year: 2017
+  source_tag: Bynigeri2017
+  contribution: |
+    Review summarizing PSC biology in chronic pancreatitis and PDAC, including that activated PSC secrete chemokines such as MCP-1/CCL2 and contribute to desmoplasia and immune modulation.
+  source_quality: review_article
+
+target_id: k_CCL2_sec_psc_michalski2008
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c463358fdc59c30111f878a501c3b
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: psc_cell_seeded
+  value: 40000.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: initial_condition
+  source_ref: Michalski2008
+  source_location: |
+    Materials and Methods, Cannabinoid treatment and proliferation assays (PSC plated at 40,000 cells/well in 500 uL medium)
+  extraction_method: manual
+  value_snippet: |
+    PSC were plated on the bottom of 24-well plates at densities of 40,000/well in 500 uL DMEM/Ham's F12 (1/1, v/v) in the presence of 20% FCS for 24 hours.
+  source_access: open_access
+- name: medium_volume_well
+  value: 0.5
+  units: milliliter
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: fixed_parameter
+  source_ref: Michalski2008
+  source_location: |
+    Materials and Methods, Cannabinoid treatment and proliferation assays (40,000/well in 500 uL medium)
+  extraction_method: manual
+  value_snippet: |
+    PSC were plated on the bottom of 24-well plates at densities of 40,000/well in 500 uL DMEM/Ham's F12 (1/1, v/v).
+  source_access: open_access
+- name: incubation_time_48h
+  value: 2.0
+  units: day
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: fixed_parameter
+  source_ref: Michalski2008
+  source_location: |
+    Figure 3 and 7 experiment descriptions (supernatants collected after 48 h of treatment)
+  extraction_method: manual
+  value_snippet: |
+    After 48 hours of incubation, proliferation was determined using MTT tests... To assess the effects of WIN treatment of PSC on the secretion of cytokines IL-6, MCP-1 and TGFbeta, cell culture supernatants were subjected to ELISA.
+  source_access: open_access
+- name: mcp1_conc_48h_mean
+  value: 200.0
+  units: picogram / milliliter
+  uncertainty:
+    ci95:
+    sd: 60.0
+  n: 3
+  input_type: inferred_estimate
+  role: target
+  source_ref: Michalski2008
+  source_location: |
+    Figure 7A (MCP-1 ELISA for untreated control PSC, approximate digitization of bar height)
+  extraction_method: webplotdigitizer
+  value_snippet: |
+    These experiments demonstrated that IL-6 and MCP-1 secretion were significantly reduced by WIN (p = 0.001 and p = 0.0002, respectively; Figure 7A).
+  source_access: open_access
+- name: mcp1_conc_48h_cv_assumed
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Michalski2008
+  source_location: |
+    Assumed typical biological variability for cytokine ELISA in primary PSC cultures
+  extraction_method: other
+  value_snippet: Data are shown as mean±SEM.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_CCL2_sec
+    units: nanomole / cell / day
+    prior:
+      distribution: lognormal
+      mu: -23.0
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Center of prior (exp(mu) ~ 1e-10 nmol/cell/day) chosen to be consistent with order-of-magnitude chemokine secretion rates from fibroblast-like cells, with wide uncertainty (100-fold up/down) to account for indication (CP vs PDAC) and digitization error.
+  forward_model:
+    data_rationale: |
+      Michalski et al. measured MCP-1 (CCL2) accumulated in PSC culture supernatants over 48 h using ELISA, with known seeding density, medium volume, and incubation time. This directly matches a batch accumulation secretion assay.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, CCL2 is produced in the tumor compartment by stromal cells (modeled via k_CCL2_sec * C_total). Here, we isolate per-cell CCL2 secretion from pancreatic stellate cells in vitro, which maps directly to k_CCL2_sec under batch accumulation conditions.
+    independent_variable:
+    state_variables:
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count:
+      input_ref: psc_cell_seeded
+    incubation_time:
+      input_ref: incubation_time_48h
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume:
+      input_ref: medium_volume_well
+    unit_conversion_factor: '1000.0'
+  error_model:
+  - name: mcp1_concentration_48h
+    observable:
+    units: picogram / milliliter
+    uses_inputs:
+    - mcp1_conc_48h_mean
+    - mcp1_conc_48h_cv_assumed
+    evaluation_points:
+    sample_size: 3
+    sample_size_rationale: |
+      Michalski et al. report ELISA data as mean±SEM from three independent experiments for cytokine measurements in PSC supernatants.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          mean = inputs['mcp1_conc_48h_mean']
+          cv_assumed = inputs['mcp1_conc_48h_cv_assumed']
+          # For a lognormal likelihood, we treat sd as the coefficient of variation in linear space
+          return {
+              'value': mean,
+              'sd': cv_assumed,
+              'sd_uncertain': True,
+              'n': int(sample_size),
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Cytokine concentrations are positive and typically log-distributed across experiments; measurement error and biological variability are better captured on the log scale.
+  identifiability_notes: |
+    With a single batch-accumulation measurement (MCP-1 concentration at 48 h) and known cell number, medium volume, and molecular weight, the submodel constrains only the product k_CCL2_sec * incubation_time. Because incubation_time is fixed from the experiment, k_CCL2_sec is identifiable up to the assumed measurement uncertainty and the approximated concentration from figure digitization. The prior is intentionally broad to avoid overconfidence, and this target should be combined with additional CCL2 data (e.g., other cell types, in vivo concentrations) in the global QSP calibration.
+
+source_relevance:
+  indication_match: related
+  indication_match_justification: |
+    The data come from human pancreatic stellate cells isolated from chronic pancreatitis (CP) patients. PSCs from CP and PDAC share activation markers (alpha-SMA), myofibroblast-like phenotype, and robust secretion of inflammatory cytokines/chemokines including MCP-1/CCL2. However, CP lacks malignant epithelial cells and PDAC-specific oncogenic signaling, which can alter PSC activation state and secretory profile. Thus CP PSCs are used as a mechanistic proxy for PDAC CAF/PSC CCL2 secretion with an expected uncertainty of roughly one order of magnitude.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Chronic pancreatitis stroma is fibrotic and inflamed, sharing desmoplasia and PSC activation with PDAC but lacking malignant epithelium and tumor-driven immunosuppressive circuits. PSC CCL2 levels in CP may be somewhat lower than in fully developed PDAC stroma, but the order of magnitude is expected to be similar.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:

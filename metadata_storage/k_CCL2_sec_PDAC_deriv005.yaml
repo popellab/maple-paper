@@ -1,0 +1,221 @@
+study_interpretation: |
+  Nixon et al. (Clin Cancer Res 2013; CALGB 80303) measured baseline plasma MCP-1 (CCL2) concentrations in 328 patients with advanced pancreatic adenocarcinoma using a standardized multiplex platform. Table 1 reports a median MCP-1 level of 521.8 pg/mL before systemic therapy. Using the known molecular weight of mature human CCL2, this value is converted to approximately 0.06 nmol/L, providing a steady-state concentration of CCL2 in the plasma compartment. Interpreting this as arising from continuous tumor-driven CCL2 secretion balanced by first-order systemic clearance allows the data to constrain the net production-to-clearance ratio for CCL2 in advanced PDAC. By combining this clinical observable with reference estimates for total PDAC tumor cell burden and blood volume, and by applying an informative prior on the CCL2 degradation rate derived from independent half-life measurements, the submodel maps the observed plasma MCP-1 level into an inferred per-cell secretion rate k_CCL2_sec that is mechanistically consistent with its role in the full QSPIO-PDAC tumor CCL2 generation reaction.
+
+key_assumptions:
+- |
+  Baseline plasma MCP-1 in CALGB 80303 patients reflects an approximate steady-state between tumor (and tumor-associated stromal) CCL2 secretion and systemic clearance on the timescale of days, i.e., production and loss are roughly balanced at study entry.
+- |
+  Tumor tissue (primary and metastatic PDAC lesions) is the dominant net source of circulating MCP-1 in this cohort, so that other inflammatory sites contribute relatively modestly to the average plasma level and can be subsumed into an effective tumor-derived secretion rate.
+- |
+  The reference value pdac_total_tumor_cells (~1e9 cells for a 10 mL resectable PDAC tumor) provides a reasonable order-of-magnitude anchor for total viable tumor cell burden in advanced PDAC; deviations among individuals are absorbed into the assumed coefficient of variation and the lognormal likelihood.
+- |
+  The effective CCL2 distribution volume relevant for the measured plasma concentrations can be approximated by the central blood volume (reference blood_volume ~5 L), neglecting additional distribution into peripheral interstitial spaces or lymph, which would otherwise dilute concentrations.
+- |
+  CCL2 clearance kinetics in these patients can be adequately described by first-order degradation with a rate constant consistent with a plasma half-life of approximately 0.1 day; disease-related changes in clearance are captured by the prior uncertainty on k_CCL2_deg.
+- |
+  Because only the median and range of plasma MCP-1 are reported, a 50% coefficient of variation is assumed as a conservative estimate of inter-patient variability in CCL2 levels; this assumption is explicitly modeled via an auxiliary input and marked as uncertain in the likelihood specification.
+- |
+  Conversion from pg/mL to nmol/L using a fixed molecular weight for mature CCL2 is accurate enough for QSP calibration purposes; isoform heterogeneity and post-translational modifications are neglected.
+
+key_study_limitations:
+- |
+  The CALGB 80303 cohort comprises patients with advanced (locally advanced/metastatic) PDAC, whereas the reference tumor cell count used in the model is based on resectable tumors; the relationship between cell burden and plasma CCL2 may differ between these settings.
+- |
+  Plasma MCP-1 integrates production from both primary and metastatic lesions as well as potentially from non-tumor tissues (e.g., adipose tissue, liver, systemic inflammation); the submodel attributes most of this to tumor, which may overestimate per-cell secretion if extra-tumoral sources are substantial.
+- |
+  Only a single baseline plasma measurement per patient is available, precluding direct assessment of temporal dynamics or confirmation of steady-state; transient fluctuations due to acute inflammation or sampling time relative to treatment are not captured.
+- |
+  The analyte table reports median, minimum, and maximum but not standard deviation or interquartile range for MCP-1; as a result, variability must be assumed rather than directly measured, introducing additional uncertainty handled via an assumed CV and sd_uncertain flag.
+- |
+  Patients were enrolled in a systemic therapy trial and may have heterogeneous performance status, comorbidities, and tumor burdens, all of which can influence inflammatory cytokine levels and clearance and are not explicitly modeled in this calibration target.
+- |
+  The conversion factor from pg/mL to nmol/L assumes a single molecular weight for mature CCL2 and does not account for potential assay cross-reactivity with related chemokines or modified forms of CCL2, which could slightly bias the effective concentration scale.
+
+experimental_context:
+  species: human
+  system: in_vivo_clinical
+  cell_lines:
+  cell_types:
+  culture_conditions:
+  indication: Advanced PDAC
+
+primary_data_source:
+  doi: 10.1158/1078-0432.CCR-13-0926
+  title: |
+    Prognostic and Predictive Blood-Based Biomarkers in Patients with Advanced Pancreatic Cancer: Results from CALGB 80303 (Alliance)
+  authors:
+  - Nixon AB
+  - Pang H
+  - Starr MD
+  - Friedman PN
+  - Bertagnolli MM
+  - Kindler HL
+  - Goldberg RM
+  - Venook AP
+  - Hurwitz HI
+  year: 2013
+  source_tag: Nixon2013_CALGB80303
+
+secondary_data_sources:
+- doi: 10.3390/ijms21239328
+  url:
+  title: |
+    Is the C-C Motif Ligand 2-C-C Chemokine Receptor 2 Axis a Promising Target for Cancer Therapy and Diagnosis?
+  authors:
+  - Iwamoto H
+  - Izumi K
+  - Mizokami A
+  year: 2020
+  source_tag: Iwamoto2020
+  contribution: |
+    Review providing context on typical ranges and clinical roles of circulating CCL2 (MCP-1) across multiple tumor types, including pancreatic cancer, supporting the biological plausibility of using plasma CCL2 as a systemic readout of tumor-derived chemokine secretion.
+  source_quality: review_article
+
+target_id: k_CCL2_sec_pdac_plasma_Nixon2013
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c463358b724dd2f4dd1a1d4e51f52
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: mcp1_plasma_median_advanced_pdac
+  value: 521.8
+  units: picogram / milliliter
+  uncertainty:
+  n: 328
+  input_type: direct_measurement
+  role: target
+  source_ref: Nixon2013_CALGB80303
+  source_location: Table 1, Analyte characteristics at baseline (MCP-1 row)
+  extraction_method: manual
+  value_snippet: MCP-1 (pg/mL) 10.4 328 521.8 146.7 3,445
+  source_access:
+- name: mcp1_plasma_n_patients
+  value: 328.0
+  units: dimensionless
+  uncertainty:
+  n: 328
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Nixon2013_CALGB80303
+  source_location: Table 1, Analyte characteristics at baseline (MCP-1 row)
+  extraction_method: manual
+  value_snippet: Analyte Unit %CV N Median Min Max ... MCP-1 (pg/mL) 10.4 328 521.8 146.7 3,445
+  source_access:
+- name: mcp1_plasma_assumed_cv
+  value: 0.5
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Nixon2013_CALGB80303
+  source_location: |
+    Assumption based on typical inter-patient variability for circulating cytokines when only median and range are reported.
+  extraction_method: other
+  value_snippet: |
+    Assumed coefficient of variation of 0.5 (50%) for plasma MCP-1, as a conservative estimate of between-patient variability in cytokine levels.
+  source_access:
+- name: mcp1_pgml_to_nmolL_factor
+  value: 0.00011522064754003915
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Nixon2013_CALGB80303
+  source_location: |
+    Derived from the reported MCP-1 units (pg/mL) using the reference molecular weight of mature human CCL2 (8679 g/mol) to convert concentrations to nanomole per liter for consistency with k_CCL2_sec units.
+  extraction_method: other
+  value_snippet: |
+    Conversion factor from pg/mL to nmol/L for MCP-1, computed as (1 pg/mL) × (1e-12 g/pg) × (1e3 mL/L) / (8679 g/mol) ≈ 1.15e-4 nmol/L.
+  source_access:
+
+calibration:
+  parameters:
+  - name: k_CCL2_sec
+    units: nanomole / cell / day
+    prior:
+      distribution: lognormal
+      mu: -20.0
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered on a back-calculated per-cell CCL2 secretion rate needed to sustain the observed median plasma MCP-1 level (~0.06 nmol/L, equivalent to ~522 pg/mL) in advanced pancreatic cancer patients, assuming a typical tumor cell burden (~1e9 cells), blood volume of 5 L, and CCL2 half-life of 0.1 day, with a broad 10-fold uncertainty.
+  - name: k_CCL2_deg
+    units: 1 / day
+    prior:
+      distribution: lognormal
+      mu: 1.94
+      sigma: 0.3
+      lower:
+      upper:
+      rationale: |
+        Anchored to independent data on CCL2 plasma half-life (~0.1 day), corresponding to a first-order degradation rate k_CCL2_deg ≈ ln(2)/0.1 ≈ 6.9 day^-1, with a moderately tight prior (roughly 2-fold credible range) to reflect residual uncertainty and possible disease-related variation.
+  forward_model:
+    data_rationale: |
+      Nixon et al. (CALGB 80303) report baseline plasma MCP-1 (CCL2) concentrations in 328 patients with advanced pancreatic adenocarcinoma receiving gemcitabine ± bevacizumab. The analyte table provides the median MCP-1 level (521.8 pg/mL) prior to systemic therapy. After conversion to nanomole per liter using the molecular weight of CCL2, this value can be interpreted as an approximate steady-state concentration reflecting the balance of tumor-driven CCL2 secretion and systemic clearance in this disease setting.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, CCL2 in the tumor compartment (V_T.CCL2) is generated by tumor cells via the reaction null -> V_T.CCL2 at rate k_CCL2_sec * C_total and removed via first-order degradation V_T.CCL2 -> null at rate k_CCL2_deg * V_T.CCL2. The submodel idealizes this by treating the systemic plasma compartment as the effective distribution volume for tumor-derived CCL2 and assuming quasi-steady-state, so that the observable plasma concentration (expressed in nanomole per liter) equals secretion_rate * tumor_cell_count / (clearance_rate * distribution_volume). This algebraic steady-state relationship preserves the same mechanistic dependence of CCL2 levels on k_CCL2_sec, tumor cell number, and k_CCL2_deg as in the full model, while collapsing spatial compartments into a single well-mixed space for calibration.
+    independent_variable:
+    state_variables:
+    unit_conversion_factor: '1.0'
+    type: steady_state_concentration
+    secretion_rate: k_CCL2_sec
+    source_count:
+      reference_ref: pdac_total_tumor_cells
+    clearance_rate: k_CCL2_deg
+    distribution_volume:
+      reference_ref: blood_volume
+  error_model:
+  - name: plasma_mcp1_advanced_pdac_median
+    observable:
+    units: nanomole / liter
+    uses_inputs:
+    - mcp1_plasma_median_advanced_pdac
+    - mcp1_plasma_assumed_cv
+    - mcp1_pgml_to_nmolL_factor
+    evaluation_points:
+    sample_size: 328
+    sample_size_rationale: |
+      Number of advanced pancreatic cancer patients with baseline EDTA plasma biomarker measurements in the CALGB 80303 correlative study (N=328).
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          median_pgml = inputs['mcp1_plasma_median_advanced_pdac']
+          factor = inputs['mcp1_pgml_to_nmolL_factor']
+          cv_assumed = inputs['mcp1_plasma_assumed_cv']
+          median_nmolL = median_pgml * factor
+          # Use the converted median (nmol/L) as the central tendency; assume a 50% coefficient of variation
+          # as a conservative estimate of inter-patient variability in plasma MCP-1.
+          return {
+              'value': median_nmolL,
+              'sd': cv_assumed,
+              'sd_uncertain': True,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Plasma cytokine concentrations are strictly positive and typically right-skewed across patients; a lognormal likelihood with an assumed coefficient of variation captures this behavior when only median and range (but not SD/SEM) are reported. The observable is expressed in nanomole per liter to match the units implied by k_CCL2_sec.
+  identifiability_notes: |
+    With a single steady-state concentration measurement (converted to nanomole per liter), this target constrains primarily the ratio k_CCL2_sec * (pdac_total_tumor_cells) / (k_CCL2_deg * blood_volume). On its own, the dataset cannot uniquely identify both k_CCL2_sec and k_CCL2_deg. An informative prior on k_CCL2_deg derived from independent CCL2 half-life data anchors the clearance, making k_CCL2_sec the main parameter updated by this calibration. Uncertainty in tumor cell burden, distribution volume, and unit conversion is represented via reference values and the assumed CV; large systematic errors in these quantities will rescale the inferred k_CCL2_sec approximately linearly.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The study cohort consists of human patients with advanced pancreatic adenocarcinoma enrolled in a phase III trial (CALGB 80303). This directly matches the PDAC indication of the QSPIO-PDAC model, although disease stage is predominantly locally advanced or metastatic rather than resectable. As the model is intended to capture PDAC tumor–immune–stroma interactions across disease stages, these baseline plasma CCL2 levels in untreated advanced PDAC are considered indication-matched data.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Patients had untreated locally advanced or metastatic pancreatic adenocarcinoma at baseline, with tumors embedded in a native PDAC tumor microenvironment characterized by dense stroma and myeloid-rich infiltrates. While systemic disease burden and metastatic sites may modestly alter CCL2 production and distribution compared with localized, resectable PDAC, the core PDAC TME features relevant for CCL2 secretion are preserved.
+  estimated_translation_uncertainty_fold: 2.0
+  validation_warnings: []

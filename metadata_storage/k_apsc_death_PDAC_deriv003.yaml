@@ -1,0 +1,207 @@
+study_interpretation: |
+  Issa2001 demonstrates that during resolution of biliary fibrosis in rats, the number of activated hepatic stellate cells (alpha-SMA+ myofibroblast-like cells) decreases approximately fivefold over 42 days, with an early spike in TUNEL-positive apoptotic stellate cells in the first 2 days after biliodigestive anastomosis. Interpreting this decline as primarily driven by apoptosis allows us to approximate a first-order death rate constant for activated stellate cells. Because activated hepatic stellate cells and activated pancreatic stellate cells share a myofibroblast phenotype and similar roles in fibrotic ECM production, this apoptosis-driven turnover rate provides a mechanistic proxy for the k_apsc_death parameter governing activated PSC death in the QSPIO-PDAC model.
+
+key_assumptions:
+- |
+  Loss of alpha-SMA positive activated hepatic stellate cells during fibrosis resolution is dominated by apoptosis rather than by de-differentiation or migration, consistent with the TUNEL staining data in Issa2001.
+- |
+  The fivefold decrease in activated hepatic stellate cell numbers over 42 days can be approximated as first-order decay, enabling inference of an effective death rate constant from a single fold-change measurement.
+- |
+  Activated hepatic stellate cells in rat biliary fibrosis are mechanistically similar enough to activated pancreatic stellate cells in human PDAC that their intrinsic apoptosis kinetics provide a proxy scale for k_apsc_death, after accounting for substantial translation uncertainty.
+- |
+  The assumed coefficient of variation (30%) on the fivefold decrease reasonably captures uncertainty in the qualitative "fivefold" description and inter-animal variability, in the absence of explicit confidence intervals in the paper.
+- |
+  Other processes in the full QSPIO-PDAC model that remove aPSC (e.g., death-associated clearance or mechanical displacement) are treated separately via k_cell_clear; this submodel is intended to constrain only the intrinsic apoptosis-driven death component represented by k_apsc_death.
+
+key_study_limitations:
+- |
+  The study is performed in rats with biliary fibrosis and surgical reversal, not in human PDAC; both species and indication differences may alter stellate cell apoptosis kinetics.
+- |
+  The quantified fivefold decrease in activated hepatic stellate cells reflects net loss, which may combine apoptosis, deactivation, and redistribution; we attribute the majority of this effect to apoptosis based on TUNEL data, but the exact contribution of each mechanism is uncertain.
+- |
+  The time course and magnitude of stellate cell apoptosis during active resolution of fibrosis may overestimate the death rate in chronically activated, non-resolving PDAC stroma, where myofibroblasts are often apoptosis-resistant.
+- |
+  Only a single overall fold-change over 42 days is reported in the abstract; detailed per-time-point counts and confidence intervals are not available from the abstract alone, limiting the precision of the inferred rate constant.
+- |
+  Hepatic and pancreatic stellate cells, while both myofibroblast-like and alpha-SMA positive, reside in different tissue architectures and are exposed to distinct mechanical and biochemical cues, which may significantly influence apoptosis rates.
+
+experimental_context:
+  species: rat
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: hepatic stellate cells
+    phenotype: activated, alpha-SMA positive myofibroblast-like cells in biliary fibrosis
+    isolation_method: |
+      in situ identification and quantification in liver sections by alpha-SMA immunostaining and TUNEL
+  culture_conditions:
+  indication: biliary fibrosis following bile duct ligation and surgical reversal
+
+primary_data_source:
+  doi: 10.1136/gut.48.4.548
+  title: |
+    Apoptosis of hepatic stellate cells: involvement in resolution of biliary fibrosis and regulation by soluble growth factors
+  authors:
+  - Issa R
+  - Williams E
+  - Trim N
+  - Kendall T
+  - Arthur MJ
+  - Reichen J
+  - Benyon RC
+  - Iredale JP
+  year: 2001
+  source_tag: Issa2001
+
+secondary_data_sources:
+- doi:
+  url: https://pmc.ncbi.nlm.nih.gov/articles/PMC2891362/
+  title: |
+    Fibroblasts and Myofibroblasts in Wound Healing: Force Generation and Measurement
+  authors:
+  - Hinz B
+  - Pham C
+  - Suk J
+  - et al.
+  year: 2010
+  source_tag: Hinz2010
+  contribution: |
+    Provides general kinetic context for myofibroblast appearance and disappearance during wound healing, supporting the use of first-order apoptosis-driven clearance as a reasonable phenomenological model for myofibroblast-like stromal cells.
+  source_quality: review_article
+
+target_id: k_apsc_death_hsc_apoptosis_issa2001
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c4633586c21315dafef9721e94021
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: hsc_fold_decrease_mean
+  value: 5.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Issa2001
+  source_location: |
+    Abstract: "associated with a fivefold decrease in activated HSC determined by alpha smooth muscle actin staining"
+  extraction_method: manual
+  value_snippet: |
+    "associated with a fivefold decrease in activated HSC determined by alpha smooth muscle actin staining"
+  source_access: open_access
+- name: hsc_resolution_duration
+  value: 42.0
+  units: day
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Issa2001
+  source_location: 'Abstract: "progressive resolution of biliary fibrosis over 42 days"'
+  extraction_method: manual
+  value_snippet: '"progressive resolution of biliary fibrosis over 42 days"'
+  source_access: open_access
+- name: assumed_cv_hsc_fold
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Issa2001
+  source_location: |
+    Not reported; 30% coefficient of variation assumed for modeling the fivefold decrease in activated HSC
+  extraction_method: other
+  value_snippet: Not reported; 30% coefficient of variation assumed for modeling purposes
+  source_access: restricted
+
+calibration:
+  parameters:
+  - name: k_apsc_death
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -3.26
+      sigma: 1.5
+      lower:
+      upper:
+      rationale: |
+        Centered on hepatic stellate cell apoptosis rate inferred from a fivefold decrease in activated HSC over 42 days during resolution of biliary fibrosis in rats (Issa2001), with wide variance (sigma=1.5) to reflect cross-species and cross-tissue translation to activated pancreatic stellate cells in PDAC.
+  forward_model:
+    data_rationale: |
+      Issa2001 quantified a fivefold decrease in the number of alpha-SMA positive activated hepatic stellate cells over 42 days during resolution of biliary fibrosis. This is naturally described by first-order loss of an activated stellate cell population.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, k_apsc_death multiplies the activated pancreatic stellate cell (aPSC) population in a first-order death term (V_T.aPSC -> null with rate k_apsc_death*V_T.aPSC). Activated hepatic stellate cells (HSCs) in liver fibrosis are myofibroblast-like and mechanistically analogous to activated PSCs in PDAC stroma, so we use their apoptosis-driven clearance as a proxy submodel with identical first-order kinetics.
+    independent_variable:
+      name: time
+      units: day
+      span:
+      - 0.0
+      - 42.0
+      rationale:
+    state_variables:
+    - name: activated_stellate_cells
+      units: cell
+      initial_condition:
+        value: 1.0
+        rationale: |
+          Population is normalized to 1 at the time of biliodigestive anastomosis; only the relative fivefold decline over 42 days constrains k_apsc_death.
+    type: first_order_decay
+    rate_constant: k_apsc_death
+  error_model:
+  - name: hsc_fraction_42d
+    observable:
+      type: identity
+      state_variables:
+      - activated_stellate_cells
+      rationale:
+      code:
+    units: dimensionless
+    uses_inputs:
+    - hsc_fold_decrease_mean
+    - assumed_cv_hsc_fold
+    evaluation_points:
+    - 42.0
+    sample_size: 13
+    sample_size_rationale: |
+      Issa2001 reports n=15 rats subjected to bile duct ligation, of which n=13 underwent biliodigestive anastomosis and were followed during recovery. Exact numbers per time point are not stated; we approximate n=13 for the overall fold-change measurement.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          fold_decrease = inputs['hsc_fold_decrease_mean']
+          cv = inputs['assumed_cv_hsc_fold']
+          # Observed surviving fraction of activated stellate cells at 42 days
+          frac_42d = 1.0 / fold_decrease
+          return {
+              'value': frac_42d,
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': int(sample_size) if sample_size is not None else None,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        We treat the surviving fraction of activated stellate cells at 42 days as a positive quantity with multiplicative (fold-change) uncertainty; a lognormal likelihood with coefficient of variation given by assumed_cv_hsc_fold is appropriate.
+  identifiability_notes: |
+    With a normalized initial condition and a single measurement of the surviving fraction of activated stellate cells at 42 days, the first-order decay model uniquely constrains k_apsc_death under the assumption that loss is dominated by apoptosis. However, the biological interpretation is approximate: the fivefold decrease in alpha-SMA+ cells may reflect both apoptosis and loss of activation, and translation from rat hepatic stellate cells in resolving biliary fibrosis to human pancreatic stellate cells in PDAC introduces at least an order-of-magnitude uncertainty in the inferred parameter.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The primary data come from rat hepatic stellate cells in biliary fibrosis resolving after bile duct ligation and biliodigestive anastomosis (Issa2001). Activated hepatic stellate cells are myofibroblast-like, alpha-SMA positive stromal cells that are mechanistically similar to activated pancreatic stellate cells (aPSCs) and cancer-associated fibroblasts in PDAC, particularly in their role in ECM production and their clearance via apoptosis during fibrosis resolution. However, liver fibrosis resolution is biologically distinct from the chronically activated, tumor-associated stroma in PDAC; therefore, we use these data only as a mechanistic proxy for the intrinsic apoptosis-driven turnover rate of activated stellate cells, not as a direct quantitative match.
+  species_source: rat
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance: |
+    The experiment studies activated hepatic stellate cells during resolution of biliary fibrosis after surgical reversal of bile duct ligation. This context corresponds to a pro-resolution, pro-apoptotic environment and likely provides an upper bound on the intrinsic apoptosis rate of activated stellate cells. In PDAC, survival signals and persistent injury are expected to reduce effective apoptosis rates, so the inferred k_apsc_death should be interpreted as an approximate scale for first-order death rather than a precise value.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    The liver fibrotic microenvironment during biliary obstruction and its resolution differs substantially from the desmoplastic PDAC stroma: liver architecture, perfusion, inflammatory milieu, and mechanical context all differ, and PDAC represents a non-resolving, tumor-driven fibrotic lesion. Myofibroblasts in PDAC are expected to be more apoptosis-resistant than in resolving biliary fibrosis. Accordingly, we apply at least an order-of-magnitude uncertainty to translation of the hepatic stellate cell apoptosis rate to activated pancreatic stellate cells in PDAC.
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings:

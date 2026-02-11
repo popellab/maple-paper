@@ -1,0 +1,216 @@
+study_interpretation: |
+  This study demonstrates that subcutaneous Panc02 pancreatic tumors drive a strong time-dependent expansion of CD11b+Gr1+ MDSC in the spleen, increasing from 2% (0.02) of splenocytes at baseline to 29% (0.29) by day 27 after tumor implantation. Under a simple linear accumulation assumption, this net increase over 27 days constrains the magnitude of the tumor-induced MDSC recruitment rate per unit volume (k_MDSC_rec) into a surrogate systemic compartment. While recruitment into tumor tissue is not directly measured, the same cytokine and chemokine signals (e.g., IL-6, MCP-1/CCL2) that mobilize MDSC systemically also drive tumor infiltration in PDAC, so the inferred k_MDSC_rec provides an order-of-magnitude anchor for the tumor recruitment term in the full QSP model.
+
+key_assumptions:
+- |
+  Expansion of splenic CD11b+Gr1+ MDSC over the first 27 days after Panc02 implantation is dominated by recruitment from bone marrow and blood, with negligible net loss over this period.
+- |
+  Total splenocyte density (cells per mL of spleen) is approximately constant over the 27-day window at about 5e8 cells/mL, so changes in MDSC fraction directly reflect changes in absolute MDSC number.
+- |
+  The chemokine and cytokine signals driving systemic MDSC expansion (e.g., IL-6, MCP-1/CCL2) are proportional to those governing recruitment into the tumor compartment, allowing k_MDSC_rec inferred from splenic data to be used as an approximate prior for tumor recruitment.
+- |
+  Baseline MDSC fraction of 2% (0.02) at day 0 represents the pre-tumor physiological state in C57BL/6 mice.
+- |
+  Gemcitabine treatment effects on MDSC are ignored by focusing exclusively on untreated control animals for parameterization.
+
+key_study_limitations:
+- |
+  MDSC measurements are from spleen, not directly from the tumor compartment, so mapping from systemic recruitment to intratumoral recruitment requires additional modeling assumptions.
+- |
+  The simple linear accumulation model neglects MDSC death and egress from spleen; over 27 days this could bias k_MDSC_rec upward if significant loss processes exist.
+- |
+  Panc02 tumors are implanted subcutaneously rather than orthotopically in the pancreas and may not fully reproduce the dense desmoplastic stroma and hypovascularity characteristic of human PDAC.
+- |
+  Only one late time point (day 27) is available with an explicit numerical MDSC fraction in text, limiting dynamic identifiability and forcing reliance on a simplified accumulation model.
+- |
+  Mouse-to-human translation and subcutaneous-to-pancreatic site differences are captured only crudely via an uncertainty factor and not an explicit interspecies scaling model.
+
+experimental_context:
+  species: mouse
+  system: in_vivo_syngeneic
+  cell_lines:
+  - name: Panc02
+    species: mouse
+    tissue_origin: pancreas
+    cell_type: ductal adenocarcinoma
+  cell_types:
+  culture_conditions:
+  indication: PDAC
+
+primary_data_source:
+  doi: 10.1007/s00262-013-1407-9
+  title: |
+    Dendritic cell immunotherapy combined with gemcitabine chemotherapy enhances survival in a murine model of pancreatic carcinoma
+  authors:
+  - Tomar Ghansah
+  - Nasreen Vohra
+  - Kathleen Kinney
+  - Amy Weber
+  - Krithika Kodumudi
+  - Gregory Springett
+  - Amod A Sarnaik
+  - Shari Pilon-Thomas
+  year: 2013
+  source_tag: Ghansah2013
+
+secondary_data_sources:
+
+target_id: k_MDSC_rec_panc02_spleenexpansion_ghansah2013
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c44f7cda241d5a3028fd729621c81
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: mdsc_fraction_baseline
+  value: 0.02
+  units: dimensionless
+  uncertainty:
+  n: 4
+  input_type: direct_measurement
+  role: initial_condition
+  source_ref: Ghansah2013
+  source_location: Results, "Expansion of MDSC in Panc02 tumor-bearing mice"
+  extraction_method: manual
+  value_snippet: On day 0, MDSC made up 2 % (0.02 as a fraction) of splenocytes.
+  source_access: open_access
+- name: mdsc_fraction_day27
+  value: 0.29
+  units: dimensionless
+  uncertainty:
+  n: 4
+  input_type: direct_measurement
+  role: target
+  source_ref: Ghansah2013
+  source_location: Results, "Expansion of MDSC in Panc02 tumor-bearing mice"
+  extraction_method: manual
+  value_snippet: |
+    By day 27, 29 % (0.29 as a fraction) of the splenocytes displayed the MDSC phenotype (Fig. 2a).
+  source_access: open_access
+- name: observation_time_day27
+  value: 27.0
+  units: day
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Ghansah2013
+  source_location: Methods/Results (Panc02 injection with splenocyte harvest up to day 27)
+  extraction_method: manual
+  value_snippet: Splenocytes were harvested on days 0, 14, 20, 24, and 27 after Panc02 injection.
+  source_access: open_access
+- name: spleen_cell_density
+  value: 500000000.0
+  units: cell / milliliter
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: Ghansah2013
+  source_location: |
+    Not directly reported; physiological assumption for C57BL/6 mouse spleen cell density
+  extraction_method: manual
+  value_snippet:
+  source_access: restricted
+- name: mdsc_fraction_day27_cv
+  value: 0.3
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Ghansah2013
+  source_location: Assumed biological coefficient of variation for MDSC fraction across mice
+  extraction_method: manual
+  value_snippet:
+  source_access: restricted
+
+calibration:
+  parameters:
+  - name: k_MDSC_rec
+    units: cell / (milliliter * day)
+    prior:
+      distribution: lognormal
+      mu: 15.4
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered on a back-of-the-envelope estimate from the increase in splenic MDSC fraction from 2% (0.02) to 29% (0.29) over 27 days in Panc02-bearing mice, assuming a typical splenocyte density of 5e8 cell/mL. Wide sigma (1.0 in log-space) allows ~10-fold variability to account for model and translation uncertainty.
+  forward_model:
+    data_rationale: |
+      The study reports baseline and day-27 percentages of CD11b+Gr1+ MDSC among splenocytes in Panc02 tumor-bearing mice. Interpreting the net increase in MDSC fraction over 27 days as being driven predominantly by tumor-induced recruitment from bone marrow, we can relate the recruitment rate per volume (k_MDSC_rec) to the observed change in fraction via a simple accumulation model.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, k_MDSC_rec controls the source term null -> V_T.MDSC with units cell/(mL*day). Here we construct a surrogate compartment (spleen) where MDSC are produced by a constant influx term with rate k_MDSC_rec per unit volume and negligible loss over the 27-day window. Assuming a roughly constant splenocyte density, the change in MDSC fraction is proportional to k_MDSC_rec * time divided by the parent cell density, preserving the same mechanistic role of k_MDSC_rec as a volumetric recruitment rate.
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: f_MDSC(t_obs) = f0 + k_MDSC_rec * t_obs / rho_spleen
+    code: |
+      def compute(params, inputs):
+          # k_MDSC_rec: recruitment rate into the spleen surrogate compartment
+          k_rec = params['k_MDSC_rec']  # cell / (milliliter * day)
+          f0 = inputs['mdsc_fraction_baseline']  # dimensionless fraction at day 0
+          t = inputs['observation_time_day27']   # time from tumor implantation to observation (day)
+          rho = inputs['spleen_cell_density']    # parent splenocyte density (cell/milliliter)
+          # Predicted MDSC fraction at time t assuming linear accumulation: f = f0 + (k_rec * t / rho)
+          return f0 + (k_rec * t / rho)
+    code_julia: |
+      function compute(params, inputs)
+          # k_MDSC_rec: recruitment rate into the spleen surrogate compartment (cell/(milliliter*day))
+          k_rec = params["k_MDSC_rec"]
+          f0 = inputs["mdsc_fraction_baseline"]
+          t = inputs["observation_time_day27"]
+          rho = inputs["spleen_cell_density"]
+          # Predicted MDSC fraction at time t assuming linear accumulation
+          return f0 + (k_rec * t / rho)
+      end
+  error_model:
+  - name: mdsc_fraction_day27_measurement
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - mdsc_fraction_day27
+    - mdsc_fraction_day27_cv
+    evaluation_points:
+    sample_size: 4
+    sample_size_rationale: |
+      Figure 2a legend states that spleens (n = 4 per group) were collected from naive and Panc02 tumor-bearing mice at each time point including day 27.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          # Observed MDSC fraction at day 27 (dimensionless)
+          f = inputs['mdsc_fraction_day27']
+          # Assumed coefficient of variation for between-mouse variability
+          cv = inputs['mdsc_fraction_day27_cv']
+          return {
+              'value': f,
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': int(sample_size) if sample_size is not None else None,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        MDSC fractions are positive and can span orders of magnitude between animals; a lognormal likelihood on the fraction with an assumed coefficient of variation captures multiplicative biological variability.
+  identifiability_notes: |
+    With a single quantitative time point (day 27) and a known baseline fraction, this algebraic model identifies only the combination k_MDSC_rec / spleen_cell_density under the assumption of linear accumulation. We fix spleen_cell_density based on physiological considerations to recover k_MDSC_rec in volumetric units, which introduces additional structural uncertainty. The inferred k_MDSC_rec is further a surrogate for tumor-driven systemic recruitment into spleen rather than direct tumor infiltration, so the posterior should be interpreted as an order-of-magnitude constraint and used with a broad prior when mapped onto tumor-compartment recruitment in the full QSP model.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The primary data are from a syngeneic murine Panc02 pancreatic ductal adenocarcinoma model, which is a standard transplantable PDAC model derived from chemically induced pancreatic ductal tumors in C57BL/6 mice. Although tumors are implanted subcutaneously rather than orthotopically, the tumor-induced expansion of CD11b+Gr1+ MDSC reflects the same PDAC-driven myelopoiesis and immunosuppressive biology captured in the QSPIO-PDAC model.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Panc02 tumors are subcutaneous and lack the full desmoplastic and hypovascular TME of human PDAC or KPC orthotopic models. However, Panc02-bearing mice show robust systemic expansion of CD11b+Gr1+ MDSC driven by inflammatory cytokines such as IL-6 and MCP-1, which mechanistically overlap with MDSC recruitment cues in PDAC. We therefore expect systemic MDSC recruitment rates to be within an order of magnitude of those in true pancreatic tumors but allow for significant quantitative uncertainty.
+  estimated_translation_uncertainty_fold: 3.0
+  validation_warnings:
