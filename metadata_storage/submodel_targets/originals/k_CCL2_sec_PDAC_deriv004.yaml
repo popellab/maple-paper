@@ -1,0 +1,198 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Cytokine concentrations are positive and typically log-distributed across experiments; measurement error
+        and biological variability are better captured on the log scale.
+    name: mcp1_concentration_48h
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size):\n    mean = inputs['mcp1_conc_48h_mean']\n    cv_assumed\
+      \ = inputs['mcp1_conc_48h_cv_assumed']\n    # For a lognormal likelihood, we treat sd as the coefficient of variation\
+      \ in linear space\n    return {\n        'value': mean,\n        'sd': cv_assumed,\n        'sd_uncertain': True,\n\
+      \        'n': int(sample_size),\n    }\n"
+    sample_size: 3
+    sample_size_rationale: Michalski et al. report ELISA data as mean±SEM from three independent experiments for cytokine
+      measurements in PSC supernatants.
+    units: picogram / milliliter
+    uses_inputs:
+    - mcp1_conc_48h_mean
+    - mcp1_conc_48h_cv_assumed
+  forward_model:
+    cell_count:
+      input_ref: psc_cell_seeded
+    data_rationale: '[Scrubbed due to ''secret'']'
+    incubation_time:
+      input_ref: incubation_time_48h
+    independent_variable: null
+    medium_volume:
+      input_ref: medium_volume_well
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    secretion_rate: '[Scrubbed due to ''secret'']'
+    state_variables: null
+    submodel_rationale: '[Scrubbed due to ''secret'']'
+    type: batch_accumulation
+    unit_conversion_factor: '1000.0'
+  identifiability_notes: With a single batch-accumulation measurement (MCP-1 concentration at 48 h) and known cell number,
+    medium volume, and molecular weight, the submodel constrains only the product k_CCL2_sec * incubation_time. Because incubation_time
+    is fixed from the experiment, k_CCL2_sec is identifiable up to the assumed measurement uncertainty and the approximated
+    concentration from figure digitization. The prior is intentionally broad to avoid overconfidence, and this target should
+    be combined with additional CCL2 data (e.g., other cell types, in vivo concentrations) in the global QSP calibration.
+  parameters:
+  - name: k_CCL2_sec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -23.0
+      rationale: '[Scrubbed due to ''secret'']'
+      sigma: 2.0
+      upper: null
+    units: nanomole / cell / day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Outgrowth method from chronic pancreatitis surgical specimens, cultured to passages 3-5
+    name: pancreatic stellate cell
+    phenotype: activated PSC derived from human chronic pancreatitis tissue
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: normoxic
+    serum_concentration: 1.0
+    serum_concentration_units: percent
+    substrate: null
+  indication: chronic pancreatitis (non-malignant)
+  species: human
+  system: in_vitro_primary_cells
+inputs:
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: psc_cell_seeded
+  role: initial_condition
+  source_access: open_access
+  source_location: Materials and Methods, Cannabinoid treatment and proliferation assays (PSC plated at 40,000 cells/well
+    in 500 uL medium)
+  source_ref: Michalski2008
+  uncertainty: null
+  units: cell
+  value: 40000.0
+  value_snippet: PSC were plated on the bottom of 24-well plates at densities of 40,000/well in 500 uL DMEM/Ham's F12 (1/1,
+    v/v) in the presence of 20% FCS for 24 hours.
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: medium_volume_well
+  role: fixed_parameter
+  source_access: open_access
+  source_location: Materials and Methods, Cannabinoid treatment and proliferation assays (40,000/well in 500 uL medium)
+  source_ref: Michalski2008
+  uncertainty: null
+  units: milliliter
+  value: 0.5
+  value_snippet: PSC were plated on the bottom of 24-well plates at densities of 40,000/well in 500 uL DMEM/Ham's F12 (1/1,
+    v/v).
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: incubation_time_48h
+  role: fixed_parameter
+  source_access: open_access
+  source_location: Figure 3 and 7 experiment descriptions (supernatants collected after 48 h of treatment)
+  source_ref: Michalski2008
+  uncertainty: null
+  units: day
+  value: 2.0
+  value_snippet: '[Scrubbed due to ''secret'']'
+- extraction_method: webplotdigitizer
+  input_type: inferred_estimate
+  n: 3
+  name: mcp1_conc_48h_mean
+  role: target
+  source_access: open_access
+  source_location: Figure 7A (MCP-1 ELISA for untreated control PSC, approximate digitization of bar height)
+  source_ref: Michalski2008
+  uncertainty:
+    ci95: null
+    sd: 60.0
+  units: picogram / milliliter
+  value: 200.0
+  value_snippet: '[Scrubbed due to ''secret'']'
+- extraction_method: other
+  input_type: assumed_value
+  n: null
+  name: mcp1_conc_48h_cv_assumed
+  role: auxiliary
+  source_access: open_access
+  source_location: Assumed typical biological variability for cytokine ELISA in primary PSC cultures
+  source_ref: Michalski2008
+  uncertainty: null
+  units: dimensionless
+  value: 0.3
+  value_snippet: Data are shown as mean±SEM.
+key_assumptions:
+- MCP-1 ELISA bar heights in Figure 7A are approximately 200 pg/mL for untreated control PSC supernatants at 48 h; this value
+  was approximated by digitizing the figure and should be interpreted with at least ~30% error margin.
+- PSC proliferation over the 48 h accumulation period is modest once cultures are near confluence, so cell number is approximated
+  as constant at the reported seeding density (40,000 cells/well).
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- Biological and technical variability for MCP-1 ELISA in PSC cultures is captured by an assumed coefficient of variation
+  of 30% (used as SD for the lognormal likelihood).
+key_study_limitations:
+- PSC were derived from chronic pancreatitis rather than PDAC, so tumor-specific oncogenic and immune cues that may further
+  upregulate CCL2 are absent.
+- Absolute MCP-1 concentrations are only available from plotted ELISA bar graphs, requiring approximate digitization rather
+  than exact tabulated values.
+- Cultures are 2D monolayers in low serum, which do not fully recapitulate the 3D, hypoxic, and heterogeneous PDAC stroma.
+- '[Scrubbed due to ''secret'']'
+primary_data_source:
+  authors:
+  - Christoph W. Michalski
+  - Milena Maier
+  - Mert Erkan
+  - Danguole Sauliunaite
+  - Frank Bergmann
+  - Pal Pacher
+  - Sandor Batkai
+  - Nathalia A. Giese
+  - Thomas Giese
+  - Helmut Friess
+  - Jorg Kleeff
+  doi: 10.1371/journal.pone.0001701
+  source_tag: Michalski2008
+  title: Cannabinoids reduce markers of inflammation and fibrosis in pancreatic stellate cells
+  year: 2008
+secondary_data_sources:
+- authors:
+  - Ratnakar R. Bynigeri
+  - Aparna Jakkampudi
+  - Ramaiah Jangala
+  - Chivukula Subramanyam
+  - Mitnala Sasikala
+  - G. Venkat Rao
+  - D. Nageshwar Reddy
+  - Rupjyoti Talukdar
+  contribution: '[Scrubbed due to ''secret'']'
+  doi: 10.3748/wjg.v23.i3.382
+  source_quality: review_article
+  source_tag: Bynigeri2017
+  title: 'Pancreatic stellate cell: Pandora''s box for pancreatic disease biology'
+  url: null
+  year: 2017
+source_relevance:
+  estimated_translation_uncertainty_fold: 3.0
+  indication_match: related
+  indication_match_justification: '[Scrubbed due to ''secret'']'
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_in_vitro
+  species_source: human
+  species_target: human
+  tme_compatibility: moderate
+  tme_compatibility_notes: Chronic pancreatitis stroma is fibrotic and inflamed, sharing desmoplasia and PSC activation with
+    PDAC but lacking malignant epithelium and tumor-driven immunosuppressive circuits. PSC CCL2 levels in CP may be somewhat
+    lower than in fully developed PDAC stroma, but the order of magnitude is expected to be similar.
+  validation_warnings: null
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_CCL2_sec_psc_michalski2008

@@ -1,0 +1,210 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Tumor volume doubling times are positive and typically right-skewed across patients. Jang2015 reports a wide
+        range of VDTs (18.3-417.8 days), consistent with a lognormal distribution. We use the range to approximate log-space
+        variability and convert this to a CV for a lognormal likelihood.
+    name: vdt_jang2015
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    import numpy as np\n    mean_vdt = inputs['jang_vdT_mean'].to('day')\n\
+      \    vdt_min = inputs['jang_vdT_min'].to('day')\n    vdt_max = inputs['jang_vdT_max'].to('day')\n\n    # Approximate\
+      \ log-space standard deviation assuming the observed range\n    # corresponds roughly to a 95% interval of a lognormal\
+      \ distribution.\n    log_min = np.log(vdt_min.magnitude)\n    log_max = np.log(vdt_max.magnitude)\n    sd_log = (log_max\
+      \ - log_min) / (2.0 * 1.96)\n\n    # Convert log-space SD to coefficient of variation (CV) for a lognormal.\n    cv\
+      \ = np.sqrt(np.exp(sd_log**2) - 1.0)\n\n    n_patients = int(inputs['jang_n_patients'].magnitude)\n\n    return {\n\
+      \        'value': mean_vdt,\n        'sd': cv,  # dimensionless CV for lognormal likelihood\n        'sd_uncertain':\
+      \ True,\n        'n': n_patients,\n    }\n"
+    sample_size: 22
+    sample_size_rationale: Number of patients with prediagnostic MR imaging used to calculate PDAC VDT in Jang2015.
+    units: day
+    uses_inputs:
+    - jang_vdT_mean
+    - jang_vdT_min
+    - jang_vdT_max
+    - jang_n_patients
+  forward_model:
+    code: "def compute(params, inputs, ureg):\n    import numpy as np\n    k = params['k_C1_growth']  # 1/day\n    t_double\
+      \ = np.log(2) / k\n    return t_double * ureg('day')\n"
+    code_julia: "function compute(params, inputs)\n    k = params[\"k_C1_growth\"]  # 1/day\n    return log(2) / k  # in days\n\
+      end"
+    data_rationale: Jang2015 reports the mean tumor volume doubling time (TVDT) for untreated, early pancreatic ductal adenocarcinoma
+      (PDAC) lesions imaged serially by MRI. The clinical observable is TVDT, not the instantaneous proliferation rate; an
+      algebraic relationship between k_C1_growth and TVDT is therefore appropriate.
+    formula: TVDT = ln(2) / k_C1_growth
+    independent_variable: null
+    state_variables: null
+    submodel_rationale: 'In the full QSPIO-PDAC model, viable cancer cells C1 grow via a logistic term: dC1/dt = k_C1_growth
+      * C1 * (1 - C_total/C_max). For small tumors where C_total << C_max, this reduces to exponential growth dC1/dt ≈ k_C1_growth
+      * C1, with doubling time TVDT = ln(2)/k_C1_growth. The algebraic submodel uses this mechanistic relationship between
+      k_C1_growth and tumor volume doubling time, effectively representing early-stage PDAC growth before carrying capacity
+      effects are important and ignoring explicit death/killing terms so that k_C1_growth is calibrated as an effective net
+      proliferation rate.'
+    type: algebraic
+  identifiability_notes: This submodel infers a single parameter, k_C1_growth, from a population-level estimate of tumor volume
+    doubling time in early, untreated PDAC. Under the logistic growth law used in the full QSP model, early growth reduces
+    to exponential with doubling time TVDT = ln(2)/k_C1_growth, so k_C1_growth is structurally identifiable from TVDT alone.
+    However, the estimate represents an effective net proliferation rate, since natural cell death and endogenous immune killing
+    are not separately modeled here. Inter-patient variability (large VDT range) and potential stage-dependence of growth
+    rates are absorbed into the likelihood and prior rather than resolved mechanistically; thus, k_C1_growth should be interpreted
+    as a typical baseline net proliferation rate for small, clinically detectable PDAC lesions rather than an invariant constant
+    across all patients and stages.
+  parameters:
+  - name: k_C1_growth
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -5.39
+      rationale: Centered on k = ln(2)/TVDT with TVDT ~150 days from early untreated PDAC in Jang2015, with a broad sigma
+        to capture inter-patient variability and support from other PDAC doubling time summaries and solid-tumor PFS-based
+        estimates.
+      sigma: 0.7
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: PDAC
+  species: human
+  system: in_vivo_clinical_imaging
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 22
+  name: jang_vdT_mean
+  role: target
+  source_access: open_access
+  source_location: 'Abstract: mean volume doubling time (VDT) of PDAC 151.7 days (range 18.3-417.8 days) in 22 patients'
+  source_ref: Jang2015
+  uncertainty: null
+  units: day
+  value: 151.7
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 22
+  name: jang_vdT_min
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Abstract: range of VDT 18.3-417.8 days'
+  source_ref: Jang2015
+  uncertainty: null
+  units: day
+  value: 18.3
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 22
+  name: jang_vdT_max
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Abstract: range of VDT 18.3-417.8 days'
+  source_ref: Jang2015
+  uncertainty: null
+  units: day
+  value: 417.8
+  value_snippet: The mean VDT of PDAC was 151.7 days (range, 18.3-417.8 days).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 22
+  name: jang_n_patients
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Abstract: "Twenty-two patients were included"'
+  source_ref: Jang2015
+  uncertainty: null
+  units: dimensionless
+  value: 22.0
+  value_snippet: Twenty-two patients were included, and two radiologists, by consensus, assessed... the volume doubling time
+    (VDT) of PDAC on prediagnostic MR imaging.
+key_assumptions:
+- Tumor growth between prediagnostic MRIs in Jang2015 can be approximated by logistic growth with C_total << C_max, so that
+  dC1/dt ≈ k_C1_growth * C1 and TVDT ≈ ln(2)/k_C1_growth.
+- The reported lesion volume doubling times primarily reflect intrinsic tumor cell kinetics under baseline host immunity and
+  stroma, and can be mapped to an effective net proliferation rate without explicitly separating death and immune killing
+  in the submodel.
+- The observed minimum and maximum VDT values (18.3 and 417.8 days) approximate a 95 percent interval of an underlying lognormal
+  distribution across patients, allowing the range to be used to estimate variability for the lognormal likelihood.
+- Early, small PDAC lesions in this cohort have proliferation characteristics representative of the PDAC tumors modeled in
+  QSPIO-PDAC, despite possible stage- and size-dependence of growth rates.
+- Differences in imaging modality (MRI in Jang2015 vs. CT or other assessments in other clinical datasets) do not materially
+  bias the estimated VDTs for the purpose of calibrating k_C1_growth.
+key_study_limitations:
+- Single-center retrospective cohort from a Korean tertiary hospital; patient demographics and tumor biology may not fully
+  represent global PDAC populations.
+- Sample size is modest (22 patients), and the wide VDT range (18.3-417.8 days) indicates substantial inter-patient heterogeneity
+  that is only captured statistically, not mechanistically.
+- Volume measurements and VDT estimates depend on MRI-based lesion segmentation, which may introduce systematic or random
+  measurement errors, especially for small or poorly demarcated tumors.
+- Growth is characterized only over the prediagnostic imaging interval; very early microscopic disease and later advanced
+  stages may exhibit different proliferation dynamics than those captured here.
+- The submodel ignores explicit death and immune-mediated killing terms present in the full QSP model, so k_C1_growth inferred
+  here represents an effective net growth rate that may differ from the strictly intrinsic mitotic rate of PDAC cells.
+primary_data_source:
+  authors:
+  - Kyung Mi Jang
+  - Seong Hyun Kim
+  - Young Kon Kim
+  - Kyoung Doo Song
+  - Soon Jin Lee
+  - Dongil Choi
+  doi: 10.1016/j.ejrad.2015.05.012
+  source_tag: Jang2015
+  title: 'Missed pancreatic ductal adenocarcinoma: Assessment of early imaging findings on prediagnostic magnetic resonance
+    imaging'
+  year: 2015
+secondary_data_sources:
+- authors:
+  - Katherine Kay
+  - Keith Dolcy
+  - Robert Bies
+  - Dhaval K Shah
+  contribution: Provided cross-cancer PFS-based estimates of tumor doubling times, including a mean simulated doubling time
+    of 5.06 months for pancreatic cancer, supporting the order of magnitude and variability used in the prior for k_C1_growth
+    but not directly used as a calibration target.
+  doi: 10.1208/s12248-019-0302-5
+  source_quality: primary_human_clinical
+  source_tag: Kay2019
+  title: Estimation of Solid Tumor Doubling Times from Progression-Free Survival Plots Using a Novel Statistical Approach
+  url: null
+  year: 2019
+- authors:
+  - Masanori Kikuyama
+  - Shuzo Terada
+  contribution: Review article summarizing imaging strategies for early PDAC and citing prior work that reports a mean tumor
+    volume doubling time of approximately five months (21.2-255 days) for PDAC, which is consistent with the Jang2015 estimate
+    and used qualitatively to justify the prior range on k_C1_growth.
+  doi: 10.3390/diagnostics13122080
+  source_quality: review_article
+  source_tag: Kikuyama2023
+  title: A Novel Diagnostic Imaging Method for the Early Detection of Pancreatic Cancer
+  url: null
+  year: 2023
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The source study (Jang2015) specifically analyzes histologically confirmed pancreatic ductal
+    adenocarcinoma (PDAC) in human patients. Tumor volume doubling times are measured from prediagnostic MRI scans in untreated
+    individuals, providing direct information on the natural growth kinetics of PDAC primary tumors. This matches the target
+    QSP model indication (human PDAC) and the same biological entity (viable cancer cells in the primary pancreatic tumor),
+    making it an exact indication match for calibrating the cancer cell proliferation rate parameter k_C1_growth.
+  perturbation_relevance: null
+  perturbation_type: physiological_baseline
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: The tumors are early-stage, clinically detectable PDACs imaged prior to therapy. While some may
+    be smaller and less desmoplastic than large, advanced PDAC, they still arise in the native pancreatic microenvironment
+    with stromal and immune components intact. This is highly compatible with the QSPIO-PDAC tumor microenvironment, which
+    is designed to represent untreated human PDAC.
+  validation_warnings: null
+study_interpretation: Jang2015 provides direct clinical measurements of tumor volume doubling time for untreated early PDAC
+  lesions, derived from serial prediagnostic MRI scans in 22 patients. The reported mean VDT of 151.7 days (range 18.3-417.8
+  days) reflects the net growth of viable cancer cells in vivo, encompassing intrinsic proliferation, natural cell death,
+  and ongoing host immune interactions. By mechanistically linking VDT to the logistic growth term in the QSP model (TVDT
+  = ln(2)/k_C1_growth for small tumors), these data constrain the effective cancer cell proliferation rate parameter k_C1_growth
+  to values consistent with observed human PDAC growth kinetics.
+target_id: k_C1_growth_pdac_tumor_doubling_jang2015

@@ -1,0 +1,200 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to propagate binomial sampling uncertainty in the major pathologic response
+      rate.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable estimates of the median and 95% CI of the response-rate distribution with Monte
+      Carlo error much smaller than the sampling uncertainty from n=14 patients.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 0.1627792288018486
+    - 0.6165227396635887
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    rng = np.random.default_rng(42)\n\
+    \n    # Reported MPR rate in percent (e.g., 35 %) and number of resected patients\n    mpr_pct = inputs['mpr_rate_percent']\
+    \  # Quantity with 'percent' units\n    n_resected = inputs['n_resected']     # dimensionless Quantity\n    n_mc_samples\
+    \ = int(inputs['n_mc_samples'].magnitude)\n\n    # Convert percent to dimensionless proportion (e.g., 0.35)\n    p_hat\
+    \ = mpr_pct.to('dimensionless').magnitude\n    n = int(n_resected.magnitude)\n\n    # Infer integer responder count k\
+    \ from p_hat and n\n    k = int(round(p_hat * n))\n\n    # Beta posterior with uniform prior: Beta(k+1, n-k+1)\n    a\
+    \ = k + 1\n    b = n - k + 1\n\n    samples = rng.beta(a, b, n_mc_samples) * ureg.dimensionless\n\n    median_obs = np.median(samples)\n\
+    \    ci95_lower = np.percentile(samples, 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n       \
+    \ 'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Reported major pathologic response (MPR) rate (percentage of patients with <10% residual viable tumor) among
+      borderline resectable PDAC patients treated with neoadjuvant FOLFIRINOX, GVAX/cyclophosphamide, nivolumab, and SBRT
+      (NCT03161379).
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: mpr_rate_percent
+    source_ref: Hill2025_LandmarkGVAX
+    source_type: text
+    units: percent
+    value: 35.0
+    value_location: '[Scrubbed due to ''secret'']'
+    value_snippet: A phase 2 trial (NCT03161379) of neoadjuvant FOLFIRINOX, SBRT, and GVAX again underscored the safety of
+      this treatment combination during a median OS of 20.4 months, with a 35 % major pathologic response rate, comparable
+      with contemporary studies.
+  - conversion_formula: null
+    description: Number of patients in the GVAX/cyclophosphamide/nivolumab/SBRT trial who underwent definitive surgical resection
+      and therefore had pathologic response (including major pathologic response) assessed.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: n_resected
+    source_ref: Agarwal2025_GVAXNivoSBRT
+    source_type: text
+    units: dimensionless
+    value: 14.0
+    value_location: Abstract, Results section
+    value_snippet: Thirty-one patients were enrolled from January 2018 to July 2021. Eighteen patients received at least one
+      dose of combined immunotherapy. Fourteen patients underwent definitive surgical resection, and one pathologic complete
+      response was observed.
+  median:
+  - 0.3694210558044964
+  sample_size: 14
+  sample_size_rationale: 'The GVAX/cyclophosphamide/nivolumab/SBRT phase II trial (NCT03161379) enrolled 31 patients with
+    borderline resectable PDAC; 14 patients underwent definitive surgical resection and thus had pathologic response assessed,
+    as stated in the abstract: "Fourteen patients underwent definitive surgical resection, and one pathologic complete response
+    was observed." We treat these 14 resected patients as the denominator for the major pathologic response rate.'
+  units: dimensionless
+experimental_context:
+  assay_type: null
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: borderline_resectable
+  system: clinical.resection
+  tissue_source: null
+  treatment:
+    history:
+    - prior_chemotherapy
+    - prior_radiation
+    - prior_immunotherapy
+    specifier: Borderline resectable PDAC treated with neoadjuvant modified FOLFIRINOX or gemcitabine/nab-paclitaxel, followed
+      by GVAX pancreas vaccine with low-dose cyclophosphamide, nivolumab, and stereotactic body radiation therapy (SBRT),
+      with surgical resection performed after completion of neoadjuvant chemo-immunoradiotherapy.
+    status: on_treatment
+key_assumptions:
+- Major pathologic response (MPR) is assumed to correspond to <10% residual viable tumor cells in the resected primary PDAC
+  specimen, consistent with contemporary definitions of MPR for neoadjuvant-treated pancreatic cancer. We map this to the
+  model as a final viable tumor burden in the primary tumor compartment (V_T.C1) that is less than or equal to 10% of the
+  baseline pre-treatment viable tumor burden.
+- The reported 35% major pathologic response rate for NCT03161379 is interpreted as applying to the 14 patients who underwent
+  definitive surgical resection, yielding an inferred responder count of approximately 5 (5/14 ≈ 35.7%). Because the publication
+  accessible in this environment does not tabulate the exact MPR numerator, we infer k = 5 responders by rounding p_hat ×
+  n and propagate this minor rounding uncertainty through the Beta distribution used in the Monte Carlo sampling.
+- The sample size for the MPR endpoint is taken as n = 14 (resected patients with pathologic assessment), even though 31 patients
+  were enrolled in the trial; patients who did not undergo resection are not included in the denominator for MPR because pathologic
+  response could not be assessed without surgical specimens.
+- Uncertainty in the true MPR proportion is modeled using a Beta(k+1, n−k+1) posterior distribution with a uniform prior,
+  which is a standard conjugate-binomial approach. This assumes independent Bernoulli outcomes across patients and does not
+  account for potential center-level clustering or other sources of overdispersion beyond binomial sampling error.
+- We assume that the residual viable tumor fraction measured histologically at resection reflects the minimum tumor burden
+  achieved during neoadjuvant therapy (i.e., there is no substantial regrowth between end of therapy and surgery), so that
+  comparing the final simulated viable tumor burden in V_T.C1 to baseline is a reasonable approximation of the clinical MPR
+  definition.
+key_study_limitations:
+- The exact number of patients achieving major pathologic response (numerator for the 35% rate) is not explicitly tabulated
+  in the accessible summaries of the primary trial publication; we infer the numerator from the reported percentage (35%)
+  and the known number of resected patients (n = 14), introducing small rounding uncertainty.
+- The 35% major pathologic response rate is extracted from a secondary review article that summarizes the results of the NCT03161379
+  trial rather than directly from the Clin Cancer Research full text, which is not accessible in this environment. Nonetheless,
+  both sources describe the same patient cohort and treatment regimen.
+- The trial population consists of borderline resectable PDAC patients treated at specialized centers under a specific neoadjuvant
+  chemo-immunoradiotherapy protocol; generalizability of the MPR rate to other PDAC stages, institutions, or treatment regimens
+  (e.g., chemotherapy-only neoadjuvant approaches) is limited.
+- Pathologic assessment of residual viable tumor percentage is subject to inter-observer variability and potential sampling
+  bias within the resected specimen; these sources of measurement error are not explicitly modeled in the current calibration
+  target.
+observable:
+  aggregation:
+    rationale: Major pathologic response is a population-level endpoint defined as the proportion of patients whose resected
+      primary tumor shows <10% residual viable tumor after neoadjuvant therapy. To connect this to the QSP model, we evaluate
+      for each virtual patient whether the final simulated viable tumor burden in the primary tumor compartment (V_T.C1) is
+      less than or equal to 0.10 times the baseline viable tumor burden, and then aggregate across patients as a response
+      rate.
+    threshold_code: "def classify_patient(time, species_dict, constants, ureg):\n    \"\"\"Classify a virtual patient as achieving\
+      \ major pathologic response (MPR).\n\n    MPR is defined as <10% residual viable tumor at resection. We approximate\n\
+      \    resection as occurring at the final simulated time point and compare the\n    viable tumor cell count at that time\
+      \ to the baseline value.\n    \"\"\"\n    tumor = species_dict['V_T.C1']\n    baseline = tumor[0]\n    fraction = (tumor\
+      \ / baseline).to('dimensionless')\n    residual_fraction = fraction[-1]\n    return residual_fraction.magnitude <= 0.10\n"
+    time_point: null
+    time_unit: null
+    type: response_rate
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Compute per-patient residual viable tumor\
+    \ fraction over time.\n\n    Major pathologic response (MPR) is defined as <10% residual viable tumor\n    at resection.\
+    \ We approximate this by the ratio of viable tumor cells at\n    resection to the baseline viable tumor cell count in\
+    \ the primary tumor\n    compartment (V_T.C1).\n    \"\"\"\n    tumor = species_dict['V_T.C1']  # viable cancer cells\
+    \ over time\n    baseline = tumor[0]\n    # Fraction of baseline viable tumor remaining at each time point\n    fraction\
+    \ = (tumor / baseline).to('dimensionless')\n    return fraction\n"
+  constants: []
+  experimental_denominator: Baseline viable tumor burden in the primary pancreatic tumor (pre-treatment viable tumor cells).
+  inputs: []
+  mapping_rationale: Clinical major pathologic response (MPR) after neoadjuvant therapy is defined as <10% residual viable
+    tumor in the resected primary PDAC specimen. In the QSP model, we map this to the fraction of viable cancer cells remaining
+    in the primary tumor compartment (V_T.C1) at the time of surgical resection relative to the baseline viable tumor burden
+    before neoadjuvant therapy.
+  model_denominator_species:
+  - V_T.C1
+  species:
+  - V_T.C1
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: None. Both baseline and residual tumor viability are represented by the modeled viable
+    cancer-cell population V_T.C1 in the primary tumor compartment.
+primary_data_source:
+  doi: 10.1158/1078-0432.CCR-24-3403
+  first_author: Agarwal
+  source_tag: Agarwal2025_GVAXNivoSBRT
+  title: A Phase II Study of Neoadjuvant GVAX and Cyclophosphamide Combined with Nivolumab and SBRT Followed by Surgery in
+    Borderline Resectable Pancreatic Adenocarcinoma
+  year: 2025
+scenario:
+  description: Borderline resectable pancreatic ductal adenocarcinoma treated with neoadjuvant chemotherapy followed by GVAX/cyclophosphamide/nivolumab
+    and stereotactic body radiation therapy (SBRT), then definitive surgical resection of the primary tumor.
+  interventions:
+  - intervention_description: Neoadjuvant systemic chemotherapy with modified FOLFIRINOX or gemcitabine plus nab-paclitaxel
+      per institutional standards for borderline resectable PDAC, initiated after diagnosis and completed before immunotherapy
+      and SBRT.
+  - intervention_description: Two cycles of combination immunotherapy consisting of low-dose cyclophosphamide, nivolumab 240
+      mg IV, and GVAX pancreas vaccine. The first cycle is started 4–6 weeks after completion of neoadjuvant chemotherapy;
+      nivolumab is administered one day before GVAX, and cyclophosphamide is given per protocol prior to vaccination.
+  - intervention_description: Stereotactic body radiation therapy (SBRT) to the pancreatic tumor, delivered as 6.6 Gy per
+      fraction over 5 consecutive days (total 33 Gy) starting during the second cycle of immunotherapy (3 weeks after the
+      first immunotherapy cycle).
+  - intervention_description: Definitive surgical resection of the primary pancreatic tumor (e.g., pancreaticoduodenectomy
+      or distal pancreatectomy with vascular reconstruction as needed) performed after completion of the second immunotherapy
+      cycle and SBRT, with pathologic assessment of residual viable tumor percentage in the resected specimen.
+secondary_data_sources:
+- doi_or_url: 10.1245/s10434-025-17281-1
+  first_author: Hill
+  source_tag: Hill2025_LandmarkGVAX
+  title: 'The Landmark Series: Therapeutic Cancer Vaccine Strategies for Cold Tumors'
+  year: 2025
+source_relevance: null
+study_interpretation: This calibration target captures the major pathologic response (MPR) rate in patients with borderline
+  resectable pancreatic ductal adenocarcinoma (PDAC) treated with neoadjuvant chemotherapy followed by GVAX pancreas vaccine
+  with low-dose cyclophosphamide, nivolumab, and stereotactic body radiation therapy (SBRT), as reported for the phase II
+  trial NCT03161379. The Clin Cancer Research article by Agarwal et al. reports that 31 patients with borderline resectable
+  PDAC were enrolled, 18 received at least one dose of combined immunotherapy, and 14 underwent definitive surgical resection
+  after neoadjuvant therapy. A subsequent review article summarizing this trial reports a 35% major pathologic response rate,
+  defined as <10% residual viable tumor, with a median overall survival of 20.4 months. We interpret this as approximately
+  5 of 14 resected patients achieving MPR. In the QSP model, we represent MPR at the individual-patient level as the condition
+  that the viable tumor burden in the primary tumor compartment (V_T.C1) at the time of resection is ≤10% of the baseline
+  viable tumor burden before neoadjuvant therapy; aggregating across virtual patients yields a response rate directly comparable
+  to the clinical MPR rate.

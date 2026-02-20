@@ -1,0 +1,182 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to sample a lognormal distribution for tumor volume doubling time based
+      on the reported mean and SD.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable (<1%) Monte Carlo error for median and 95% CI estimates of a moderately skewed
+      lognormal distribution.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 18.222930104373763
+    - 481.6597553258588
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    mean_vdt = inputs['mean_vdt'].to('day')\n\
+    \    sd_vdt = inputs['sd_vdt'].to('day')\n    n_mc = int(inputs['n_mc_samples'].magnitude)\n    m = mean_vdt.magnitude\n\
+    \    s = sd_vdt.magnitude\n    # Convert mean and SD on linear scale to lognormal parameters\n    sigma2 = np.log(1.0\
+    \ + (s**2) / (m**2))\n    sigma = np.sqrt(sigma2)\n    mu = np.log(m) - sigma2 / 2.0\n    rng = np.random.default_rng(42)\n\
+    \    samples = rng.lognormal(mu, sigma, n_mc) * ureg.day\n    median_obs = np.median(samples)\n    ci95_lower = np.percentile(samples,\
+    \ 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n    return {\n        'median_obs': median_obs,\n        'ci95_lower':\
+    \ ci95_lower,\n        'ci95_upper': ci95_upper,\n    }\n"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean tumor volume doubling time (VDT) across 100 untreated pancreatic ductal adenocarcinomas measured on
+      serial multidetector CT scans.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: mean_vdt
+    source_ref: Ahn2017_TVDT
+    source_type: text
+    units: day
+    value: 132.3
+    value_location: Abstract, Results
+    value_snippet: Tumor growth rates were -0.4 to 19.9 cm/year (mean, 4.2 +/- 3.8 cm/year) in diameter, and 11.1-13,321.5
+      cm^3/year (mean, 727.8 +/- 1609.5 cm^3/year) in volume corresponding to VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1
+      days).
+  - conversion_formula: null
+    description: Standard deviation of tumor volume doubling time (VDT) across 100 untreated pancreatic ductal adenocarcinomas
+      from serial multidetector CT scans.
+    dispersion_type: sd
+    dispersion_type_rationale: The abstract reports 'mean, 132.3 +/- 132.1 days' for VDT. With n=100, interpreting +/-132.1
+      days as SEM would imply SD = 132.1 * sqrt(100) = 1321 days, inconsistent with the reported VDT range of 20.0-976.8 days.
+      Therefore +/-132.1 days must represent the standard deviation.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: sd_vdt
+    source_ref: Ahn2017_TVDT
+    source_type: text
+    units: day
+    value: 132.1
+    value_location: Abstract, Results
+    value_snippet: Tumor growth rates were -0.4 to 19.9 cm/year (mean, 4.2 +/- 3.8 cm/year) in diameter, and 11.1-13,321.5
+      cm^3/year (mean, 727.8 +/- 1609.5 cm^3/year) in volume corresponding to VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1
+      days).
+  - conversion_formula: null
+    description: Minimum observed tumor volume doubling time among 100 untreated pancreatic ductal adenocarcinomas.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: min_vdt
+    source_ref: Ahn2017_TVDT
+    source_type: text
+    units: day
+    value: 20.0
+    value_location: Abstract, Results
+    value_snippet: Tumor growth rates were -0.4 to 19.9 cm/year (mean, 4.2 +/- 3.8 cm/year) in diameter, and 11.1-13,321.5
+      cm^3/year (mean, 727.8 +/- 1609.5 cm^3/year) in volume corresponding to VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1
+      days).
+  - conversion_formula: null
+    description: Maximum observed tumor volume doubling time among 100 untreated pancreatic ductal adenocarcinomas.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: max_vdt
+    source_ref: Ahn2017_TVDT
+    source_type: text
+    units: day
+    value: 976.8
+    value_location: Abstract, Results
+    value_snippet: Tumor growth rates were -0.4 to 19.9 cm/year (mean, 4.2 +/- 3.8 cm/year) in diameter, and 11.1-13,321.5
+      cm^3/year (mean, 727.8 +/- 1609.5 cm^3/year) in volume corresponding to VDT of 20.0-976.8 days (mean, 132.3 +/- 132.1
+      days).
+  median:
+  - 92.92255692603425
+  sample_size: 100
+  sample_size_rationale: One hundred patients with histologically proven pancreatic ductal adenocarcinoma examined with at
+    least two CT scans with no intervening treatment were included (Methods/Abstract).
+  units: day
+experimental_context:
+  assay_type: Contrast-enhanced multidetector computed tomography (MDCT) with volumetric tumor measurements.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage: null
+  system: clinical.biopsy
+  tissue_source: Primary pancreatic ductal adenocarcinomas in situ in the pancreas, imaged using contrast-enhanced multidetector
+    CT without resection during the natural-history observation window.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: null
+    status: off_treatment
+key_assumptions:
+- Tumor cell number V_T.C1 is approximately proportional to CT-derived tumor volume over the observation interval, so that
+  exponential growth rates and doubling times for cell count and volume are equivalent.
+- The reported 'mean, 132.3 +/- 132.1 days' for VDT represents mean +/- SD rather than SEM, based on the sample size (n=100)
+  and consistency with the reported VDT range (20.0-976.8 days).
+- Tumor growth over the pre-treatment CT interval can be reasonably approximated as exponential for the purpose of defining
+  a single VDT per patient, despite potential deviations from pure exponential growth.
+- The distribution of VDTs across these 100 largely advanced, untreated PDACs can be approximated by a lognormal distribution
+  parameterized by the reported mean and SD on the linear scale, and correlations between VDT and initial tumor size are ignored
+  for this calibration target.
+key_study_limitations:
+- Single-center retrospective cohort of 100 patients from Korean institutions; external generalizability to broader PDAC populations
+  may be limited.
+- The cohort includes a spectrum of tumor sizes (1.0-6.2 cm, mean 2.9 +/- 1.3 cm in diameter) and likely includes unresectable
+  and metastatic disease, rather than being restricted to small, strictly resectable PDAC, so VDTs may differ somewhat from
+  those of screen-detected resectable tumors.
+- VDTs were estimated from a limited number of CT timepoints per patient and assume exponential growth between scans; non-exponential
+  growth patterns and measurement error in volumetry are not explicitly modeled.
+- The study does not stratify VDTs by resectability status or detailed clinical stage, limiting direct stage-specific calibration.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    import numpy as np\n    # Time in days\n    t =\
+    \ time.to('day').magnitude\n    tumor_cells = species_dict['V_T.C1'].to('cell').magnitude\n    n = len(t)\n    dt_array\
+    \ = np.empty_like(t, dtype=float)\n    if n < 2:\n        dt_array[:] = np.nan\n    else:\n        # Avoid log(0) by clipping\
+    \ very small values\n        tumor_safe = np.clip(tumor_cells, 1e-12, None)\n        delta_t = np.diff(t)\n        # Prevent\
+    \ division by zero or negative intervals\n        delta_t[delta_t <= 0.0] = 1e-6\n        delta_logN = np.diff(np.log(tumor_safe))\n\
+    \        r = delta_logN / delta_t  # 1/day, length n-1\n        # Enforce positive growth rate floor to avoid negative/zero\
+    \ doubling times\n        r[r <= 0.0] = 1e-6\n        dt_segment = np.log(2.0) / r  # length n-1\n        # Assign segment-based\
+    \ doubling times to timepoints\n        dt_array[0] = dt_segment[0]\n        dt_array[1:] = dt_segment\n    return dt_array\
+    \ * ureg.day\n"
+  constants: []
+  experimental_denominator: null
+  inputs: []
+  mapping_rationale: Clinical tumor volume doubling time from CT is computed assuming approximately exponential growth of
+    macroscopic tumor volume between imaging timepoints. In the model, V_T.C1 (number of cancer cells in the tumor) is proportional
+    to tumor volume under approximately constant cellularity. The observable computes a local net exponential growth rate
+    between consecutive timepoints from V_T.C1 and converts it to a time-varying doubling time ln(2)/r, returning a trajectory
+    of doubling time values over the simulation interval.
+  model_denominator_species: null
+  species:
+  - V_T.C1
+  support: positive_unbounded
+  units: day
+  unmodeled_denominator_components: null
+primary_data_source:
+  doi: 10.1007/s12029-016-9876-7
+  first_author: Ahn
+  source_tag: Ahn2017_TVDT
+  title: 'Time to Progression of Pancreatic Cancer: Evaluation with Multi-Detector Computed Tomography'
+  year: 2016
+scenario:
+  description: Natural-history observation of untreated pancreatic ductal adenocarcinoma with serial multidetector CT imaging
+    prior to any anticancer therapy.
+  interventions:
+  - intervention_description: No therapeutic intervention (natural disease progression); patients underwent at least two contrast-enhanced
+      multidetector CT scans with no chemotherapy, radiotherapy, or surgery between scans.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: Ahn et al. retrospectively analyzed 100 patients with histologically proven pancreatic ductal adenocarcinoma
+  who underwent at least two contrast-enhanced multidetector CT scans with no intervening treatment. Tumor diameters and volumes
+  were measured at each CT, and tumor growth rates and tumor volume doubling times (VDTs) were calculated. The reported VDTs
+  (range 20.0 to 976.8 days, mean 132.3 +/- 132.1 days) represent macroscopic primary-tumor growth in situ in the pancreas
+  prior to systemic therapy. For calibration, we interpret these VDTs as reflecting the effective net exponential growth rate
+  of the primary PDAC mass in the tumor.primary compartment, and map them to model predictions by assuming that the number
+  of cancer cells V_T.C1 is proportional to CT-visible tumor volume over the observation window.

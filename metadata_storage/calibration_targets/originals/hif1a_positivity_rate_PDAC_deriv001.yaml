@@ -1,0 +1,180 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to approximate the sampling distribution of the true HIF-1alpha positivity
+      proportion in PDAC.
+    name: n_mc_samples
+    rationale: 10,000 samples provide stable estimates of the median and 95% credible interval of the positivity proportion
+      while keeping computation inexpensive.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 0.5787117406511141
+    - 0.8092905011304343
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n\
+    \n    # Inputs are counts from Sun et al. (2007)\n    n_pos = inputs['n_positive_pdac']  # dimensionless Quantity\n  \
+    \  n_tot = inputs['n_total_pdac']     # dimensionless Quantity\n    n_mc = int(inputs['n_mc_samples'].magnitude)\n\n \
+    \   # Conjugate Beta posterior for a binomial proportion with uniform prior\n    a = n_pos.magnitude + 1.0\n    b = (n_tot\
+    \ - n_pos).magnitude + 1.0\n\n    samples = rng.beta(a, b, n_mc) * ureg('dimensionless')\n\n    median_obs = np.median(samples)\n\
+    \    ci95_lower = np.percentile(samples, 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n       \
+    \ 'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Number of PDAC tumor samples with any detectable HIF-1alpha immunohistochemical staining (nuclear and/or
+      cytoplasmic).
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: n_positive_pdac
+    source_ref: Sun2007_HIF1a_PDAC
+    source_type: text
+    units: dimensionless
+    value: 41.0
+    value_location: Results, Expression of the investigated proteins
+    value_snippet: '"... positive cells were detected in 41 (70.7%), 45 (77.6%), 39 (67.2%) and 49 (84.5%) out of 58 tumor
+      blocks."'
+  - conversion_formula: null
+    description: Total number of PDAC tumor samples evaluated by HIF-1alpha immunohistochemistry.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: n_total_pdac
+    source_ref: Sun2007_HIF1a_PDAC
+    source_type: text
+    units: dimensionless
+    value: 58.0
+    value_location: Materials and methods, Patients; Results, Expression of the investigated proteins
+    value_snippet: '"Fifty-eight patients with PDA who underwent radical surgery at our hospital between April 1993 and February
+      2005 were included in this study." and "... positive cells were detected in 41 (70.7%) ... out of 58 tumor blocks."'
+  median:
+  - 0.7014790929181605
+  sample_size: 58
+  sample_size_rationale: '"Fifty-eight patients with PDA who underwent radical surgery at our hospital between April 1993
+    and February 2005 were included in this study." (Sun et al., Int J Oncol 2007)'
+  units: dimensionless
+experimental_context:
+  assay_type: Immunohistochemistry (IHC) for HIF-1alpha protein expression in formalin-fixed, paraffin-embedded sections.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage: null
+  system: clinical.resection
+  tissue_source: Primary pancreatic ductal adenocarcinoma tumors and normal pancreatic tissue from patients undergoing pancreatoduodenectomy
+    or distal pancreatectomy for non-cancer indications.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Fifty-eight patients with pancreatic ductal adenocarcinoma underwent radical surgery; none received preoperative
+      radiation or chemotherapy. Some patients later received adjuvant chemotherapy, but all tissue samples for HIF-1alpha
+      IHC were obtained at the time of surgery before systemic treatment.
+    status: off_treatment
+key_assumptions:
+- The 58 patients with pancreatic ductal adenocarcinoma who underwent radical surgery and had no preoperative chemo- or radiotherapy
+  are taken as representative of treatment-naive, resectable human PDAC, even though pathologic TNM stages (I-IV) are heterogeneous.
+- HIF-1alpha immunohistochemical positivity defined as any detectable nuclear and/or cytoplasmic staining (weak, moderate,
+  or strong) is assumed to correspond to tumors with elevated effective HIF activity in the QSP model, which is represented
+  by a 0-1 algebraic HIF variable in the tumor compartment.
+- The semi-quantitative IHC scoring system (weighted score 1-7 combining percentage of positive cells and intensity) is approximated
+  on a 0-1 continuous HIF scale, and the boundary between negative (scores 1-2) and positive (scores >=3) staining is mapped
+  to a dimensionless model threshold of approximately 0.25.
+- Binomial sampling of HIF-1alpha-positive versus -negative tumors (41/58) is modeled with a Beta posterior using a uniform
+  prior, providing a reasonable description of uncertainty in the underlying positivity proportion.
+- Normal pancreatic tissue obtained from patients operated for non-cancer indications is assumed to represent physiologic
+  pancreas with respect to exocrine HIF-1alpha expression, despite the underlying benign pathology prompting surgery.
+key_study_limitations:
+- Single-center retrospective cohort (n=58) from a Chinese surgical series between 1993 and 2005 limits generalizability to
+  contemporary, multi-center PDAC populations.
+- Pathologic TNM stage distribution is broad (I-IV), so the cohort is not restricted to early-stage or strictly resectable
+  PDAC in modern terminology, although all cases underwent radical surgery.
+- HIF-1alpha expression is assessed by semi-quantitative IHC scoring rather than fully quantitative image analysis; positivity
+  is based on categorical thresholds that may vary across laboratories.
+- Normal pancreatic controls come from patients undergoing surgery for benign or non-PDAC conditions, which may not perfectly
+  represent completely healthy pancreas.
+- The calibration target uses tumor-level positivity (fraction of tumors positive) rather than per-tumor continuous HIF-1alpha
+  expression values (e.g., H-score or fraction of positive cells), which may discard information about the distribution of
+  HIF-1alpha expression intensity across tumors.
+observable:
+  aggregation:
+    rationale: The clinical observable is the proportion of PDAC tumors that are HIF-1alpha-positive by IHC (41/58, 70.7%).
+      This is a population summary, not a per-patient continuous measurement. We therefore treat the per-patient observable
+      as a time course of tumor HIF activity (0-1) and apply a binary classifier corresponding to the IHC scoring cutoff to
+      compute the response rate (fraction of virtual patients that are HIF-1alpha-positive).
+    threshold_code: "def classify_patient(time, species_dict, constants, ureg):\n    \"\"\"Classify a virtual patient as HIF-1alpha-positive\
+      \ or -negative by IHC.\n\n    A tumor is considered HIF-1alpha-positive if the model HIF activity at\n    the end of\
+      \ the simulated time course (representing resection) is greater\n    than or equal to the IHC-derived threshold (hif_positivity_threshold).\n\
+      \    \"\"\"\n    hif = species_dict['HIF']\n    if hasattr(hif, '__len__'):\n        hif_value = hif[-1].to('dimensionless')\n\
+      \    else:\n        hif_value = hif.to('dimensionless')\n\n    threshold = constants['hif_positivity_threshold']\n \
+      \   return bool(hif_value >= threshold)\n"
+    time_point: null
+    time_unit: null
+    type: response_rate
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Tumor HIF-1alpha activity level (0-1 scaled)\
+    \ over the simulated time course.\n\n    In this calibration target, HIF activity is represented as an algebraic\n   \
+    \ or algebraically constrained variable 'HIF' stored in species_dict as a\n    dimensionless Pint Quantity array with\
+    \ the same length as the time array.\n    The observable returns the HIF trajectory (no time indexing), and the\n    population-level\
+    \ aggregation handles how this trajectory is summarized\n    for response-rate calculations.\n    \"\"\"\n    hif = species_dict['HIF']\
+    \  # dimensionless Pint Quantity array\n    return hif.to('dimensionless')\n"
+  constants:
+  - biological_basis: Sun et al. scored HIF-1alpha immunoreactivity by combining the percentage of positive tumor cells (1-4
+      points for increasing positive-cell fractions) and staining intensity (0-3 points for negative to strong) to yield a
+      weighted score from 1 to 7. Tumors were considered HIF-1alpha-positive when the weighted score was >=3 (categories +,
+      ++, +++), whereas scores 1-2 were considered negative. We approximate this categorical cutoff on a 0-1 normalized HIF
+      scale by placing the positivity threshold between negative and weak categories (around 2.5/7) and represent it as a
+      dimensionless threshold of 0.25 for calibration purposes.
+    name: hif_positivity_threshold
+    reference_db_name: null
+    reference_db_names: null
+    source_tag: Sun2007_HIF1a_PDAC
+    source_type: literature
+    units: dimensionless
+    value: 0.25
+  experimental_denominator: null
+  inputs: []
+  mapping_rationale: Sun et al. quantified HIF-1alpha expression in resected PDAC by semi-quantitative IHC scoring based on
+    the fraction of positive tumor cells and staining intensity. In the QSP model, HIF is represented as a dimensionless 0-1
+    algebraic variable capturing effective HIF-1alpha activity in the tumor compartment. We map IHC positivity to model output
+    by assuming that tumors with model HIF above a threshold (hif_positivity_threshold) correspond to IHC-positive cases.
+    The observable returns the full HIF trajectory over time, and a response-rate aggregation with a threshold on this trajectory
+    is used to recover the clinically observed fraction of HIF-1alpha-positive tumors.
+  model_denominator_species: null
+  species:
+  - HIF
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: null
+primary_data_source:
+  doi: 10.3892/ijo.30.6.1359
+  first_author: Sun
+  source_tag: Sun2007_HIF1a_PDAC
+  title: Expression of hypoxia-inducible factor-1 alpha and associated proteins in pancreatic ductal adenocarcinoma and their
+    impact on prognosis
+  year: 2007
+scenario:
+  description: Untreated primary PDAC prior to radical pancreatic resection, with HIF-1alpha protein expression measured by
+    immunohistochemistry on resection specimens and normal pancreas controls.
+  interventions:
+  - intervention_description: Natural disease progression of primary pancreatic ductal adenocarcinoma without neoadjuvant
+      chemotherapy or radiotherapy until the time of radical pancreatic resection (pancreatoduodenectomy or distal pancreatectomy).
+      Tissue for HIF-1alpha immunohistochemistry is obtained from the resected primary tumor at surgery.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: Sun et al. (Int J Oncol 2007) quantified hypoxia-inducible factor-1alpha (HIF-1alpha) protein expression
+  by immunohistochemistry in 58 patients with pancreatic ductal adenocarcinoma who underwent radical pancreatic surgery without
+  preoperative chemo- or radiotherapy, and in 20 samples of normal pancreas from non-cancer operations. HIF-1alpha staining
+  was evaluated semi-quantitatively using a weighted score combining the fraction of positive tumor cells and staining intensity,
+  and tumors were categorized as negative, weak, moderate, or strong. Any detectable HIF-1alpha staining (weak, moderate,
+  or strong) was considered positive, yielding 41/58 (70.7%) HIF-1alpha-positive PDAC tumors, whereas no HIF-1alpha expression
+  was detected in the exocrine portion of normal pancreatic samples. For calibration, we treat the observable as the population-level
+  fraction of PDAC tumors that are HIF-1alpha-positive at surgical resection. The model-level observable returns a dimensionless
+  HIF activity trajectory in the tumor compartment, and a response-rate aggregation with an IHC-inspired threshold is used
+  to map continuous HIF activity to the binary IHC positivity outcome.

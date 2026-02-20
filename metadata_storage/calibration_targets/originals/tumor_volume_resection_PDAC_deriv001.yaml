@@ -1,0 +1,196 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to approximate the distribution of tumor volume from the reported mean
+      and SD of diameter.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable estimates of the median and 95% confidence interval (<1% Monte Carlo error)
+      while keeping computation inexpensive.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 0.59
+    - 15.76
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    import math\n\n    # Extract inputs\
+    \ as Pint quantities\n    mean_d = inputs['mean_tumor_diameter'].to('millimeter')\n    sd_d = inputs['sd_tumor_diameter'].to('millimeter')\n\
+    \    n_samples = int(inputs['n_mc_samples'].magnitude)\n\n    # Work in magnitudes (dimensionless) to compute lognormal\
+    \ parameters\n    mean_mag = mean_d.magnitude\n    sd_mag = sd_d.magnitude\n\n    # Lognormal parameterization that matches\
+    \ mean and SD of diameter\n    mu_log = np.log(mean_mag ** 2 / np.sqrt(mean_mag ** 2 + sd_mag ** 2))\n    sigma_log =\
+    \ np.sqrt(np.log(1.0 + (sd_mag ** 2) / (mean_mag ** 2)))\n\n    rng = np.random.default_rng(42)\n\n    # Sample diameters\
+    \ in mm and immediately reattach units\n    diameters = rng.lognormal(mu_log, sigma_log, n_samples) * ureg('millimeter')\n\
+    \n    # Convert diameter → volume assuming spherical tumors:\n    # V = (pi / 6) * D^3\n    volumes_mm3 = (math.pi / 6.0)\
+    \ * (diameters ** 3)\n\n    # Convert mm^3 → cm^3; 1 cm^3 = 1000 mm^3, handled by Pint conversion\n    volumes_cm3 = volumes_mm3.to('centimeter**3')\n\
+    \n    median_obs = np.median(volumes_cm3)\n    ci95_lower = np.percentile(volumes_cm3, 2.5)\n    ci95_upper = np.percentile(volumes_cm3,\
+    \ 97.5)\n\n    return {\n        'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n\
+    \    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean largest tumor diameter for surgically resected PDAC in the cohort. Used as the central tendency for
+      the diameter distribution.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: mean_tumor_diameter
+    source_ref: Noda2022_PDAC_ADC
+    source_type: table
+    units: millimeter
+    value: 18.7
+    value_location: Table 2, 'Patients’ demographics and tumor characteristics'
+    value_snippet: Tumor characteristics … Tumor size (mm) 18.7 ± 5.3 (9.2–30.6). Data are means ± 1 standard deviation with
+      ranges in parentheses.
+  - conversion_formula: null
+    description: Standard deviation of largest tumor diameter across the 39 resected PDAC patients. Used as the spread parameter
+      for the diameter distribution.
+    dispersion_type: sd
+    dispersion_type_rationale: 'The table footnote explicitly states: "Data are means ± 1 standard deviation with ranges in
+      parentheses." Thus the ±5.3 value is a standard deviation, not a standard error.'
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: sd_tumor_diameter
+    source_ref: Noda2022_PDAC_ADC
+    source_type: table
+    units: millimeter
+    value: 5.3
+    value_location: Table 2, 'Patients’ demographics and tumor characteristics'
+    value_snippet: Tumor characteristics … Tumor size (mm) 18.7 ± 5.3 (9.2–30.6). Data are means ± 1 standard deviation with
+      ranges in parentheses.
+  median:
+  - 3.03
+  sample_size: 39
+  sample_size_rationale: The final cohort included 39 patients with surgically resected PDAC who underwent preoperative MRI
+    ("The final cohort included 39 patients (mean age, 73.3 ± 7.1 years; age range, 59–84 years)").
+  units: centimeter**3
+experimental_context:
+  assay_type: Pathology gross and histologic assessment of resected pancreas; tumor size in mm.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: low
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary pancreatic ductal adenocarcinoma resection specimens.
+  treatment:
+    history:
+    - treatment_naive
+    - prior_chemotherapy
+    specifier: At the time of surgical resection, 69.2% of patients (27/39) had no neoadjuvant therapy and 30.8% (12/39) had
+      received preoperative neoadjuvant chemotherapy (gemcitabine+S-1, gemcitabine+nab-paclitaxel, or FOLFIRINOX) before surgery.
+    status: off_treatment
+key_assumptions:
+- Reported "tumor size (mm)" in Table 2 represents the largest pathological tumor diameter on the resection specimen, not
+  a radiologic measurement, and corresponds to the size used to assign pathological T stage according to AJCC 8th edition.
+- Tumors are approximated as spheres for converting diameter to volume (V = pi/6 · D^3). While PDACs are infiltrative and
+  irregular, spherical approximation is considered adequate for estimating order-of-magnitude tumor volume for calibration.
+- The distribution of tumor diameters across patients is better represented by a lognormal distribution than by a normal distribution,
+  consistent with strictly positive, right-skewed size data. We therefore transform the reported mean and SD of diameter to
+  lognormal parameters before Monte Carlo sampling.
+- The ±5.3 mm value reported with the mean tumor size is treated as a standard deviation (not SEM) based on the explicit table
+  footnote stating that continuous variables are reported as mean ± 1 standard deviation with ranges in parentheses.
+- The observed diameter distribution in this relatively small, mostly early-stage (pT1c–T2) cohort is assumed to be reasonably
+  representative of tumor burden in resectable PDAC at surgery, while recognizing that larger resectable tumors seen in other
+  series are underrepresented.
+- We assume that neoadjuvant chemotherapy, received by 12 of 39 patients, does not drastically distort the distribution of
+  tumor diameters at resection relative to treatment-naive resectable disease, and we treat the combined cohort as a single
+  calibration population while documenting this mismatch.
+key_study_limitations:
+- Single-center retrospective study with a small cohort (n=39) limits precision of the tumor size distribution and may not
+  capture the full spectrum of resectable PDAC tumor burdens.
+- Approximately 30.8% of patients received neoadjuvant chemotherapy before surgery, so the cohort is not purely treatment-naive.
+  Neoadjuvant therapy may reduce tumor size and alter intratumoral necrosis, potentially biasing the diameter distribution
+  relative to untreated resectable PDAC.
+- Tumor size is reported only as overall mean ± SD and range for the whole cohort; no stratified size data are given for the
+  neoadjuvant vs upfront surgery subgroups, preventing isolation of a strictly treatment-naive subset for calibration.
+- Tumor shape is assumed spherical for volume conversion, whereas PDAC tumors are often irregular and infiltrative within
+  a desmoplastic stroma, potentially introducing systematic error in absolute volume estimates.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Compute primary tumor volume from tumor cell\
+    \ count.\n\n    Observable: tumor volume in cm^3 = V_T.C1 [cells] * volume_per_cancer_cell [cm^3/cell]\n    \"\"\"\n \
+    \   c_cells = species_dict['V_T.C1']\n    cell_vol = constants['volume_per_cancer_cell']\n\n    tumor_volume = (c_cells\
+    \ * cell_vol).to('centimeter**3')\n    return tumor_volume\n"
+  constants:
+  - biological_basis: 'Derived from reference DB entries for typical resectable PDAC tumor burden: pdac_tumor_volume_resectable
+      = 10 milliliter (10 cm^3) and pdac_total_tumor_cells = 1e9 cells. Assuming tumor volume is dominated by cancer cells
+      and associated stroma, the effective volume per cancer cell is volume_per_cancer_cell = 10 cm^3 / 1e9 cells = 1e-8 cm^3
+      per cell.'
+    name: volume_per_cancer_cell
+    reference_db_name: null
+    reference_db_names:
+    - pdac_tumor_volume_resectable
+    - pdac_total_tumor_cells
+    source_tag: null
+    source_type: derived_from_reference_db
+    units: centimeter**3 / cell
+    value: 1.0e-08
+  experimental_denominator: null
+  inputs: []
+  mapping_rationale: The model state V_T.C1 represents the total number of cancer cells in the primary pancreatic tumor. Pathology
+    reports in the source study provide tumor size as the largest diameter in millimeters, which is converted to an equivalent
+    spherical volume in cm^3 via Monte Carlo sampling in distribution_code. The observable code maps model cell count to tumor
+    volume using a per-cell volume derived from curated reference estimates of total tumor volume and total tumor cell count
+    for resectable PDAC, enabling direct comparison between simulated tumor volume and the empirical volume distribution.
+  model_denominator_species: null
+  species:
+  - V_T.C1
+  support: positive
+  units: centimeter**3
+  unmodeled_denominator_components: null
+primary_data_source:
+  doi: 10.1186/s12880-022-00751-3
+  first_author: Noda
+  source_tag: Noda2022_PDAC_ADC
+  title: 'Prediction of overall survival in patients with pancreatic ductal adenocarcinoma: histogram analysis of ADC value
+    and correlation with pathological intratumoral necrosis'
+  year: 2022
+scenario:
+  description: Patients with pathologically proven, surgically resected pancreatic ductal adenocarcinoma who underwent preoperative
+    MRI followed by pancreaticoduodenectomy or distal pancreatectomy. Tumor size was recorded (largest diameter in mm), and
+    pathological staging, nodal status, resection margin, and intratumoral necrosis were assessed on the resection specimens.
+  interventions:
+  - intervention_description: Surgical resection of primary PDAC via pancreaticoduodenectomy (53.8%, n = 21) or distal pancreatectomy
+      (46.2%, n = 18) after preoperative MRI. A subset of patients (12/39, 30.8%) received neoadjuvant chemotherapy prior
+      to surgery with gemcitabine+S-1 (n=6), gemcitabine+nab-paclitaxel (n=4), or FOLFIRINOX (n=2); doses and exact schedules
+      were not reported. R0 resection was achieved in 33/39 patients (84.6%).
+secondary_data_sources:
+- doi_or_url: null
+  first_author: ReferenceDB
+  source_tag: PDAC_Reference_Values
+  title: Internal reference values for PDAC tumor burden and cellularity (pdac_tumor_volume_resectable, pdac_total_tumor_cells)
+  year: 2024
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The source cohort consists exclusively of patients with pathologically confirmed pancreatic
+    ductal adenocarcinoma undergoing surgical resection. Tumor size is measured on the primary pancreatic tumor, matching
+    the target indication (PDAC) and compartment (primary tumor). Although a subset of patients received neoadjuvant chemotherapy,
+    all measurements are made on the resected primary tumor; thus, the indication and anatomical context are an exact match,
+    with only treatment-history differences documented.
+  perturbation_relevance: Tumor size is measured in established PDAC at the time of resection, i.e., in a pathological disease
+    state rather than normal physiology. This is appropriate because the calibration target is tumor burden at surgical resection,
+    not a physiological baseline.
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: null
+  tme_compatibility_notes: null
+  validation_warnings: null
+study_interpretation: This study reports tumor size (largest diameter) in millimeters for a cohort of 39 patients with surgically
+  resected PDAC who underwent preoperative MRI. Tumor size and pathological TNM stage are derived from the resection specimen,
+  reflecting the primary tumor burden at the time of surgery. We reinterpret the reported mean ± SD of tumor diameter (18.7
+  ± 5.3 mm, range 9.2–30.6 mm) as a lognormally distributed size variable and convert it to a distribution of tumor volumes
+  assuming spherical geometry. The resulting empirical volume distribution (median ≈ 3.0 cm^3, 95% CI ≈ 0.6–15.8 cm^3) characterizes
+  the tumor burden of small, predominantly T1c–T2 resectable PDACs at resection. This observable is mapped to the model by
+  converting the simulated tumor cell count V_T.C1 to cm^3 using a per-cell volume derived from curated reference values.
+  The cohort includes both upfront resections and resections after neoadjuvant chemotherapy, but all measurements are made
+  on the resection specimen, approximating the primary tumor compartment at the time of surgery.

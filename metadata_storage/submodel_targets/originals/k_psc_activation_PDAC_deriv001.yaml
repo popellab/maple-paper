@@ -1,0 +1,165 @@
+calibration:
+  identifiability_notes: "This submodel provides only an order-of-magnitude constraint on k_psc_activation based on a single\
+    \ qualitative timing observation (onset of alpha-SMA positivity at ~48 h). The inferred k_psc_activation conflates effects\
+    \ of TGF\x03b, PDGF, mechanical cues, and other stimuli present during primary culture and should be interpreted as an\
+    \ effective activation rate under strong profibrotic signaling. Additional time-course data quantifying the fraction of\
+    \ PSCs that are alpha-SMA+ over multiple time points, ideally under defined TGF\x03b and PDGF concentrations and in human\
+    \ PSCs, would be required for tighter and more mechanistically specific identification."
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    # Observed activation time (onset\
+      \ of alpha-SMA positivity)\n    t_obs = inputs['psc_activation_time_48h']\n    # Convert to days for consistency with\
+      \ k_psc_activation units\n    t_days = t_obs.to('day').magnitude\n    # Assume a 25% coefficient of variation on activation\
+      \ time (not reported in the paper)\n    cv = 0.25\n    sigma = np.sqrt(np.log(1.0 + cv**2))\n    mu = np.log(t_days)\
+      \ - 0.5 * sigma**2\n    # Draw a lognormal distribution for activation time\n    t_samples = np.random.lognormal(mu,\
+      \ sigma, 10000)\n    # Map to implied k_psc_activation samples via t_activation = 1 / k\n    k_samples = 1.0 / t_samples\n\
+      \    return {'median': float(np.median(k_samples))}\n"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: Activation time is positive and likely subject to multiplicative biological and experimental variability;
+        we therefore represent uncertainty in the observed ~48 h activation time with a lognormal distribution over t_activation,
+        which is then mapped to k_psc_activation via t_activation = 1/k_psc_activation.
+    name: psc_activation_time_constraint
+    observable: null
+    sample_size: 1
+    sample_size_rationale: Single primary culture timing estimate for onset of alpha-SMA positivity from Apte 1998 Gut.
+    units: hour
+    uses_inputs:
+    - psc_activation_time_48h
+  model:
+    data_rationale: "Apte et al. 1998 report that primary rat pancreatic stellate cells cultured on plastic are negative for\
+      \ \x11-smooth muscle actin (alpha-SMA) at 24 h but positive at 48 h, indicating that the quiescent-to-activated transition\
+      \ occurs on a timescale of order 2 days under strong activation conditions in vitro."
+    formula: t_activation = 1 / k_psc_activation
+    submodel_rationale: "In the full QSPIO-PDAC model, the rate of quiescent PSC activation to myofibroblast-like activated\
+      \ PSCs (CAF phenotype) in the tumour compartment is governed by k_psc_activation multiplied by saturable TGF\x03b- and\
+      \ PDGF-dependent Hill terms. In early primary cultures, PSC activation on plastic is driven by autocrine/paracrine cytokines\
+      \ and mechanical cues that are expected to produce near-saturating activation signals. Under this assumption, the in\
+      \ vitro activation timescale (~48 h) approximates the inverse of k_psc_activation in the full model when the TGF\x03\
+      b and PDGF Hill terms are near 1."
+    type: direct_conversion
+  parameters:
+  - name: k_psc_activation
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -0.693
+      rationale: Centre on ~0.5/day corresponding to an activation timescale of ~2 days (48 h) as observed for primary rat
+        PSCs on plastic, but allow ~10-fold uncertainty to account for species and context differences between in vitro culture
+        and PDAC tumour stroma.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+  state_variables: null
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Nycodenz density gradient from rat pancreas, followed by adherence to tissue culture plastic
+    name: pancreatic stellate cell
+    phenotype: quiescent PSCs freshly isolated from normal rat pancreas transitioning to activated myofibroblast-like phenotype
+      in primary culture
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: normoxic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    substrate: tissue culture plastic
+  indication: normal_pancreas/stromal_biology
+  species: rat
+  system: in_vitro_primary_cells
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 1
+  name: psc_activation_time_48h
+  role: target
+  source_location: 'Results; culture on plastic: cells cultured for 24 hours vs 48 hours'
+  source_ref: Apte1998
+  uncertainty: null
+  units: hour
+  value: 48.0
+  value_snippet: Cells cultured for 24 hours had an angular appearance, contained lipid droplets manifesting positive vitamin
+    A autofluorescence, and stained positively for desmin but negatively for alpha-SMA. At 48 hours, cells were positive for
+    alpha-SMA.
+key_assumptions:
+- "PSC activation in vitro on rigid tissue culture plastic with 10% serum recapitulates, at least in terms of timescale, the\
+  \ activation of resident quiescent PSCs in the PDAC tumour microenvironment under strong profibrotic signaling (high TGF\x03\
+  b/PDGF, oxidant stress, mechanical stress)."
+- The quiescent-to-activated PSC transition over the first 48 h in primary culture can be approximated as a first-order process
+  characterized by a single effective rate constant k_psc_activation.
+- "Autocrine and serum-derived TGF\x03b and PDGF levels during early primary culture are high enough that the Hill-type TGF\x03\
+  b and PDGF terms in the full model are close to 1, so the observed activation rate approximates k_psc_activation itself\
+  \ rather than k_psc_activation multiplied by submaximal signaling factors."
+- PSC proliferation and death are relatively slow compared to activation over the initial 48 h, so total PSC number remains
+  approximately constant and does not strongly confound the activation timescale inferred from the appearance of alpha-SMA
+  positivity.
+- Rat PSC activation kinetics are reasonably representative of human PSC/CAF activation kinetics in PDAC, without applying
+  explicit interspecies allometric scaling for this cellular state-transition rate.
+key_study_limitations:
+- The Apte 1998 study involves primary rat PSCs from normal pancreas cultured on stiff plastic, which may activate faster
+  than stromal PSCs embedded in the complex 3D PDAC tumour microenvironment in vivo.
+- Activation is inferred from qualitative immunostaining for alpha-SMA at discrete time points (24 h vs 48 h), without a quantitative
+  time-course of the fraction of activated cells, so the precise shape of the activation curve and its half-time are uncertain.
+- "The culture conditions do not report exact TGF\x03b and PDGF concentrations or their temporal evolution; mapping these\
+  \ undefined conditions onto the explicit TGF\x03b- and PDGF-dependent activation term in the full QSP model requires the\
+  \ assumption of near-saturating signaling."
+- The data are from rat PSCs; species differences in PSC biology and activation kinetics between rat and human (particularly
+  in the context of PDAC-associated stellate cells/CAFs) are not explicitly accounted for.
+- Other processes present in vivo, such as immune cell-derived cytokines, ECM stiffness gradients, and hypoxia, are absent
+  or altered in the in vitro system, so the calibrated k_psc_activation should be interpreted as an effective parameter rather
+  than a precise physiological rate.
+primary_data_source:
+  authors:
+  - Apte MV
+  - Haber PS
+  - Applegate TL
+  - Norton ID
+  - McCaughan GW
+  - Korsten MA
+  - Pirola RC
+  - Wilson JS
+  doi: 10.1136/gut.43.1.128
+  source_tag: Apte1998
+  title: 'Periacinar stellate shaped cells in rat pancreas: identification, isolation, and culture'
+  year: 1998
+secondary_data_sources:
+- authors:
+  - Apte MV
+  - Pirola RC
+  - Wilson JS
+  contribution: Review summarizing that quiescent pancreatic stellate cells in primary culture become activated after approximately
+    48 h, supporting the use of a ~2 day activation timescale.
+  doi: 10.3389/fphys.2012.00344
+  source_tag: Apte2012_Review
+  title: 'Pancreatic stellate cells: a starring role in normal and diseased pancreas'
+  url: null
+  year: 2012
+- authors:
+  - Tian L
+  - Lu ZP
+  - Cai BB
+  - Zhao LT
+  - Qian D
+  - Xu QC
+  - Wu PF
+  - Zhu Y
+  - Zhang JJ
+  - Du Q
+  - Miao Y
+  - Jiang KR
+  contribution: Provides corroborating evidence that freshly isolated rat PSCs remain quiescent for ~48 h in primary culture
+    before beginning activation, and that cells cultured for 10 days represent a fully activated phenotype.
+  doi: 10.3892/ijo.2015.3282
+  source_tag: Tian2015_PSC_EMT
+  title: Activation of pancreatic stellate cells involves an EMT-like process
+  url: null
+  year: 2015
+study_interpretation: "The Apte et al. 1998 Gut study establishes that freshly isolated, quiescent rat pancreatic stellate\
+  \ cells cultured on tissue culture plastic lose their vitamin A-containing lipid droplets and become alpha-SMA-positive\
+  \ between 24 and 48 hours in vitro, implying an activation timescale on the order of 2 days under strong activation conditions.\
+  \ Assuming that the quiescent-to-activated transition follows approximately first-order kinetics and that autocrine/paracrine\
+  \ TGF\x03b and PDGF signals in this setting are near-saturating, the characteristic activation time (~48 h) provides a direct\
+  \ constraint on the PSC activation rate constant k_psc_activation used in the QSPIO-PDAC tumour compartment."
+target_id: k_psc_activation_apte1998

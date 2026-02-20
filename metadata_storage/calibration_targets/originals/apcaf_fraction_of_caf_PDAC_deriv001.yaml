@@ -1,0 +1,164 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples for parametric bootstrap of the apCAF fraction.
+    name: n_mc_samples
+    rationale: Standard sample size for stable percentile estimates of median and 95% CI while keeping computation lightweight.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 0.18428189876108292
+    - 0.23553007293368053
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    # Point estimate of apCAF fraction\
+    \ (dimensionless)\n    p_hat = inputs['apcaf_fraction_point']  # Pint Quantity\n    n_cells = inputs['n_cells']      \
+    \       # Pint Quantity\n    n_mc = int(inputs['n_mc_samples'].magnitude)\n\n    # Beta-binomial posterior for true proportion\
+    \ p, using a uniform Beta(1,1) prior\n    alpha = p_hat.magnitude * n_cells.magnitude + 1.0\n    beta = (1.0 - p_hat.magnitude)\
+    \ * n_cells.magnitude + 1.0\n\n    rng = np.random.default_rng(42)\n    samples = rng.beta(alpha, beta, n_mc) * p_hat.units\
+    \  # reattach units (dimensionless)\n\n    median_obs = np.median(samples)\n    ci95_lower = np.percentile(samples, 2.5)\n\
+    \    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n        'median_obs': median_obs,\n        'ci95_lower':\
+    \ ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Point estimate of the fraction of human CAFs in resected PDAC tumors that co-express HLA-DRA and CD74 (apCAF
+      gene signature).
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: apcaf_fraction_point
+    source_ref: Elyada2019_apCAF
+    source_type: text
+    units: dimensionless
+    value: 0.209
+    value_location: Results, section "apCAFs are detectable in human PDAC"
+    value_snippet: We detected subsets of human CAFs expressing modest levels of the human leukocyte antigen (HLA) genes that
+      encode MHC class II chains (HLA-DRA, HLA-DPA1 and HLA-DQA1) (Fig. 6A). These subsets also expressed CD74, which encodes
+      the invariant chain, and SLPI, which is one of the prominent apCAF markers in mouse PDAC tumors (Fig. 6A). We found
+      that 20.9% of the human CAFs co-expressed HLA-DRA and CD74, implying a capacity to generate a functional MHC class II
+      structure in some CAFs (Fig. 6B and C).
+  - conversion_formula: null
+    description: Total number of fibroblasts (CAFs) in the human PDAC CAF single-cell dataset used to compute the apCAF fraction.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: n_cells
+    source_ref: Elyada2019_apCAF
+    source_type: text
+    units: dimensionless
+    value: 962.0
+    value_location: Results, section "Single-cell analysis uncovers the complexity of human PDAC" / "Distinct subtypes of
+      cancer-associated fibroblasts are detected in human PDAC"
+    value_snippet: Using this approach, we were able to isolate a fibroblast-enriched fraction from sample hT137 (hT137 FE).
+      These cells were combined with the fibroblasts digitally extracted from the viable cell fraction of all other tumors,
+      and all of these cells were analyzed together (Supplementary Table S11). A total of 962 fibroblasts were analyzed, which
+      formed two distinct sub-clusters with unique gene signatures upon t-SNE analysis (Fig. 3A and B; Supplementary Table
+      S12).
+  median:
+  - 0.2092184239482368
+  sample_size: 962
+  sample_size_rationale: A total of 962 fibroblasts (CAFs) from six untreated human PDAC resections were analyzed in the human
+    CAF single-cell dataset used to compute the apCAF fraction.
+  units: dimensionless
+experimental_context:
+  assay_type: Single-cell RNA sequencing (10x Genomics) of dissociated tumor samples.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary PDAC tumor resections from untreated patients.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Untreated primary PDAC tumors at time of surgical resection.
+    status: off_treatment
+key_assumptions:
+- The fraction of CAFs that co-express HLA-DRA and CD74 in the single-cell RNA-seq dataset is representative of the in vivo
+  fraction of apCAFs among all CAFs in untreated primary PDAC at the time of resection.
+- Cells co-expressing HLA-DRA and CD74 in human CAF scRNA-seq data correspond directly to the model species V_T.apCAF, while
+  CAFs lacking this signature are represented by V_T.iCAF and V_T.myCAF.
+- The set of 962 fibroblasts analyzed (COL1A1+ CAFs enriched by FACS) adequately samples the CAF compartment across the six
+  PDAC resections, so that the estimated 20.9% fraction is generalizable to typical resectable, treatment-naive PDAC tumors.
+- Fibroblast-like populations not captured in the CAF gate (e.g., perivascular fibroblasts or lipofibroblasts) make a negligible
+  contribution to the overall CAF count relevant for apCAF fraction, and therefore can be ignored in the denominator of the
+  observable.
+- Uncertainty in the apCAF fraction is well approximated by a binomial sampling model with a uniform Beta(1,1) prior, leading
+  to a Beta(alpha, beta) posterior for the true fraction with alpha = p_hat * n_cells + 1 and beta = (1 - p_hat) * n_cells
+  + 1.
+key_study_limitations:
+- The CAF measurement is based on transcriptomic markers (HLA-DRA and CD74 co-expression) from dissociated single cells rather
+  than direct protein quantification by flow cytometry or imaging, so it may not perfectly reflect functional MHC-II protein
+  expression at the protein level.
+- Single-cell dissociation and FACS enrichment can introduce sampling bias, potentially under-representing fragile or spatially
+  constrained CAF populations, which may slightly distort the estimated apCAF fraction.
+- The cohort size (six untreated PDAC resections, 962 CAFs) is modest and may not capture inter-patient heterogeneity in CAF
+  subtype composition across the broader PDAC population.
+- Clinical staging information beyond being resected, untreated primary PDAC is not fully specified, so residual heterogeneity
+  in disease stage and tumor burden may influence CAF composition.
+- The analysis does not explicitly segregate CAFs originating from tumor core versus invasive front or peritumoral stroma,
+  so spatial heterogeneity in apCAF distribution is not captured.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    import numpy as np\n    apcaf = species_dict['V_T.apCAF']\
+    \  # cells\n    icaf = species_dict['V_T.iCAF']    # cells\n    mycaf = species_dict['V_T.myCAF']  # cells\n\n    total_caf\
+    \ = apcaf + icaf + mycaf\n    # Avoid division by zero: if total CAF count is zero, define fraction as zero\n    zero_mask\
+    \ = total_caf.magnitude == 0\n    frac = apcaf / total_caf\n    if np.any(zero_mask):\n        frac = frac.magnitude\n\
+    \        frac[zero_mask] = 0.0\n        frac = frac * ureg('dimensionless')\n\n    return frac.to('dimensionless')\n"
+  constants: []
+  experimental_denominator: All COL1A1+ CAFs in human PDAC single-cell dataset (including myCAFs, iCAFs and apCAF-like cells).
+  inputs: []
+  mapping_rationale: The observable is defined as the fraction of antigen-presenting CAFs (apCAFs) among all CAFs in the primary
+    PDAC tumor. In the model, V_T.apCAF represents apCAFs, whereas V_T.iCAF and V_T.myCAF represent inflammatory CAFs and
+    myofibroblastic CAFs, respectively. The experimental measurement is the proportion of CAFs co-expressing HLA-DRA and CD74
+    (apCAF marker genes) among all COL1A1+ CAFs in single-cell RNA-seq data from resected human PDAC tumors. Therefore, the
+    model observable computes V_T.apCAF / (V_T.apCAF + V_T.iCAF + V_T.myCAF), which directly mirrors the experimentally measured
+    proportion of apCAFs among all CAFs.
+  model_denominator_species:
+  - V_T.apCAF
+  - V_T.iCAF
+  - V_T.myCAF
+  species:
+  - V_T.apCAF
+  - V_T.iCAF
+  - V_T.myCAF
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: Other rare fibroblast-like stromal populations (e.g., lipofibroblasts) are not explicitly
+    represented in the model and are assumed to contribute negligibly to the total CAF count for this observable.
+primary_data_source:
+  doi: 10.1158/2159-8290.CD-19-0094
+  first_author: Elyada
+  source_tag: Elyada2019_apCAF
+  title: Cross-Species Single-Cell Analysis of Pancreatic Ductal Adenocarcinoma Reveals Antigen-Presenting Cancer-Associated
+    Fibroblasts
+  year: 2019
+scenario:
+  description: Untreated primary PDAC tumors were surgically resected from six patients. Tumor specimens were enzymatically
+    dissociated, and viable cells were sorted by FACS to enrich for fibroblasts (CD45−, CD31−, EpCAM−). Single cells were
+    captured using a droplet-based 10x Genomics protocol and subjected to scRNA-seq. Fibroblasts were identified bioinformatically,
+    and the fraction of CAFs co-expressing HLA-DRA and CD74 (apCAF signature) among all CAFs was computed.
+  interventions:
+  - intervention_description: No systemic anti-cancer therapy prior to surgery (untreated/treatment-naive PDAC). Surgical
+      resection of the primary pancreatic tumor was performed for standard-of-care management, and tumor tissue at resection
+      was used for downstream single-cell RNA sequencing and CAF subtype analysis.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: This study used single-cell RNA sequencing of dissociated cells from six resected, untreated human PDAC
+  tumors to characterize the composition and transcriptional states of tumor and stromal cell populations. Within the CAF
+  compartment, cells expressing pan-fibroblast markers were clustered into myCAF and iCAF subpopulations, analogous to previous
+  work, and a subset of CAFs co-expressing MHC class II genes (HLA-DRA, HLA-DPA1, HLA-DQA1) and CD74 was identified. These
+  MHC-II+ CD74+ CAFs correspond to antigen-presenting CAFs (apCAFs). Quantification of the human CAF dataset showed that 20.9%
+  of CAFs co-expressed HLA-DRA and CD74, providing a direct estimate of the apCAF fraction among all CAFs in untreated, resected
+  primary PDAC tumors. This aligns with the QSP model observable defined as V_T.apCAF / (V_T.apCAF + V_T.iCAF + V_T.myCAF),
+  capturing the apCAF fraction within the total CAF pool at the time of surgical resection.

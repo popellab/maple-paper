@@ -1,0 +1,132 @@
+calibration:
+  identifiability_notes: This submodel constrains only the order of magnitude of k_M1_pol under conditions of strong IL-12
+    (and associated IFNg) stimulation, based on a single summarized timescale (<90 min) for TAM functional reprogramming.
+    The mapping from functional cytokine profile shift to stable M1 phenotypic polarization is approximate, and the conversion
+    from an upper bound on reprogramming time to an effective half-life introduces additional uncertainty (encoded via a Beta
+    prior over the half-life fraction). In the full QSPIO-PDAC model, k_M1_pol will be correlated with IL12_50 and IFNg_50
+    (which determine how often the IL-12/IFNg modulation term is near 1) and with other macrophage turnover parameters (k_M2_pol,
+    k_Mac_death, recruitment). Additional time-resolved measurements of M2-to-M1 marker expression (e.g., CD206 downregulation
+    and iNOS/CD86 upregulation) under defined IL-12 and IFNg concentrations would be needed for tighter identification and
+    for disentangling k_M1_pol from cytokine sensitivity parameters.
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    import math\n    # Upper bound\
+      \ on the time required to observe strong functional reprogramming\n    t_max = inputs['t_reprogram_max_90min']  # Pint\
+      \ quantity\n    t_max_min = t_max.to('minute').magnitude\n    # Assume the polarization half-life is a fraction r of\
+      \ this upper bound, r ~ Beta(2, 2) on (0, 1)\n    r_samples = np.random.beta(2.0, 2.0, size=10000)\n    t_half_min =\
+      \ r_samples * t_max_min\n    # Avoid zero-length half-lives\n    t_half_min = np.clip(t_half_min, 1.0, None)\n    t_half_days\
+      \ = t_half_min / (60.0 * 24.0)\n    k_samples = math.log(2.0) / t_half_days\n    return {\n        'median': float(np.median(k_samples)),\n\
+      \        'ci95_lower': float(np.percentile(k_samples, 2.5)),\n        'ci95_upper': float(np.percentile(k_samples, 97.5)),\n\
+      \    }"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: We approximate the derived distribution over k_M1_pol (obtained by sampling possible half-lives less than
+        90 min) with a lognormal likelihood in log(k_M1_pol). This reflects positive support and multiplicative uncertainty
+        in the rate constant.
+    name: k_M1_pol_derived_from_90min
+    observable: null
+    sample_size: null
+    sample_size_rationale: Not explicitly reported; the abstract summarizes consistent findings across multiple in vivo and
+      in vitro experiments, so we treat the reported <90 min timescale as a single summarized observation.
+    units: 1/day
+    uses_inputs:
+    - t_reprogram_max_90min
+  model:
+    data_rationale: Watkins et al. (2007) report that IL-12 treatment of tumor-bearing mice and ex vivo tumor-associated macrophages
+      induces a rapid (<90 min) loss of tumor-supportive cytokine production (IL-10, MCP-1, migration inhibitory factor, TGFbeta)
+      and gain of proinflammatory cytokines (TNFalpha, IL-15, IL-18). This functional reprogramming time is used as a proxy
+      for the half-life of the M2-to-M1 polarization process under strong IL-12 stimulation.
+    formula: k_M1_pol = ln(2) / t_half_days
+    submodel_rationale: In the full QSPIO-PDAC model, M2-to-M1 polarization in the tumor compartment is modeled as a first-order
+      transition V_T.Mac_M2 -> V_T.Mac_M1 with rate k_M1_pol*V_T.Mac_M2 multiplied by a Hill-type modulation of IL-12 and
+      IFNg. Under strong IL-12 (and associated IFNg) exposure, this modulation term approaches 1, so the effective rate constant
+      for M2-to-M1 conversion is k_M1_pol. The observed IL-12-induced rapid functional conversion of tumor-associated macrophages
+      therefore constrains the magnitude of k_M1_pol assuming first-order kinetics at the cell level.
+    type: direct_conversion
+  parameters:
+  - name: k_M1_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 3.0
+      rationale: Cellular-scale M2-to-M1 repolarization under strong IL-12 exposure occurs on a timescale <90 min in mouse
+        tumor-associated macrophages; prior centered around ~20/day with wide uncertainty to allow for species and context
+        differences and for mapping from functional reprogramming to phenotypic polarization.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: tumor cells used to generate TAMs
+    name: Lewis lung carcinoma (3LL) tumor model
+    species: mouse
+    tissue_origin: lung
+  cell_types:
+  - isolation_method: isolated from primary tumors, metastatic lung lesions, spleen, and peritoneal cavity of 3LL tumor-bearing
+      C57BL/6 mice
+    name: tumor-associated macrophages
+    phenotype: immunosuppressive / tumor-supportive prior to IL-12 treatment
+  culture_conditions: null
+  indication: murine Lewis lung carcinoma (solid tumor)
+  species: mouse
+  system: in_vivo_tumor_bearing_mice_and_ex_vivo_TAM_cultures
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: t_reprogram_max_90min
+  role: target
+  source_location: Abstract
+  source_ref: Watkins2007
+  uncertainty: null
+  units: minute
+  value: 90.0
+  value_snippet: IL-12, both in vivo and in vitro, induced a rapid (<90 min) reduction of tumor supportive macrophage activities
+    and a concomitant increase in proinflammatory and proimmunogenic activities.
+key_assumptions:
+- Functional reprogramming of TAM cytokine production following IL-12 exposure reflects an underlying M2-to-M1 polarization
+  process that is mechanistically represented by the Mac_M2 -> Mac_M1 transition in the QSPIO-PDAC model.
+- The IL-12 treatment conditions (both in vivo and ex vivo) generate sufficiently high IL-12 (and, via downstream activation,
+  IFNg) that the Hill-type modulation term in the full model is close to 1, so that the effective conversion rate equals k_M1_pol.
+- The reported "rapid (<90 min)" time to observe loss of tumor-supportive cytokine production corresponds to at least one
+  effective half-life of the M2-to-M1 polarization process; we encode uncertainty in the exact relationship via a Beta(2,2)
+  prior over the ratio of polarization half-life to the 90 min upper bound.
+- Macrophage polarization dynamics at the single-cell level can be approximated as a first-order process (exponential decay
+  of M2 state into M1 state) under sustained IL-12 exposure, neglecting cell proliferation, death, and recruitment over this
+  short timescale.
+- Murine Lewis lung carcinoma TAM polarization kinetics are a reasonable proxy for PDAC TAMs/Human macrophages at the level
+  of order-of-magnitude timescales, despite known context-dependent differences in the tumor microenvironment.
+key_study_limitations:
+- The Watkins et al. study characterizes functional changes in cytokine production rather than direct M1/M2 surface marker
+  expression or transcriptional signatures; mapping functional reprogramming onto M1 vs M2 states is approximate.
+- The reported timescale "<90 min" is qualitative and provides only an upper bound for reprogramming time, not a precise half-life;
+  our conversion to a rate constant relies on additional assumptions encoded in the distribution_code.
+- The tumor model is murine Lewis lung carcinoma rather than PDAC, and the species is mouse rather than human, introducing
+  potential differences in macrophage biology and IL-12 signaling.
+- In vivo IL-12 treatment involves complex indirect effects (e.g., NK and T cell activation and secondary IFNg production)
+  that may accelerate or modulate TAM reprogramming relative to isolated cytokine exposure in the QSP model.
+- Other macrophage fate processes in the full model (death, egress, recruitment) are neglected in this submodel because the
+  reprogramming timescale is much shorter than typical turnover times, but this approximation may not hold under all conditions.
+primary_data_source:
+  authors:
+  - Watkins SK
+  - Egilmez NK
+  - Suttles J
+  - Stout RD
+  doi: 10.4049/jimmunol.178.3.1357
+  source_tag: Watkins2007
+  title: IL-12 rapidly alters the functional profile of tumor-associated and tumor-infiltrating macrophages in vitro and in
+    vivo
+  year: 2007
+secondary_data_sources: null
+study_interpretation: Watkins et al. (2007) demonstrate that systemic or in vitro exposure of tumor-associated macrophages
+  from Lewis lung carcinoma-bearing mice to IL-12 causes a rapid (<90 min) shift from an immunosuppressive, tumor-supportive
+  cytokine profile (high IL-10, MCP-1, migration inhibitory factor, TGFbeta) to a proinflammatory, immunostimulatory profile
+  (high TNFalpha, IL-15, IL-18). In the QSPIO-PDAC framework, this is interpreted as rapid reprogramming of M2-like TAMs toward
+  an M1-like state under strong IL-12/IFNg signaling. Assuming first-order kinetics for the M2-to-M1 transition, the observed
+  <90 min timescale provides an upper bound on the polarization half-life and thus constrains the magnitude of k_M1_pol when
+  the IL-12/IFNg modulation term is saturated.
+target_id: k_M1_pol_Watkins2007_IL12_TAM_reprogramming

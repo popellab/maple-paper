@@ -1,0 +1,217 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to approximate the sampling distribution of cDC1 density from the reported
+      mean and SEM.
+    name: n_mc_samples
+    rationale: 10,000 samples provide a stable estimate of the median and 95% CI for the observable without excessive computational
+      cost; this is a standard choice for parametric bootstrap in QSP calibration.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 2.125134894026662
+    - 29.21619111562768
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    # Literature-derived inputs (Pint\
+    \ Quantities)\n    mean = inputs['mean_cdc1_density_wta']          # cell/mm^2\n    sem = inputs['sem_cdc1_density_wta']\
+    \           # cell/mm^2 (SEM)\n    n_patients = inputs['sample_size_cdc1']        # dimensionless\n    n_samples = int(inputs['n_mc_samples'].magnitude)\n\
+    \n    # Convert SEM to SD: SD = SEM * sqrt(n)\n    sd = sem * np.sqrt(n_patients.magnitude)\n\n    # Convert normal(mean,\
+    \ sd) to lognormal parameters to avoid negative densities\n    mean_mag = mean.magnitude\n    sd_mag = sd.magnitude\n\
+    \    mu_log = np.log(mean_mag**2 / np.sqrt(mean_mag**2 + sd_mag**2))\n    sigma_log = np.sqrt(np.log(1.0 + (sd_mag**2\
+    \ / mean_mag**2)))\n\n    rng = np.random.default_rng(42)\n    # Sampling strips units; reattach immediately\n    samples\
+    \ = rng.lognormal(mu_log, sigma_log, n_samples) * mean.units\n\n    median_obs = np.median(samples)\n    ci95_lower =\
+    \ np.percentile(samples, 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n        'median_obs': median_obs,\n\
+    \        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean density of CLEC9A+ cDC1 cells per mm^2 in the whole tumor area (WTA) of primary PDAC tissues.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: mean_cdc1_density_wta
+    source_ref: Plesca2022_PDAC_DC
+    source_type: text
+    units: cell / millimeter**2
+    value: 9.84
+    value_location: Results, section 3.1 and Figure 2A legend
+    value_snippet: As depicted in Figure 2A–C, cDC1s were the most abundant DC subset in the WTA (9.84 ± 1.16 cDC1s/mm^{2})
+      in comparison to cDC2s (2.98 ± 0.597 cDC2s/mm^{2}) and pDCs (6.28 ± 0.917 pDCs/mm^{2}).
+  - conversion_formula: null
+    description: Standard error of the mean (SEM) for CLEC9A+ cDC1 density per mm^2 in the whole tumor area (WTA) of PDAC
+      tissues.
+    dispersion_type: se
+    dispersion_type_rationale: 'The Statistical Analysis section explicitly states: "Throughout the manuscript, the results
+      are presented as mean value ± the standard error of the mean." Therefore the ±1.16 around 9.84 cDC1s/mm^{2} in the WTA
+      is interpreted as SEM, not SD.'
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: sem_cdc1_density_wta
+    source_ref: Plesca2022_PDAC_DC
+    source_type: text
+    units: cell / millimeter**2
+    value: 1.16
+    value_location: Results, section 3.1 and Figure 2A legend, with global statement in Statistical Analysis section
+    value_snippet: As depicted in Figure 2A–C, cDC1s were the most abundant DC subset in the WTA (9.84 ± 1.16 cDC1s/mm^{2})
+      in comparison to cDC2s (2.98 ± 0.597 cDC2s/mm^{2}) and pDCs (6.28 ± 0.917 pDCs/mm^{2}).
+  - conversion_formula: null
+    description: Number of PDAC patients with multiplex IHC data for cDC1 densities.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: sample_size_cdc1
+    source_ref: Plesca2022_PDAC_DC
+    source_type: text
+    units: dimensionless
+    value: 40.0
+    value_location: Figure 2A legend and Methods, section 2.3 Multiplex Immunohistochemistry
+    value_snippet: To determine the presence, localization, and frequency of PDAC-associated cDC1s and cDC2s, we performed
+      mIHC stainings in 40 tumor specimens. ... Mean densities of PDAC-infiltrating (A) conventional DCs type 1 (cDC1s) (n
+      = 40), (B) type 2 (cDC2s) (n = 40), and (C) plasmacytoid DCs (pDCs) (n = 58) were calculated for the whole tumor area
+      (WTA), intraepithelial tumor area (IET), and tumor stroma (TS).
+  median:
+  - 7.819952717835543
+  sample_size: 40
+  sample_size_rationale: 'n = 40 PDAC patients with multiplex IHC quantification of cDC1s, as stated in the Figure 2A legend:
+    "Mean densities of PDAC-infiltrating (A) conventional DCs type 1 (cDC1s) (n = 40), (B) type 2 (cDC2s) (n = 40), and (C)
+    plasmacytoid DCs (pDCs) (n = 58) were calculated for the whole tumor area (WTA), intraepithelial tumor area (IET), and
+    tumor stroma (TS)."'
+  units: cell / millimeter**2
+experimental_context:
+  assay_type: Multiplex immunohistochemistry (mIHC) with CLEC9A staining for cDC1s.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Formalin-fixed, paraffin-embedded primary PDAC tumor specimens from surgical resections (pM0, UICC stage
+    I–II).
+  treatment:
+    history:
+    - treatment_naive
+    - prior_chemotherapy
+    specifier: Patients underwent surgical resection either as primary surgery without neoadjuvant therapy or after neoadjuvant
+      chemotherapy; tumors were analyzed at the time of resection, off active systemic treatment.
+    status: off_treatment
+key_assumptions:
+- CLEC9A+ tumor-infiltrating cells in human PDAC correspond predominantly to the cDC1 subset (co-expressing CD141/BDCA-3 and
+  XCR1) and are appropriately mapped to the total cross-presenting dendritic cell population represented by V_T.cDC1 + V_T.mcDC1
+  in the model.
+- The reported 9.84 ± 1.16 cDC1s/mm^2 values in the WTA are treated as mean ± SEM across 40 patients, as explicitly stated
+  in the Statistical Analysis section; we convert SEM to SD using SD = SEM·sqrt(n) and assume an underlying lognormal distribution
+  for positive cell densities.
+- Densities measured on 25–50% of tumor-containing regions per slide (as defined by a pathologist) are assumed to be representative
+  of the entire primary tumor immune microenvironment for each patient.
+- Although 36% of patients received neoadjuvant chemotherapy before resection and 64% underwent primary resection without
+  neoadjuvant therapy, we treat the pooled cDC1 density as characteristic of resectable, untreated PDAC at surgery, based
+  on the authors’ finding that neoadjuvant chemotherapy did not significantly change cDC1 frequencies.
+- Tumor cellularity is approximated as a fixed 25% across patients (pdac_cellularity_fraction) when converting model cancer
+  cell counts to whole tumor area; inter-patient variability in cellularity and stromal content is not explicitly propagated
+  into the uncertainty of the observable.
+key_study_limitations:
+- Retrospective single-center cohort of 58 PDAC patients (40 with multiplex IHC data for cDC1/cDC2) treated between 2008 and
+  2015; results may not generalize to other institutions, ethnicities, or treatment eras.
+- Approximately 36% of patients received neoadjuvant chemotherapy, whereas 64% underwent primary resection; although the authors
+  report no significant impact of neoadjuvant therapy on cDC1, cDC2, or pDC frequencies, subtle therapy-induced shifts in
+  dendritic cell density or function cannot be excluded.
+- Dendritic cell densities were quantified on 25–50% of tumor-containing regions per slide rather than on the entire tumor,
+  which may introduce sampling bias, especially in tumors with heterogeneous immune infiltration or patchy stromal architecture.
+- CLEC9A staining identifies human cDC1s but may also detect a small subset of other myeloid cells; rare misclassification
+  or marker expression heterogeneity could affect absolute cDC1 counts and their spatial distribution.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Compute total cDC1 density (immature + mature)\
+    \ in PDAC tumor tissue.\n\n    This observable returns the density of cross-presenting dendritic cells\n    (cDC1s) per\
+    \ mm^2 of whole tumor area (intraepithelial tumor + stroma),\n    matching the CLEC9A+ cDC1 counts reported by Plesca\
+    \ et al. 2022.\n    \"\"\"\n    # Model species: immature and mature cDC1 in the tumor compartment\n    cdc1_imm = species_dict['V_T.cDC1']\n\
+    \    cdc1_mat = species_dict['V_T.mcDC1']\n    tumor_cells = species_dict['V_T.C1']\n\n    # Geometric conversion: cancer\
+    \ cell count -> whole tumor area\n    area_per_cell = constants['cancer_cell_cross_section']  # mm^2/cell\n    cellularity\
+    \ = constants['cellularity_fraction']         # fraction of area composed of cancer cells\n\n    # Whole tumor area (cancer\
+    \ cells + stroma) in mm^2\n    tumor_area = tumor_cells * area_per_cell / cellularity\n\n    total_cdc1 = cdc1_imm + cdc1_mat\n\
+    \    density = total_cdc1 / tumor_area\n    return density.to('cell / millimeter**2')"
+  constants:
+  - biological_basis: Cross-sectional area of a typical PDAC cancer cell at the equatorial plane. Taken directly from the
+      curated reference value pdac_cancer_cell_cross_section, which is derived from a mean PDAC cancer cell diameter of 17
+      µm (area ≈ π·(8.5 µm)^2 ≈ 2.27×10^-4 mm^2 per cell).
+    name: cancer_cell_cross_section
+    reference_db_name: pdac_cancer_cell_cross_section
+    reference_db_names: null
+    source_tag: null
+    source_type: reference_db
+    units: millimeter**2 / cell
+    value: 0.000227
+  - biological_basis: Fraction of PDAC tumor cross-sectional area occupied by cancer cells versus stroma and other components.
+      Value taken directly from the curated reference value pdac_cellularity_fraction, which integrates histopathologic estimates
+      of PDAC cellularity (~25%) in resectable tumors.
+    name: cellularity_fraction
+    reference_db_name: pdac_cellularity_fraction
+    reference_db_names: null
+    source_tag: null
+    source_type: reference_db
+    units: dimensionless
+    value: 0.25
+  experimental_denominator: mm^2 of whole tumor tissue cross-section (intraepithelial tumor area plus tumor stroma) on resected
+    PDAC specimens, as defined in the multiplex IHC analysis.
+  inputs: []
+  mapping_rationale: Plesca et al. quantified tumor-infiltrating cDC1s in resected human PDAC using multiplex IHC for CLEC9A
+    (a canonical human cDC1 marker, co-expressed with CD141/BDCA-3 and XCR1). They reported mean densities of CLEC9A+ cDC1s
+    per mm^2 of the whole tumor area (WTA), defined as intraepithelial tumor plus tumor stroma. In the QSP model, immature
+    and mature cross-presenting dendritic cells are represented by V_T.cDC1 and V_T.mcDC1 in the tumor compartment. We map
+    the experimental CLEC9A+ cDC1 counts to the sum V_T.cDC1 + V_T.mcDC1, and convert model cancer cell counts (V_T.C1) to
+    whole tumor area using the PDAC cancer cell cross-sectional area and a fixed 25% tumor cellularity fraction, so that the
+    observable returns total cDC1 density (cells/mm^2 of WTA) comparable to the mIHC measurement.
+  model_denominator_species:
+  - V_T.C1
+  species:
+  - V_T.cDC1
+  - V_T.mcDC1
+  - V_T.C1
+  support: positive
+  units: cell / millimeter**2
+  unmodeled_denominator_components: The experimental denominator (whole tumor area) includes stromal fibroblasts, vasculature,
+    extracellular matrix, and non-malignant cells that are not explicitly modeled as area-contributing species. We approximate
+    their contribution via a fixed PDAC cellularity fraction (0.25), but residual heterogeneity in stromal content and non-cancer
+    cellularity may introduce systematic error in the absolute density.
+primary_data_source:
+  doi: 10.3390/cancers14051216
+  first_author: Plesca
+  source_tag: Plesca2022_PDAC_DC
+  title: Clinical Significance of Tumor-Infiltrating Conventional and Plasmacytoid Dendritic Cells in Pancreatic Ductal Adenocarcinoma
+  year: 2022
+scenario:
+  description: Baseline tumor immune microenvironment in resectable, non-metastatic PDAC at the time of surgical resection,
+    in patients treated with either primary surgery alone or neoadjuvant chemotherapy followed by surgery.
+  interventions:
+  - intervention_description: Standard clinical management for localized PDAC culminating in surgical resection. Patients
+      in this cohort either underwent primary tumor resection without prior systemic therapy or received neoadjuvant chemotherapy
+      according to institutional protocols, followed by surgical resection; cDC1 densities were measured on resected tumor
+      tissue.
+secondary_data_sources:
+- doi_or_url: null
+  first_author: ModelingCore
+  source_tag: ReferenceDB_PDAC_Morphology
+  title: Curated reference values for PDAC tumor morphology and cellularity (pdac_cancer_cell_cross_section, pdac_cellularity_fraction)
+    used in QSP model calibration
+  year: 2023
+source_relevance: null
+study_interpretation: Plesca et al. analyzed tumor-infiltrating dendritic cell subsets in primary PDAC resections from 58
+  patients (40 with multiplex IHC data for cDC1/cDC2). Using multiplex immunohistochemistry and automated image analysis,
+  they identified CLEC9A+ cells as human cDC1s and quantified their density (cells/mm^2) within the whole tumor area (intraepithelial
+  tumor plus tumor stroma) on formalin-fixed, paraffin-embedded sections. They reported mean ± SEM densities for cDC1s, cDC2s,
+  and pDCs in distinct tumor regions and correlated these with clinicopathologic parameters and survival. For calibration,
+  we use the mean CLEC9A+ cDC1 density in the whole tumor area (9.84 ± 1.16 cells/mm^2, n = 40), interpreted as the density
+  of all cross-presenting cDC1s (immature + mature) in resectable human PDAC. In the QSP model this maps to the sum of immature
+  and mature cross-presenting dendritic cells in the tumor compartment (V_T.cDC1 + V_T.mcDC1), normalized by whole tumor area
+  derived from modeled cancer cell counts and a fixed PDAC cellularity fraction.

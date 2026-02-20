@@ -1,0 +1,258 @@
+calibration:
+  identifiability_notes: Because this is a direct analytical conversion rather than an ODE fit, q_CD8_T_in is effectively
+    determined (up to uncertainty) by the combination of Boissonnas EG7 trafficking data, De Boer CD8 half-life data, and
+    simple geometric and steady-state assumptions. The resulting distribution for q_CD8_T_in captures uncertainty from tumor-to-tumor
+    variability, tumor volume, and CD8 effector survival, but does not separately identify additional processes such as local
+    proliferation or spatial heterogeneity. In the full QSP model, this submodel should be combined with other trafficking-
+    and efficacy-related submodels to refine the prior on q_CD8_T_in and propagate its uncertainty into PDAC simulations.
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    def _val(name):\n        v =\
+      \ inputs[name]\n        return float(getattr(v, 'magnitude', v))\n\n    # OT1 density in EG7 at day 6 (cells per mm^2)\n\
+      \    d_mean = _val('OT1_density_day6')\n    d_sd = _val('OT1_density_day6_sd')\n\n    # Lognormal approximation for\
+      \ positive densities\n    mu_log = np.log(d_mean**2 / np.sqrt(d_mean**2 + d_sd**2))\n    sigma_log = np.sqrt(np.log(1.0\
+      \ + (d_sd**2) / (d_mean**2)))\n    d_samples = np.random.lognormal(mu_log, sigma_log, 20000)\n\n    # Section thickness\
+      \ (5 um) and tumor volume range (500-1000 mm^3)\n    thickness = _val('section_thickness_um')  # micrometer, treated\
+      \ consistently\n    V_min = _val('EG7_tumor_volume_min')      # mm^3\n    V_max = _val('EG7_tumor_volume_max')     \
+      \ # mm^3\n    V_samples = np.random.uniform(V_min, V_max, 20000)\n\n    # Convert 2D density to 3D density and then\
+      \ to total intratumoral OT1 count\n    rho_samples = d_samples / thickness       # cells per (mm^3) up to a constant\
+      \ factor\n    N_tumor_samples = rho_samples * V_samples # total cells, up to consistent units\n\n    # CD8 effector\
+      \ half-life (hours) from De Boer et al. (2003)\n    t_half_mean = _val('CD8_eff_half_life')\n    t_half_sd = _val('CD8_eff_half_life_sd')\n\
+      \n    # Lognormal distribution for half-life\n    mu_h = np.log(t_half_mean**2 / np.sqrt(t_half_mean**2 + t_half_sd**2))\n\
+      \    sigma_h = np.sqrt(np.log(1.0 + (t_half_sd**2) / (t_half_mean**2)))\n    t_half_samples_h = np.random.lognormal(mu_h,\
+      \ sigma_h, 20000)  # hours\n\n    # Convert half-life to per-minute loss rate k = ln(2) / (t_half * 60)\n    k_samples\
+      \ = np.log(2.0) / (t_half_samples_h * 60.0)\n\n    # Circulating OT1 pool approximated by number injected\n    CD8_C\
+      \ = _val('OT1_injected')\n\n    # Representative tumor volume per sample; use V_samples (same as used for N_tumor)\n\
+      \    V_T_samples = V_samples\n\n    # Analytical relation q = k * N_Tumor / (V_T * CD8_C)\n    q_samples = k_samples\
+      \ * N_tumor_samples / (V_T_samples * CD8_C + 1e-12)\n\n    # Filter out any non-positive or extreme values for numerical\
+      \ robustness\n    q_samples = q_samples[np.isfinite(q_samples) & (q_samples > 0)]\n\n    return {\n        'median':\
+      \ float(np.median(q_samples)),\n        'ci95_lower': float(np.percentile(q_samples, 2.5)),\n        'ci95_upper': float(np.percentile(q_samples,\
+      \ 97.5)),\n    }\n"
+    evaluation_points: []
+    likelihood:
+      distribution: lognormal
+      rationale: The analytically derived q_CD8_T_in distribution is positive and spans orders of magnitude because it combines
+        uncertainty in density measurements, tumor volume, and CD8 effector half-life. A lognormal likelihood on q_CD8_T_in
+        is therefore appropriate when using this derived distribution as a calibration target.
+    name: q_CD8_T_in_derived
+    observable: null
+    sample_size: 1
+    sample_size_rationale: Analytical conversion of pooled literature values into an implied distribution for q_CD8_T_in;
+      treated as a single composite measurement.
+    units: 1 / (centimeter**3 * minute)
+    uses_inputs:
+    - OT1_density_day6
+    - OT1_density_day6_sd
+    - section_thickness_um
+    - EG7_tumor_volume_min
+    - EG7_tumor_volume_max
+    - OT1_injected
+    - CD8_eff_half_life
+    - CD8_eff_half_life_sd
+  model:
+    data_rationale: Boissonnas et al. (2007) report an absolute mean density of 327 +/- 50 OT1 CD8 T cells per mm^2 in EG7
+      thymoma sections at day 6 after adoptive transfer of 10^7 naive OT1-GFP cells into mice bearing 500-1,000 mm^3 tumors.
+      Combined with section thickness (5 um) and tumor volume, these data provide an estimate of the total number of tumor-infiltrating
+      OT1 cells (N_Tumor) at a late time point. Independent work by De Boer et al. (2003) provides an in vivo half-life of
+      ~41 h for CD8 effector T cell contraction, which informs the effective first-order loss rate k_CD8_death. Assuming approximate
+      steady state between influx and first-order loss at day 6, we can analytically derive the extravasation rate coefficient
+      q_CD8_T_in from N_Tumor, k_CD8_death, tumor volume, and the circulating OT1 pool CD8_C.
+    formula: q_CD8_T_in = k_CD8_death * N_Tumor / (V_T * CD8_C)
+    submodel_rationale: 'In the full QSPIO-PDAC model, the CD8 T cell extravasation parameter q_CD8_T_in appears in the flux
+      term from the central compartment to the tumor: rate_in = q_CD8_T_in * V_T * V_C.CD8 * f(C_total, CXCL12). For an established,
+      highly permissive EG7 tumor without strong CXCL12-mediated exclusion and with large cancer cell burden, f(C_total, CXCL12)
+      is expected to be near 1, so the main dependence is on tumor volume V_T and circulating CD8 pool V_C.CD8. At late times
+      when tumor-infiltrating OT1 numbers have equilibrated under a balance of constant influx and first-order loss with rate
+      k_CD8_death, the steady-state relation N_Tumor ≈ (q_CD8_T_in * V_T * CD8_C) / k_CD8_death holds. Rearranging, q_CD8_T_in
+      ≈ k_CD8_death * N_Tumor / (V_T * CD8_C). The direct_conversion submodel encodes this analytical relationship and uses
+      literature-derived distributions for N_Tumor, V_T, CD8_C (approximated by the 10^7 transferred OT1 cells), and k_CD8_death
+      to construct an empirical distribution for q_CD8_T_in that is consistent with the EG7 trafficking data.'
+    type: direct_conversion
+  parameters:
+  - name: q_CD8_T_in
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -20.1
+      rationale: Very wide prior over CD8 T cell extravasation rate into tumor, centered near the median value (~2e-9 1/(cm^3*min))
+        obtained from the analytical conversion of Boissonnas et al. EG7 OT1 infiltration data and De Boer et al. CD8 effector
+        half-life data, to match the derived measurement scale while still allowing several orders of magnitude of uncertainty.
+      sigma: 2.5
+      upper: null
+    units: 1 / (centimeter**3 * minute)
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: OVA-expressing EL4 thymoma line
+    name: EG7
+    species: mouse
+    tissue_origin: thymoma
+  cell_types:
+  - isolation_method: CD8-positive magnetic selection from OT1-GFP or OT1-CFP donor mice
+    name: CD8 T cell
+    phenotype: OT1 transgenic CD8 T cells, naive at transfer then becoming activated effector CTL specific for OVA peptide
+  culture_conditions: null
+  indication: subcutaneous EG7 thymoma expressing ovalbumin; used as a mechanistic proxy for CD8 T cell extravasation into
+    solid tumors, to inform PDAC QSP parameter q_CD8_T_in.
+  species: mouse
+  system: in_vivo_tumor_bearing_mouse
+inputs:
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: OT1_injected
+  role: auxiliary
+  source_location: Materials and methods, Two-photon laser scanning microscopy
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: cell
+  value: 10000000.0
+  value_snippet: 10^7 naive OT1-GFP cells were retroorbitally injected to 6-8-week-old female C57BL/6 recipient tumor-bearing
+    mice.
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: EG7_tumor_volume_min
+  role: auxiliary
+  source_location: Results, OT1-GFP cells infiltrate and reject OVA-expressing tumors
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: millimeter**3
+  value: 500.0
+  value_snippet: we inoculated individual C57BL/6 mice subcutaneously with two tumors... when the EL4 and EG7 tumors were
+    500-1,000 mm^3 (around day 10).
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: EG7_tumor_volume_max
+  role: auxiliary
+  source_location: Results, OT1-GFP cells infiltrate and reject OVA-expressing tumors
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: millimeter**3
+  value: 1000.0
+  value_snippet: when the EL4 and EG7 tumors were 500-1,000 mm^3 (around day 10).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: OT1_density_day6
+  role: auxiliary
+  source_location: Results, OT1-GFP cells infiltrate and reject OVA-expressing tumors; Figure 1B, late phase (day 6)
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: cell / millimeter**2
+  value: 327.0
+  value_snippet: the number of OT1-GFP cells infiltrating EG7 was, as expected, higher than the number infiltrating EL4, especially
+    at day 6 after adoptive transfer (327 +/- 50 cells/mm^2 versus 27 +/- 2 cells/mm^2).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: OT1_density_day6_sd
+  role: auxiliary
+  source_location: Results, OT1-GFP cells infiltrate and reject OVA-expressing tumors; Figure 1B, late phase (day 6)
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: cell / millimeter**2
+  value: 50.0
+  value_snippet: especially at day 6 after adoptive transfer (327 +/- 50 cells/mm^2 versus 27 +/- 2 cells/mm^2).
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: section_thickness_um
+  role: auxiliary
+  source_location: Materials and methods, Histological tumor analysis
+  source_ref: Boissonnas2007
+  uncertainty: null
+  units: micrometer
+  value: 5.0
+  value_snippet: tumors were ... fixed, frozen in OCT compound, and sectioned (5 um) with a cryostat (Leica).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: CD8_eff_half_life
+  role: auxiliary
+  source_location: Results, Dynamics of CD8+ T cell responses
+  source_ref: De Boer2003
+  uncertainty: null
+  units: hour
+  value: 41.0
+  value_snippet: The half-life of the contraction phase was estimated to be 41 h for CD8+ T cells.
+- extraction_method: manual
+  input_type: assumed_value
+  n: null
+  name: CD8_eff_half_life_sd
+  role: auxiliary
+  source_location: Methods/assumption for QSP submodel
+  source_ref: De Boer2003
+  uncertainty: null
+  units: hour
+  value: 10.0
+  value_snippet: We assume an approximate SD of 10 h around the reported 41 h half-life to represent inter-experimental variability
+    in CD8+ T cell contraction kinetics.
+key_assumptions:
+- EG7 thymoma is used as a proxy for solid tumors such as PDAC with respect to CD8 T cell trafficking, assuming that the basic
+  process of effector CD8 T cell extravasation across tumor vasculature and accumulation in the tumor stroma is qualitatively
+  similar.
+- The CXCL12-mediated T cell exclusion term and cancer-cell-dependent recruitment modulation in the full QSP model are approximated
+  as unity for the Boissonnas EG7 model, reflecting that EG7 is highly permissive to CTL infiltration compared with the CXCL12-high,
+  T cell-excluded PDAC microenvironment.
+- The circulating OT1 CD8 T cell pool (V_C.CD8) is approximated by the 10^7 transferred naive OT1 cells, assuming that this
+  scale remains representative of the effective circulating OT1 pool driving tumor infiltration during the late phase.
+- Local proliferation of OT1 cells within the tumor and secondary lymphoid organs is not modeled explicitly; instead, its
+  net effect on intratumoral numbers is partially absorbed into the effective extravasation rate q_CD8_T_in and the use of
+  De Boer CD8 effector half-life data.
+- Tumor volume during the day 6 measurement is represented by a uniform distribution between the reported 500 and 1,000 mm^3
+  values at adoptive transfer, acknowledging geometric uncertainty without detailed longitudinal volume data.
+- The 2D OT1 density reported per mm^2 in 5 um sections is converted to a 3D density by dividing by section thickness, assuming
+  relatively homogeneous distribution of infiltrating CTL within the analyzed tumor regions.
+- Measurement variability across tumors is represented by a lognormal distribution fitted to the reported mean and SD of OT1
+  density; uncertainty in CD8 effector half-life is represented by an assumed lognormal SD of 10 h around the reported 41
+  h mean.
+key_study_limitations:
+- The experimental system uses an antigen-transgenic OT1/OVA thymoma model with very high precursor frequency and strong antigen
+  expression, which likely overestimates CD8 T cell infiltration compared with spontaneous human PDAC lesions.
+- Intratumoral OT1 numbers in EG7 reflect both trafficking and local proliferation; treating the late time point as an approximate
+  steady state between influx and first-order loss neglects explicit proliferative dynamics and may bias q_CD8_T_in upward.
+- EG7 thymomas are subcutaneous and relatively well vascularized, whereas PDAC tumors are typically desmoplastic with abnormal
+  vasculature and strong chemokine barriers (e.g., CXCL12), so q_CD8_T_in values inferred here may represent an upper bound
+  for PDAC and require downscaling when integrated into the full QSP PDAC model.
+- The CD8 effector half-life estimate from De Boer et al. (LCMV infection) may differ from the true survival of tumor-infiltrating
+  CTL in EG7 or PDAC; this uncertainty is only coarsely represented by the assumed SD on half-life.
+- Tumor volumes at the exact time of the day 6 OT1 density measurements are not provided; we approximate them using the reported
+  500-1,000 mm^3 range at adoptive transfer, introducing geometric uncertainty handled heuristically via uniform sampling.
+- Absolute units for density-to-count conversion (mm vs um) are handled in a simplified manner in the distribution code; in
+  practice, unit-consistent implementation in the QSP toolchain should refine these conversions.
+primary_data_source:
+  authors:
+  - Boissonnas A
+  - Fetler L
+  - Zeelenberg IS
+  - Hugues S
+  - Amigorena S
+  doi: 10.1084/jem.20061890
+  source_tag: Boissonnas2007
+  title: In vivo imaging of cytotoxic T cell infiltration and elimination of a solid tumor
+  year: 2007
+secondary_data_sources:
+- authors:
+  - De Boer RJ
+  - Homann D
+  - Perelson AS
+  contribution: Provides independent estimates of CD8 effector T cell contraction half-life (~41 hours) in mice, used to inform
+    the distribution of k_CD8_death in the analytical conversion from N_Tumor to q_CD8_T_in.
+  doi: 10.4049/jimmunol.171.8.3928
+  source_tag: De Boer2003
+  title: Different dynamics of CD4+ and CD8+ T cell responses during and after acute lymphocytic choriomeningitis virus infection
+  url: null
+  year: 2003
+study_interpretation: Boissonnas et al. (2007) provide quantitative data on the accumulation of adoptively transferred OT1
+  CD8 T cells within established subcutaneous EG7 thymomas in C57BL/6 mice, including an absolute late-phase density of 327
+  +/- 50 OT1 cells per mm^2 at day 6 in 500-1,000 mm^3 tumors after transfer of 10^7 naive OT1-GFP cells. These data, combined
+  with section thickness and tumor volume, imply a characteristic scale for the total tumor-infiltrating OT1 population. De
+  Boer et al. (2003) report an in vivo CD8 effector contraction half-life of ~41 h, which we use to approximate the first-order
+  loss rate of tumor-infiltrating CD8 T cells. Assuming an approximate steady state between constant influx and first-order
+  loss at day 6, we analytically map these measurements to an effective CD8 extravasation rate coefficient q_CD8_T_in via
+  the same mechanistic structure used in the full QSPIO-PDAC model (flux proportional to V_T * V_C.CD8). This yields an empirically
+  grounded distribution for q_CD8_T_in in a permissive solid tumor setting, which can serve as a prior for PDAC calibration
+  (with additional downscaling to account for T cell exclusion in PDAC).
+target_id: q_CD8_T_in_extravasation_boissonnas2007

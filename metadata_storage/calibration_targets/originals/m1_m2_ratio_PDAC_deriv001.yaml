@@ -1,0 +1,198 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to propagate uncertainty from M1 and M2 stromal densities to the M1/M2
+      ratio.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable estimates of the median and 95% interval (<1% Monte Carlo error) for the ratio
+      distribution.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 0.0712913078823203
+    - 3.72190991880916
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    # Extract inputs as Pint Quantities\n\
+    \    M1_med = inputs['M1_stromal_median']\n    M1_q1 = inputs['M1_stromal_q1']\n    M1_q3 = inputs['M1_stromal_q3']\n\
+    \    M2_med = inputs['M2_stromal_median']\n    M2_q1 = inputs['M2_stromal_q1']\n    M2_q3 = inputs['M2_stromal_q3']\n\
+    \    n_samples = int(inputs['n_mc_samples'].magnitude)\n\n    # z-score for first and third quartiles of a standard normal\n\
+    \    z_q = 0.67448975\n\n    def lognormal_params(median_q, q1_q, q3_q):\n        \"\"\"Derive lognormal mu, sigma from\
+    \ median and IQR (all Pint).\"\"\"\n        m = median_q.magnitude\n        q1 = q1_q.magnitude\n        q3 = q3_q.magnitude\n\
+    \        sigma = np.log(q3 / q1) / (2.0 * z_q)\n        mu = np.log(m)\n        return mu, sigma\n\n    # Derive lognormal\
+    \ parameters for M1 and M2 stromal densities\n    mu_M1, sigma_M1 = lognormal_params(M1_med, M1_q1, M1_q3)\n    mu_M2,\
+    \ sigma_M2 = lognormal_params(M2_med, M2_q1, M2_q3)\n\n    rng = np.random.default_rng(42)\n\n    # Sample from lognormal\
+    \ distributions and immediately reattach units\n    M1_samples = rng.lognormal(mu_M1, sigma_M1, n_samples) * M1_med.units\n\
+    \    M2_samples = rng.lognormal(mu_M2, sigma_M2, n_samples) * M2_med.units\n\n    # Compute M1/M2 ratio; units cancel\
+    \ to dimensionless\n    ratio_samples = (M1_samples / M2_samples).to('dimensionless')\n\n    median_obs = np.median(ratio_samples)\n\
+    \    ci95_lower = np.percentile(ratio_samples, 2.5)\n    ci95_upper = np.percentile(ratio_samples, 97.5)\n\n    return\
+    \ {\n        'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Median stromal density of M1-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M1_stromal_median
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 120.0
+    value_location: Table 2, stromal regions, row "M1-polarized macrophages", up-front surgery column
+    value_snippet: M1-polarized macrophages 120 (57–160) 159 (101–381) 0.02
+  - conversion_formula: null
+    description: First quartile (Q1) stromal density of M1-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M1_stromal_q1
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 57.0
+    value_location: Table 2, stromal regions, row "M1-polarized macrophages", up-front surgery column
+    value_snippet: M1-polarized macrophages 120 (57–160) 159 (101–381) 0.02
+  - conversion_formula: null
+    description: Third quartile (Q3) stromal density of M1-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M1_stromal_q3
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 160.0
+    value_location: Table 2, stromal regions, row "M1-polarized macrophages", up-front surgery column
+    value_snippet: M1-polarized macrophages 120 (57–160) 159 (101–381) 0.02
+  - conversion_formula: null
+    description: Median stromal density of M2-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M2_stromal_median
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 231.0
+    value_location: Table 2, stromal regions, row "M2-polarized macrophages", up-front surgery column
+    value_snippet: M2-polarized macrophages 231 (146–353) 189 (98–268) 0.03
+  - conversion_formula: null
+    description: First quartile (Q1) stromal density of M2-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M2_stromal_q1
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 146.0
+    value_location: Table 2, stromal regions, row "M2-polarized macrophages", up-front surgery column
+    value_snippet: M2-polarized macrophages 231 (146–353) 189 (98–268) 0.03
+  - conversion_formula: null
+    description: Third quartile (Q3) stromal density of M2-polarized macrophages in up-front surgery PDAC tumors.
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: M2_stromal_q3
+    source_ref: Costa2022_Neoadjuvant_PDAC_Immune
+    source_type: table
+    units: cell / millimeter**2
+    value: 353.0
+    value_location: Table 2, stromal regions, row "M2-polarized macrophages", up-front surgery column
+    value_snippet: M2-polarized macrophages 231 (146–353) 189 (98–268) 0.03
+  median:
+  - 0.5180452656305963
+  sample_size: 30
+  sample_size_rationale: Sample size n=30 corresponds to the up-front surgery group in Table 2 (stromal regions) of Costa
+    et al. 2022, which reports immune cell densities for patients who underwent up-front resection without neoadjuvant therapy.
+  units: dimensionless
+experimental_context:
+  assay_type: Multiplex immunofluorescence with digital image analysis for immune cell phenotyping.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary pancreatic ductal adenocarcinoma resection specimens from patients undergoing up-front surgery without
+    neoadjuvant therapy.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Patients in the up-front surgery cohort had primary PDAC resected without any neoadjuvant chemotherapy or radiotherapy;
+      immune profiling was performed on resection specimens.
+    status: off_treatment
+key_assumptions:
+- Stromal M1 and M2 macrophage densities (cells/mm^2) are representative of the overall intratumoral macrophage compartment
+  and can be used to approximate the ratio of total M1 to M2 macrophage numbers in the tumor.
+- The multiplex immunofluorescence marker combinations used by Costa et al. (CD68, CD163, IRF5, CD86, CD206) reliably distinguish
+  functionally M1- versus M2-polarized macrophages and correspond closely to the model populations V_T.Mac_M1 and V_T.Mac_M2.
+- Patient-to-patient variability in stromal M1 and M2 macrophage densities can be reasonably approximated by independent lognormal
+  distributions parameterized by the reported medians and interquartile ranges.
+- Correlation between M1 and M2 stromal densities across patients is not reported and is ignored in the Monte Carlo sampling
+  for the M1/M2 ratio, which may overestimate the uncertainty of the ratio.
+- Immune measurements from 4 μm FFPE sections are assumed to reflect the average composition of the whole primary tumor used
+  in the QSP model, without major bias from sampling location.
+key_study_limitations:
+- The M1/M2 macrophage density ratio is not reported directly; it is derived here from marginal stromal M1 and M2 density
+  distributions, ignoring within-patient correlation between these quantities.
+- Densities are measured in 4 μm-thick histologic sections and may not fully capture three-dimensional heterogeneity of macrophage
+  distribution within the tumor mass.
+- The detailed stromal density data used for this target are from the 30-patient up-front surgery subset in the comparative
+  cohort, rather than from the full 299-patient primary resection cohort, which may limit generalizability.
+- Macrophage polarization is inferred from a limited marker panel and may not capture the full continuum of TAM phenotypes
+  in PDAC.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Compute the ratio of M1 to M2 macrophages\
+    \ in the tumor compartment.\n\n    species_dict contains tumor-compartment macrophage counts:\n    - V_T.Mac_M1: number\
+    \ of M1 macrophages (cells)\n    - V_T.Mac_M2: number of M2 macrophages (cells)\n\n    The observable is the instantaneous\
+    \ ratio Mac_M1 / Mac_M2, which is\n    dimensionless and strictly positive.\n    \"\"\"\n    M1 = species_dict['V_T.Mac_M1']\
+    \  # cells\n    M2 = species_dict['V_T.Mac_M2']  # cells\n\n    # Avoid division by zero by assuming Mac_M2 > 0 in physiologic\
+    \ tumors.\n    ratio = (M1 / M2).to('dimensionless')\n    return ratio"
+  constants: []
+  inputs: []
+  mapping_rationale: Costa et al. quantified M1- and M2-polarized macrophage densities (cells/mm^2) in stromal regions of
+    primary resected, previously untreated PDAC using multiplex immunofluorescence. Because both M1 and M2 densities are measured
+    per unit stromal area in the same tumor regions, their ratio approximates the ratio of total intratumoral M1 to M2 macrophage
+    numbers. We therefore map the experimental M1/M2 density ratio to the model state ratio V_T.Mac_M1 / V_T.Mac_M2, assuming
+    that stromal macrophages dominate total tumor-associated macrophage populations in PDAC.
+  species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  support: positive_unbounded
+  units: dimensionless
+primary_data_source:
+  doi: 10.1158/1078-0432.CCR-22-1125
+  first_author: Costa
+  source_tag: Costa2022_Neoadjuvant_PDAC_Immune
+  title: Neoadjuvant chemotherapy is associated with altered immune cell infiltration and an anti-tumorigenic microenvironment
+    in resected pancreatic cancer
+  year: 2022
+scenario:
+  description: Baseline tumor immune microenvironment in primary, resectable PDAC at the time of up-front surgical resection,
+    prior to any neoadjuvant systemic therapy.
+  interventions:
+  - intervention_description: No neoadjuvant chemotherapy or radiotherapy prior to tumor resection (up-front surgery). Resection
+      of primary pancreatic ductal adenocarcinoma was the initial definitive treatment, and immune cell densities were measured
+      on the resected specimen.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: Costa et al. (Clin Cancer Res 2022) used multiplex immunofluorescence panels including CD68, CD163,
+  IRF5, CD86, and CD206 to classify tumor-associated macrophages along an M1–M2 polarization spectrum in primary PDAC. In
+  a comparative cohort of up-front surgery (treatment-naive) and FOLFIRINOX-treated patients, they quantified immune cell
+  densities per square millimeter separately in tumor epithelium and stroma. Table 2 reports stromal macrophage densities
+  as medians with interquartile ranges in cells/mm^2 for M1- and M2-polarized macrophages in the up-front surgery group (n=30).
+  Because macrophages in PDAC are predominantly stromal and both M1 and M2 densities are measured per unit stromal area in
+  the same tumors, the stromal M1/M2 density ratio is interpreted as a good proxy for the overall intratumoral ratio of M1
+  to M2 macrophage numbers. We therefore use this stromal M1/M2 ratio to calibrate the model observable V_T.Mac_M1 / V_T.Mac_M2
+  at the time of surgical resection in resectable, treatment-naive human PDAC.

@@ -1,0 +1,210 @@
+calibration:
+  identifiability_notes: With a single time point at 48 h and a known normalized initial condition (aPSC_norm(0)=1), the first-order
+    decay model uniquely determines k_apsc_death in the absence of proliferation or additional sources. However, in reality
+    activated PSCs can proliferate under hypoxia; using a death-only model means the inferred k_apsc_death effectively captures
+    a net loss rate (death minus any residual proliferation) under 1 mM melatonin. The posterior for k_apsc_death will therefore
+    reflect both true apoptotic death and any unmodeled proliferation, and should be interpreted as an upper-bound estimate
+    for baseline aPSC death in PDAC tumors without melatonin or thapsigargin. Additional time points or explicit proliferation
+    measurements would be required to separately identify death and proliferation rates.
+  independent_variable:
+    name: time
+    rationale: PSC cultures were exposed to hypoxia ± melatonin for 48 h (2 days) before viability measurement; the decay
+      model is integrated over this interval.
+    span:
+    - 0.0
+    - 2.0
+    units: day
+  measurements:
+  - distribution_code: null
+    evaluation_points:
+    - 2.0
+    likelihood:
+      distribution: normal
+      rationale: Normalized viability fractions are close to 1 with small SEM (≈0.0115), so a Normal likelihood on the fraction
+        aPSC_norm(t=2 d) is adequate and numerically convenient.
+    name: psc_viability_48h_mel_1mM
+    observable:
+      code: null
+      rationale: null
+      state_variables:
+      - aPSC_norm
+      type: identity
+    sample_size: 3
+    sample_size_rationale: Figure 1 caption states that data are representative of three to four independent experiments;
+      we conservatively assume n≈3 for viability under 1 mM melatonin.
+    units: dimensionless
+    uses_inputs:
+    - psc_viability_mel_1mM_48h
+  model:
+    data_rationale: "Estar\x1As et al. report normalized viability of activated rat PSCs after 48 h of hypoxia with or without\
+      \ melatonin, quantified by crystal violet absorbance. For a single treatment condition (1 mM melatonin), the decline\
+      \ from 100% to 86.77% viable cells over 48 h can be represented as first-order loss of viable PSCs when normalized to\
+      \ initial cell number."
+    rate_constant: k_apsc_death
+    submodel_rationale: In the full QSPIO-PDAC model, activated PSCs (aPSC) are removed via a first-order death reaction V_T.aPSC
+      -> null with rate k_apsc_death·aPSC, in parallel with proliferation and activation inputs. This submodel isolates that
+      death reaction by modeling a single normalized aPSC state obeying daPSC_norm/dt = -k_apsc_death·aPSC_norm, assuming
+      activation and proliferation are approximately balanced or suppressed under pro-apoptotic, hypoxic conditions. Thus,
+      the inferred k_apsc_death can be mapped directly to the same parameter in the full model.
+    type: first_order_decay
+  parameters:
+  - name: k_apsc_death
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -2.65
+      rationale: PSC viability after 48 h under hypoxia with 1 mM melatonin is 86.77% (±1.15%), implying an effective first-order
+        death rate of ~0.071 1/day (half-life ~10 days) if proliferation is neglected. Prior is centered on ln(0.071)≈-2.65
+        with a broad σ=0.7 to allow ~2-fold uncertainty in either direction and to accommodate differences between rat PSCs
+        under pharmacologic melatonin and human aPSCs in PDAC tumors.
+      sigma: 0.7
+      upper: null
+    units: 1/day
+  state_variables:
+  - initial_condition:
+      rationale: Activated PSC population normalized to 1 at start of hypoxic incubation; viability at later times is expressed
+        as a fraction of this baseline.
+      value: 1.0
+    name: aPSC_norm
+    units: dimensionless
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Enzymatic digestion of pancreas from Wistar rat pups with collagenase followed by mechanical dissociation
+      to obtain an enriched culture of activated PSCs with no contamination of other cell types.
+    name: pancreatic stellate cells
+    phenotype: activated PSCs isolated from Wistar rat pups (4–5 days after birth), cultured on plastic and exposed to hypoxia
+      (1% O2).
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: hypoxic_1pct_O2
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    substrate: plastic_polystyrene
+  indication: pancreatic_fibrosis_and_pancreatic_cancer_related_fibrosis
+  species: rat
+  system: in_vitro_primary_cells
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: psc_viability_mel_1mM_48h
+  role: target
+  source_location: Figure 1A, 48 h hypoxia, 1 mM melatonin
+  source_ref: Estaras2021_MelatoninPSC
+  uncertainty:
+    ci95: null
+    sd: 0.0115
+  units: dimensionless
+  value: 0.8677
+  value_snippet: 'Figure 1. Effect of melatonin on cell viability and proliferation. (A) The bars show the effect of melatonin
+    (1 mM, 100 µM, 10 µM or 1 µM) on the viability of PSCs incubated under hypoxia (in %: 86.77 ± 1.15; 94.16 ± 1.41; 97.38
+    ± 1.39; 98.39 ± 2.11; respectively for each concentration of melatonin vs. nontreated cells under hypoxia, which was considered
+    100%). Tps (1 µM) was used as control for cell death (in %: 63.67 ± 2.21).'
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: psc_hypoxia_duration_48h
+  role: auxiliary
+  source_location: Results 2.1, Effect of Melatonin on Cell Viability and Proliferation
+  source_ref: Estaras2021_MelatoninPSC
+  uncertainty: null
+  units: hour
+  value: 48.0
+  value_snippet: different preparations of PSCs were incubated under hypoxia for 48 h in the absence (nontreated cells) or
+    in the presence of melatonin (1 mM, 100 µM, 10 µM or 1 µM).
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: hypoxia_O2_fraction
+  role: auxiliary
+  source_location: Methods 4.3, Induction of Hypoxia
+  source_ref: Estaras2021_MelatoninPSC
+  uncertainty: null
+  units: dimensionless
+  value: 0.01
+  value_snippet: Hypoxia was induced by incubation of cells in a low-O2 (1%) atmosphere... air atmosphere (content of 1% O2/5%
+    CO2/94% N2) were electronically controlled.
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: melatonin_conc_1mM
+  role: auxiliary
+  source_location: Results 2.1 and Figure 1 legend
+  source_ref: Estaras2021_MelatoninPSC
+  uncertainty: null
+  units: millimolar
+  value: 1.0
+  value_snippet: To study whether melatonin also decreases the viability of PSCs subjected to hypoxia, different preparations
+    of PSCs were incubated under hypoxia for 48 h in the absence (nontreated cells) or in the presence of melatonin (1 mM,
+    100 µM, 10 µM or 1 µM).
+key_assumptions:
+- Activated rat PSCs under 1% O2 hypoxia with 1 mM melatonin experience net loss of viable cells that can be approximated
+  by a single first-order death process over the first 48 h, with negligible contributions from continued proliferation or
+  additional activation during this window.
+- Normalized crystal-violet absorbance (% of hypoxic control) is proportional to the fraction of viable PSCs, so that the
+  86.77% viability readout corresponds directly to aPSC_norm(t=48 h) in the decay model.
+- The death rate of activated rat PSCs under pharmacologic melatonin in hypoxia provides an upper-bound scale for the baseline
+  death rate of activated PSCs (cancer-associated fibroblasts) in human PDAC tumors, justifying centering the prior for k_apsc_death
+  near the inferred value but with broad uncertainty.
+- Other loss mechanisms in the full QSP model (e.g., aPSC proliferation, activation from qPSC, and cell clearance terms that
+  depend on cancer burden) are either slow or balanced under the specific in vitro conditions and can be neglected in this
+  isolated death submodel.
+- Differences between rat neonatal PSCs in 2D culture and human PDAC-associated PSCs in vivo (age, matrix stiffness, cytokine
+  milieu) primarily affect the magnitude, not the qualitative first-order nature, of the death process.
+key_study_limitations:
+- The PSCs are primary cells from Wistar rat pups, not human PDAC-associated PSCs; cross-species and developmental-stage differences
+  in apoptosis sensitivity and proliferation may mean that in vivo human CAF death rates are lower than those inferred here.
+- Melatonin at 1 mM is a supraphysiologic, pharmacologic concentration chosen to elicit robust effects and may overestimate
+  death rates achievable in tumors; accordingly, the inferred k_apsc_death should be treated as an upper-bound scale rather
+  than an exact basal death rate.
+- The viability assay is based on crystal violet staining (absorbance at 590 nm) normalized to hypoxic controls, which measures
+  attached cell biomass rather than direct live/dead counts and may underestimate early apoptosis if apoptotic cells remain
+  adherent.
+- Only a single time point (48 h) under the selected melatonin concentration is used, so the model cannot test for deviations
+  from pure first-order kinetics (e.g., time-varying death rates, lag phases) or explicitly separate concurrent proliferation
+  from death.
+- The cultures are hypoxic (1% O2) 2D monolayers on plastic with high serum, which differ from the 3D, ECM-rich, mechanically
+  stiff PDAC stroma; mechanical and matrix cues known to influence PSC survival are not represented.
+primary_data_source:
+  authors:
+  - "Matias Estar\x1As"
+  - Manuel R. Gonzalez-Portillo
+  - Miguel Fernandez-Bermejo
+  - Jose M. Mateos
+  - Daniel Vara
+  - Gerardo Blanco-Fernandez
+  - Diego Lopez-Guerra
+  - Vicente Roncero
+  - Gines M. Salido
+  - Antonio Gonzalez
+  doi: 10.3390/ijms22115555
+  source_tag: Estaras2021_MelatoninPSC
+  title: Melatonin Induces Apoptosis and Modulates Cyclin Expression and MAPK Phosphorylation in Pancreatic Stellate Cells
+    Subjected to Hypoxia
+  year: 2021
+secondary_data_sources:
+- authors:
+  - Ratnakar R. Bynigeri
+  - Aparna Jakkampudi
+  - Ramaiah Jangala
+  - Chivukula Subramanyam
+  - Mitnala Sasikala
+  - G. Venkat Rao
+  - D. Nageshwar Reddy
+  - Rupjyoti Talukdar
+  contribution: Provides mechanistic background on PSC activation, their role as cancer-associated fibroblasts in PDAC, and
+    conceptual description of possible fates of activated PSCs (including apoptosis), supporting the mapping between cultured
+    activated PSCs and the aPSC compartment in the QSPIO-PDAC model.
+  doi: 10.3748/wjg.v23.i3.382
+  source_tag: Bynigeri2017_PSCReview
+  title: 'Pancreatic stellate cell: Pandora''s box for pancreatic disease biology'
+  url: null
+  year: 2017
+study_interpretation: "The Estar\x1As et al. study quantifies how pharmacologic melatonin and the ER-stress inducer thapsigargin\
+  \ reduce the viability of activated rat PSCs under 1% O2 hypoxia. The reported 86.77% (±1.15%) viability after 48 h with\
+  \ 1 mM melatonin, relative to 100% in hypoxia alone, constrains the timescale of PSC loss under strong pro-apoptotic, hypoxic\
+  \ conditions. Approximating this decline as first-order death of activated PSCs yields an effective death rate of ~0.071\
+  \ 1/day, which is used to center the prior for k_apsc_death in the QSPIO-PDAC model, with wide uncertainty to account for\
+  \ species differences and for the pharmacologic nature of the stimulus."
+target_id: k_apsc_death_melatoninPSC_Estaras2021

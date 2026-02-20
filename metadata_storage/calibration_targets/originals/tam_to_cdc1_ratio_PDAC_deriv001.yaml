@@ -1,0 +1,226 @@
+empirical_data:
+  assumptions:
+  - description: Log-scale standard deviation for the TAM/DC ratio, defining a lognormal distribution with median equal to
+      the ratio implied by the macrophage and dendritic fractions (20% / 5% = 4). sigma_log = 0.5 corresponds to a coefficient
+      of variation of approximately 50%, representing substantial biological heterogeneity in TAM/DC balance across immunotype
+      A tumors.
+    name: sigma_log_ratio
+    rationale: Breaza et al. do not provide dispersion estimates for the reported immune-cell fractions. For tumor-infiltrating
+      myeloid and dendritic cells, cohort-level CVs of 50–100% are typical in solid tumors. We therefore adopt sigma_log =
+      0.5 as a moderate, biologically plausible level of variability for the TAM/DC ratio.
+    units: dimensionless
+    value: 0.5
+  - description: Number of Monte Carlo samples used to derive median and 95% CI.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable estimates of the median and 2.5/97.5 percentiles for the lognormal ratio distribution
+      while keeping computational cost reasonable.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 1.4953
+    - 10.7089
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    rng = np.random.default_rng(42)\n\
+    \n    # Fractions of immune infiltrate (as dimensionless fractions)\n    mac_frac = inputs['mac_fraction_immunotype_A'].to('dimensionless')\n\
+    \    dc_frac = inputs['dc_fraction_immunotype_A'].to('dimensionless')\n\n    # Median TAM/DC ratio implied by composition:\
+    \ 20% / 5% = 4\n    ratio_median = (mac_frac / dc_frac).to('dimensionless')\n\n    sigma_log = inputs['sigma_log_ratio']\
+    \          # dimensionless\n    n_mc = int(inputs['n_mc_samples'].magnitude)   # integer\n\n    # For a lognormal distribution,\
+    \ median = exp(mu_log).\n    mu_log = np.log(ratio_median.magnitude)\n\n    # Sample lognormal in unitless space, then\
+    \ reattach units\n    samples = rng.lognormal(mu_log, sigma_log.magnitude, n_mc) * ratio_median.units\n\n    median_obs\
+    \ = np.median(samples)\n    ci_lower = np.percentile(samples, 2.5)\n    ci_upper = np.percentile(samples, 97.5)\n\n  \
+    \  return {\n        'median_obs': median_obs,\n        'ci95_lower': ci_lower,\n        'ci95_upper': ci_upper,\n   \
+    \ }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Fraction of CD68+ macrophages among total inflammatory infiltrate in the hot immunotype A PDAC tumors, as
+      reported by Breaza et al.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: mac_fraction_immunotype_A
+    source_ref: Breaza2025_PDACHistImmune
+    source_type: text
+    units: percent
+    value: 20.0
+    value_location: Section 3.1 Histopathological Findings and Table 2 (Immunotype A)
+    value_snippet: '"The rest of the tumor immune microenvironment was represented by CD68 positive macrophages (20%) and
+      mast cells (10%). A few dendritic cells presenting antigen CD117 positive (5%) were also identified, as well as neutrophil
+      granulocytes (5%), located predominantly in the front of invasion."'
+  - conversion_formula: null
+    description: Fraction of dendritic cells among total inflammatory infiltrate in the hot immunotype A PDAC tumors, as reported
+      by Breaza et al.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: dc_fraction_immunotype_A
+    source_ref: Breaza2025_PDACHistImmune
+    source_type: text
+    units: percent
+    value: 5.0
+    value_location: Section 3.1 Histopathological Findings and Table 2 (Immunotype A)
+    value_snippet: '"A few dendritic cells presenting antigen CD117 positive (5%) were also identified, as well as neutrophil
+      granulocytes (5%), located predominantly in the front of invasion."'
+  median:
+  - 3.982
+  sample_size: 22
+  sample_size_rationale: 'Breaza et al. report a total of n = 56 PDAC cases, subdivided into immunotype A (n = 22), immunotype
+    B (n = 14), and immunotype C (n = 20) in Table 3 ("Variable All Patients (n = 56) Type A (n = 22) Type B (n = 14) Type
+    C (n = 20)"). The TAM/DC composition used for the ratio (20% CD68+ macrophages, 5% dendritic cells) is described textually
+    for the hot immunotype A subgroup, so n = 22 is taken as the sample size for this ratio estimate.
+
+
+    Value snippet (sample size by immunotype):
+
+    "Variable All Patients (n = 56) Type A (n = 22) Type B (n = 14) Type C (n = 20)" (Table 3, Section 3.1 Histopathological
+    Findings).'
+  units: dimensionless
+experimental_context:
+  assay_type: immunohistochemistry
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.biopsy
+  tissue_source: Formalin-fixed, paraffin-embedded primary PDAC resections from a single academic center (pancreaticoduodenectomy
+    or distal pancreatectomy specimens).
+  treatment:
+    history:
+    - treatment_naive
+    - prior_chemotherapy
+    specifier: 'Mixed cohort: some patients underwent primary resection without neoadjuvant therapy, while others received
+      neoadjuvant chemotherapy prior to pancreatic resection (21/56 with neoadjuvant therapy, 37/56 without). The immunotype
+      A subset (n = 22) inherits this mixed treatment history; per-patient breakdown by immunotype vs. therapy is not reported.'
+    status: off_treatment
+key_assumptions:
+- CD68+ macrophages are assumed to represent the total TAM pool in the tumor compartment and are mapped to V_T.Mac_M1 + V_T.Mac_M2.
+  The IHC panel does not distinguish M1 vs. M2 phenotypes.
+- CD1a+ dendritic cells (with supporting CD117 and morphological criteria) are treated as a proxy for intratumoral antigen-presenting
+  dendritic cells and are mapped to V_T.cDC1 + V_T.mcDC1, even though the staining is not specific for CLEC9A/BATF3-defined
+  cDC1s. This may include other DC subsets (e.g., Langerhans-like or cDC2), but we assume that the net antigen-presenting
+  capacity relevant for cross-presentation scales with this population.
+- The 20% (CD68+ macrophages) and 5% (dendritic cells) values for immunotype A represent typical composition of the immune
+  infiltrate for that subtype, not per-patient means with reported dispersion. We treat the implied macrophage/dendritic ratio
+  of 4 as the median of a lognormal distribution with a moderate coefficient of variation (~50%), encoded via a log-scale
+  standard deviation sigma_log = 0.5 in the distribution_code.
+- The hot immunotype A (n = 22) is used as the representative context for calibrating the TAM/DC ratio, because dendritic
+  cells are essentially absent in immunotypes B and C (5% or <0.1% dendritic cells and/or negligible counts), which would
+  yield extremely large or undefined ratios. We interpret immunotype A as approximating a cross-presentation competent PDAC
+  microenvironment.
+- The mixture of treatment-naive and neoadjuvant-chemotherapy patients in the cohort is assumed not to grossly distort the
+  TAM/DC composition of immunotype A tumors. This may not hold if chemotherapy selectively depletes or expands myeloid subsets;
+  this uncertainty is acknowledged and should be propagated in higher-level translation uncertainty if needed.
+key_study_limitations:
+- Dendritic cells were identified using CD1a and morphological criteria and described as progenitor dendritic cells, rather
+  than by a cDC1-specific marker such as CLEC9A, XCR1, or BATF3. The mapping of CD1a+ DCs to model cDC1 + mcDC1 is therefore
+  approximate.
+- Macrophages were detected by CD68 (pan-macrophage marker) without M1/M2-specific markers (e.g., CD163, iNOS). The model’s
+  Mac_M1 vs. Mac_M2 split is not directly constrained by this dataset.
+- The 20% and 5% infiltrate fractions for macrophages and dendritic cells are reported as typical values for each immunotype,
+  without explicit standard deviations or confidence intervals. Uncertainty in the TAM/DC ratio is therefore modeled via an
+  assumed lognormal CV, not directly measured dispersion.
+- Cohort is single-center (n = 56) and includes a mix of treatment-naive and neoadjuvant-chemotherapy patients. The specific
+  breakdown of therapy status within immunotype A (n = 22) is not reported, limiting precise matching to a fully treatment-naive
+  context.
+- The data are semi-quantitative percentages of immune infiltrate (fractions of total immune cells), not absolute densities
+  (cells/mm²). While the use of a ratio cancels tissue area and stromal content, any systematic bias in immune-cell counting
+  across cases could still affect the inferred ratio.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"\n    Observable: ratio of tumor-associated\
+    \ macrophages to cross-presenting DCs\n    in the primary PDAC tumor compartment.\n\n    Model formula:\n        (V_T.Mac_M1\
+    \ + V_T.Mac_M2) / (V_T.cDC1 + V_T.mcDC1)\n\n    This is a dimensionless, positive, unbounded ratio.\n    \"\"\"\n    mac_m1\
+    \ = species_dict['V_T.Mac_M1']\n    mac_m2 = species_dict['V_T.Mac_M2']\n    cdc1_immature = species_dict['V_T.cDC1']\n\
+    \    cdc1_mature = species_dict['V_T.mcDC1']\n\n    tam_total = mac_m1 + mac_m2\n    cdc1_total = cdc1_immature + cdc1_mature\n\
+    \n    ratio = (tam_total / cdc1_total).to('dimensionless')\n    return ratio"
+  constants: []
+  experimental_denominator: Number of intratumoral CD1a+ (progenitor) dendritic cells within the inflammatory infiltrate in
+    the same microscopic regions, implicitly via the ratio of macrophage and dendritic cell fractions of total immune cells
+    (i.e., 20% CD68+ macrophages vs. 5% dendritic cells in immunotype A).
+  inputs: []
+  mapping_rationale: 'Breaza et al. performed an immunohistochemical evaluation of the tumor immune microenvironment in resected
+    human PDAC (n = 56), classifying tumors into three immunotypes (A hot, B intermediate, C cold). They quantified the composition
+    of the inflammatory infiltrate as percentages of total immune cells for each major subset. In the hot immunotype A (39%
+    of cases, n = 22), they report that the remaining immune infiltrate beyond B and T cells is composed of 20% CD68+ macrophages
+    and 10% mast cells, with a further 5% dendritic cells (described as CD117- and CD1a-marked progenitor dendritic cells).
+    Taken together, this yields approximately 20% CD68+ TAMs and 5% dendritic cells in the hot subtype.
+
+
+    Text snippet (immunotype A composition):
+
+    "The rest of the tumor immune microenvironment was represented by CD68 positive macrophages (20%) and mast cells (10%).
+    A few dendritic cells presenting antigen CD117 positive (5%) were also identified, as well as neutrophil granulocytes
+    (5%), located predominantly in the front of invasion." (Section 3.1, Immunotype A description).
+
+
+    We interpret CD68+ macrophages as the sum of model macrophage populations V_T.Mac_M1 + V_T.Mac_M2 (TAMs without phenotypic
+    splitting in the experimental assay). We interpret CD1a+ dendritic cells described by Breaza et al. as intratumoral antigen-presenting
+    dendritic cells, and use them as a proxy for the cross-presenting DC pool (V_T.cDC1 + V_T.mcDC1) that controls CD8 T cell
+    priming in the model.
+
+
+    Because both TAMs and dendritic cells are reported as fractions of the same inflammatory infiltrate, the ratio of those
+    fractions (20% / 5% = 4) is equivalent to the ratio of their absolute counts within the same counting fields, up to sampling
+    noise. Thus, the experimental observable (TAM/DC ratio within immunotype A tumors) maps naturally to the model ratio (V_T.Mac_M1
+    + V_T.Mac_M2) / (V_T.cDC1 + V_T.mcDC1) as a dimensionless, positive, unbounded quantity.
+
+
+    We restrict the interpretation of this target to the hot immunotype A, where dendritic cells are present at ~5% of the
+    immune infiltrate. In the intermediate and cold immunotypes, dendritic cells are rare or absent, and the ratio would be
+    extremely large or undefined; those subtypes are therefore not used for calibration of this specific observable.'
+  model_denominator_species:
+  - V_T.cDC1
+  - V_T.mcDC1
+  species:
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.cDC1
+  - V_T.mcDC1
+  support: positive_unbounded
+  units: dimensionless
+  unmodeled_denominator_components: None for this ratio observable. Both numerator and denominator are immune cell counts
+    within the same ROIs, so tissue area, stromal content, and other non-immune components cancel in the ratio. However, the
+    experimental dendritic cell population (CD1a+ progenitor DCs, with CD117 context) is broader than strictly CLEC9A/BATF3-defined
+    cDC1s and may include other DC subsets. This phenotypic mismatch is documented in key_assumptions.
+primary_data_source:
+  doi: 10.3390/diagnostics15050646
+  first_author: Breaza
+  source_tag: Breaza2025_PDACHistImmune
+  title: Immunohistochemical Evaluation of the Tumor Immune Microenvironment in Pancreatic Ductal Adenocarcinoma
+  year: 2025
+scenario:
+  description: Untreated primary PDAC tumors at the time of surgical resection, with immune infiltrates characterized on diagnostic
+    pancreatectomy specimens using single-plex IHC for CD68 and CD1a and morphological criteria.
+  interventions:
+  - intervention_description: Surgical resection of primary pancreatic ductal adenocarcinoma (pancreaticoduodenectomy or distal
+      pancreatectomy with regional lymphadenectomy) performed as part of standard curative-intent treatment. Tumor immune
+      infiltrates (including CD68+ macrophages and CD1a+ dendritic cells) are quantified on resected specimens. A subset of
+      patients received neoadjuvant chemotherapy before surgery; others underwent upfront resection. No experimental immunotherapy
+      or investigational agents were administered.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: 'This calibration target captures the imbalance between tumor-associated macrophages (TAMs) and intratumoral
+  antigen-presenting dendritic cells in human PDAC, as quantified on resected primary tumors. Breaza et al. performed an extensive
+  IHC panel on 56 PDAC resections and classified tumors into three immunotypes (A hot, B intermediate, C cold) based on overall
+  inflammatory infiltrate and composition. In the hot immunotype A (n = 22), CD68+ macrophages comprised 20% of the total
+  inflammatory infiltrate, while dendritic cells (identified by CD1a and CD117 morphology) comprised 5%. This corresponds
+  to a TAM/DC composition ratio of ~4:1 in immunotype A tumors.
+
+
+  In the QSP model, V_T.Mac_M1 and V_T.Mac_M2 represent polarized TAM subsets, whereas V_T.cDC1 and V_T.mcDC1 represent immature
+  and mature cross-presenting cDC1s within the tumor. The observable is defined as the ratio (V_T.Mac_M1 + V_T.Mac_M2) / (V_T.cDC1
+  + V_T.mcDC1). Because Breaza et al. report macrophage and dendritic cell fractions within the same immune infiltrate and
+  tissue regions, the ratio of those fractions provides a natural estimate for the model’s TAM/cDC1 ratio, independent of
+  absolute tissue area or stromal fraction. This target is therefore used to calibrate the relative abundance of TAMs vs.
+  cross-presenting DCs in resectable, human PDAC tumors with a hot immune phenotype.'

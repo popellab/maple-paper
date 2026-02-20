@@ -1,0 +1,442 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Tumor-infiltrating lymphocyte densities are positive and typically span orders of magnitude across patients.
+        Modeling measurement noise and biological variability on a log scale via a lognormal likelihood is appropriate. The
+        coefficient of variation derived from Jiang2014 (SD/mean in cells per high-power field) is used as an approximate
+        log-space SD.
+    name: foxp3_tumor_density_jiang2014
+    observable:
+      code: null
+      rationale: null
+      state_variables: []
+      type: identity
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    mean_density = inputs['treg_density_tumor_mean_cm3']\n\
+      \    cv = inputs['treg_density_tumor_cv']\n    return {\n        'value': mean_density.to('1/cm^3'),\n        'sd':\
+      \ float(cv),\n    }"
+    sample_size: 50
+    sample_size_rationale: Jiang2014 analyzed FOXP3+ lymphocyte density in primary pancreatic cancer tissue from 50 patients
+      who underwent radical resection of pancreatic head adenocarcinoma.
+    units: 1/cm^3
+    uses_inputs:
+    - treg_density_tumor_mean_cm3
+    - treg_density_tumor_cv
+  forward_model:
+    code: "def compute(params, inputs, ureg):\n    q = params['q_Treg_T_in']\n    k_loss = params['k_Treg_T_loss']\n    cd4_abs\
+      \ = inputs['cd4_abs_count_mean']  # proxy for central CD4+ count\n    treg_frac = inputs['treg_fraction_pbmc_pancreas_mean']\
+      \  # fraction of CD4 that are Treg-enriched\n    blood_treg_number = cd4_abs * treg_frac  # proxy for central Treg-enriched\
+      \ CD4+ cell number\n    rho = q * blood_treg_number / k_loss\n    return rho * ureg('1/cm^3')"
+    code_julia: "function compute(params, inputs)\n    q = params[\"q_Treg_T_in\"]\n    k_loss = params[\"k_Treg_T_loss\"\
+      ]\n    cd4_abs = inputs[\"cd4_abs_count_mean\"]\n    treg_frac = inputs[\"treg_fraction_pbmc_pancreas_mean\"]\n    blood_treg_number\
+      \ = cd4_abs * treg_frac\n    rho = q * blood_treg_number / k_loss\n    return rho\nend"
+    data_rationale: Jiang2014 reports mean density of FOXP3+ lymphocytes per high-power field in human PDAC resections. Using
+      reported section thickness and a typical high-power field area, this can be converted to an approximate volumetric FOXP3+
+      cell density (cells/cm^3). Liyanage2002 provides the fraction of CD4+ cells that are CD4+CD25+ (Treg-enriched) in peripheral
+      blood of pancreas cancer patients. Kamallou2014 provides reference absolute CD4+ T cell counts in healthy adults, used
+      here as a proxy for central CD4+ counts. Under the assumption that intratumoral FOXP3+ lymphocyte density in established
+      PDAC is approximately at a quasi-steady state between blood influx and local loss, an algebraic relationship links the
+      extravasation rate q_Treg_T_in, a proxy for central Treg-enriched CD4+ cell number, and an effective Treg loss rate
+      to the observed tumor Treg density.
+    formula: rho_Treg_T = q_Treg_T_in * cd4_abs_count_mean * treg_fraction_pbmc_pancreas_mean / k_Treg_T_loss
+    independent_variable: null
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, q_Treg_T_in controls extravasation of circulating Th and Treg cells
+      into the tumor compartment with a flux V_T * q_Treg_T_in * V_C.Treg * (C_total^2/(C_total^2+Kc_rec)). For macroscopic,
+      established tumors where C_total >> sqrt(Kc_rec), the recruitment Hill term is near unity and tumor volume changes slowly
+      relative to cellular trafficking. Under these conditions, tumor Treg density can be approximated as a steady-state balance
+      between q_Treg_T_in-mediated influx from blood and an effective loss rate k_Treg_T_loss. This algebraic submodel therefore
+      captures the same mechanistic role of q_Treg_T_in (blood-to-tumor Treg influx per tumor volume) while coarse-graining
+      other tumor processes into k_Treg_T_loss.
+    type: algebraic
+  identifiability_notes: With a single PDAC intratumoral FOXP3+ density measurement (converted to an approximate volumetric
+    density), the algebraic model constrains only the ratio q_Treg_T_in / k_Treg_T_loss given an assumed proxy for central
+    Treg-enriched CD4+ cell number. Consequently, q_Treg_T_in and k_Treg_T_loss are strongly correlated in the posterior.
+    The prior on k_Treg_T_loss (effective Treg loss rate in tumor) therefore has a substantial influence on the inferred q_Treg_T_in.
+    Additional longitudinal data on tumor-infiltrating Treg kinetics (e.g., time-resolved measurements in KPC or orthotopic
+    models), or independent estimates of intratumoral Treg turnover, would be required to identify q_Treg_T_in and k_Treg_T_loss
+    separately. The submodel nonetheless anchors q_Treg_T_in to order-of-magnitude consistency between peripheral Treg levels
+    and observed PDAC FOXP3+ cell densities, providing a human-clinical reference point complementary to prior mouse MRI tracking
+    and transwell-based estimates.
+  parameters:
+  - name: q_Treg_T_in
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -7.0
+      rationale: Wide prior over several orders of magnitude (approximately 10^-9 to 10^-3 1/(cm^3*min)) to encompass plausible
+        Treg extravasation rates that link peripheral blood Treg levels to intratumoral Treg densities in PDAC.
+      sigma: 2.0
+      upper: null
+    units: 1/(centimeter^3*minute)
+  - name: k_Treg_T_loss
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -10.0
+      rationale: Effective loss rate of tumor-infiltrating Treg (death, egress, or differentiation). Prior spans half-lives
+        from hours to weeks, reflecting limited direct data on Treg turnover in PDAC tumors.
+      sigma: 1.5
+      upper: null
+    units: 1/minute
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Immunohistochemistry on 5-µm formalin-fixed, paraffin-embedded PDAC sections with manual counting of
+      FOXP3+ mononuclear lymphocytes per high-power field.
+    name: CD4+CD25+FOXP3+ regulatory T cell
+    phenotype: tumor-infiltrating Treg-enriched CD4+ T cells identified by nuclear FOXP3 staining
+  culture_conditions: null
+  indication: pancreatic ductal adenocarcinoma
+  species: human
+  system: in_vivo
+inputs:
+- extraction_method: other
+  input_type: inferred_estimate
+  n: 50
+  name: treg_density_tumor_mean_cm3
+  role: target
+  source_access: restricted
+  source_location: Derived from FOXP3+ lymphocyte density 4.8±5.2/HPF, 5-µm sections and 0.0625 mm^2 high-power field area
+  source_ref: Jiang2014
+  uncertainty:
+    ci95: null
+    sd: null
+  units: 1/centimeter^3
+  value: 15360000.0
+  value_snippet: Pancreatic cancer tissue contained 4.8±5.2 FOXP3+ lymphocytes per high-power field (HPF) in 5-µm sections;
+    a 0.0625 mm^2 HPF was used for quantification.
+- extraction_method: other
+  input_type: inferred_estimate
+  n: 50
+  name: treg_density_tumor_cv
+  role: auxiliary
+  source_access: restricted
+  source_location: Coefficient of variation derived from 4.8±5.2/HPF (SD/mean)
+  source_ref: Jiang2014
+  uncertainty:
+    ci95: null
+    sd: null
+  units: dimensionless
+  value: 1.0833333333
+  value_snippet: FOXP3+ lymphocyte density in pancreatic cancer was 4.8±5.2/HP.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 50
+  name: foxp3_density_tumor_mean_per_hpf
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Density of FOXP3+ lymphocytes in tumor and paratumoral pancreatic tissue; mean 4.8±5.2/HPF in
+    pancreatic cancer tissue
+  source_ref: Jiang2014
+  uncertainty:
+    ci95: null
+    sd: 5.2
+  units: '1'
+  value: 4.8
+  value_snippet: The density of FOXP3+ lymphocytes in pancreatic cancer was significantly higher than that in paratumoral
+    pancreatic tissue (4.8±5.2/HP vs. 0.47±0.94/HP, p<0.001).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 50
+  name: foxp3_density_tumor_sd_per_hpf
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Density of FOXP3+ lymphocytes in tumor and paratumoral pancreatic tissue; SD 5.2/HPF in pancreatic
+    cancer tissue
+  source_ref: Jiang2014
+  uncertainty:
+    ci95: null
+    sd: null
+  units: '1'
+  value: 5.2
+  value_snippet: FOXP3+ lymphocyte density in pancreatic cancer was 4.8±5.2/HP.
+- extraction_method: other
+  input_type: inferred_estimate
+  n: null
+  name: section_thickness
+  role: auxiliary
+  source_access: restricted
+  source_location: 'Materials and Methods, Immunohistochemistry: 5-µm-thick sections were prepared'
+  source_ref: Jiang2014
+  uncertainty:
+    ci95: null
+    sd: null
+  units: centimeter
+  value: 0.0005
+  value_snippet: 5-µm thick sections were prepared from formalin-fixed, paraffin-embedded tissues.
+- extraction_method: other
+  input_type: inferred_estimate
+  n: 120
+  name: hpf_area
+  role: auxiliary
+  source_access: restricted
+  source_location: 'Methods, Quantification of FOXP3+T cells: ten high-power fields (×40) in an area of 0.0625 mm^2 each were
+    analyzed'
+  source_ref: Wang2017
+  uncertainty:
+    ci95: null
+    sd: null
+  units: centimeter^2
+  value: 0.000625
+  value_snippet: Ten high-power fields (at ×40 magnification) were randomly selected from each specimen for digital photographs
+    in area of 0.0625 mm^2.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 30
+  name: treg_fraction_pbmc_pancreas_mean
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Abstract: pancreas cancer patients had 13.2% (SE 1.13) CD4+CD25+ cells among CD4+ T cells in peripheral
+    blood'
+  source_ref: Liyanage2002
+  uncertainty:
+    ci95: null
+    sd: 0.0113
+  units: dimensionless
+  value: 0.132
+  value_snippet: In breast cancer patients (n = 35), pancreas cancer patients (n = 30), and normal donors (n = 35), the prevalence
+    of Treg were 16.6% (SE 1.22), 13.2% (SE 1.13), and 8.6% (SE 0.71) of the total CD4+ cells, respectively.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 30
+  name: treg_fraction_pbmc_pancreas_se
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Abstract: SE for pancreas cancer Treg prevalence 1.13%'
+  source_ref: Liyanage2002
+  uncertainty:
+    ci95: null
+    sd: null
+  units: dimensionless
+  value: 0.0113
+  value_snippet: pancreas cancer patients (n = 30)... prevalence of Treg were... 13.2% (SE 1.13).
+- extraction_method: other
+  input_type: inferred_estimate
+  n: 221
+  name: cd4_abs_count_mean
+  role: auxiliary
+  source_access: restricted
+  source_location: 'Results: CD4+ absolute count 1039.99 ± 338.02 cells/µl in healthy Iranian adults'
+  source_ref: Kamallou2014
+  uncertainty:
+    ci95: null
+    sd: 338020.0
+  units: '1'
+  value: 1039990.0
+  value_snippet: 'CD4+: 41.04 ± 7.86%, 1039.99 ± 338.02 cells/µl.'
+- extraction_method: other
+  input_type: inferred_estimate
+  n: 221
+  name: cd4_abs_count_sd
+  role: auxiliary
+  source_access: restricted
+  source_location: 'Results: SD 338.02 cells/µl for CD4+ absolute count'
+  source_ref: Kamallou2014
+  uncertainty:
+    ci95: null
+    sd: null
+  units: '1'
+  value: 338020.0
+  value_snippet: 'CD4+: 41.04 ± 7.86%, 1039.99 ± 338.02 cells/µl.'
+key_assumptions:
+- Intratumoral FOXP3+ lymphocyte density measured in 5-µm sections is representative of the three-dimensional Treg-enriched
+  CD4+ T cell density throughout the PDAC tumor mass, after converting from cells per high-power field to cells per cubic
+  centimeter using reported section thickness and a typical high-power field area.
+- For established, surgically resected PDAC lesions, tumor Treg numbers are approximated as being near a quasi-steady state
+  where q_Treg_T_in-mediated influx from blood is balanced by an effective loss rate k_Treg_T_loss (death, egress, or transdifferentiation),
+  such that time derivatives of total intratumoral Treg are small relative to fluxes.
+- The fraction of CD4+ cells that are Treg-enriched in peripheral blood of pancreas cancer patients (~13.2% in Liyanage2002)
+  is a reasonable approximation for the PDAC population underlying Jiang2014, despite differences in geography and enrollment
+  period.
+- Absolute CD4+ T cell counts from healthy Iranian adults (Kamallou2014) are used as a proxy for central CD4+ counts in PDAC
+  patients; disease- and population-specific deviations are absorbed into the translation uncertainty and into the effective
+  loss-rate prior.
+- FOXP3+ mononuclear lymphocytes in PDAC sections predominantly represent CD4+CD25+ regulatory T cells; contamination by FOXP3+
+  tumor cells or other FOXP3-expressing subsets is limited and does not dominate the counted population.
+- The recruitment Hill term C_total^2/(C_total^2+Kc_rec) in the full QSP model is close to unity for macroscopic PDAC lesions
+  at resection, so it can be approximated as 1.0 when relating q_Treg_T_in to tumor Treg density.
+- The same extravasation coefficient q_Treg_T_in can be applied to both Treg and Th populations in the tumor recruitment reactions,
+  consistent with the full model structure, even though chemokine receptor expression may differ modestly between these subsets
+  in vivo.
+key_study_limitations:
+- Jiang2014 reports FOXP3+ cell densities per two-dimensional high-power field in 5-µm sections. Converting to volumetric
+  densities requires assumptions about high-power field area and uniformity through the section depth, introducing geometric
+  uncertainty.
+- FOXP3 is a robust but not absolutely specific marker of regulatory T cells; some FOXP3+ cells in PDAC tissue may be tumor
+  cells or non-classical regulatory subsets, leading to a potential overestimate of true CD4+CD25+ Treg density.
+- The Kamallou2014 CD4+ reference counts are from healthy Iranian adults rather than PDAC patients; systemic inflammation,
+  treatment, or comorbidities in PDAC cohorts could alter CD4+ and Treg absolute counts relative to these reference values.
+- Liyanage2002 reports Treg prevalence among CD4+ cells in mixed cohorts of breast and pancreas cancer patients with CD4+CD25
+  phenotyping (without FOXP3), which may imperfectly match the FOXP3+ Treg population quantified by Jiang2014.
+- The algebraic steady-state approximation neglects potential local proliferation or conversion of CD4+CD25− cells into FOXP3+
+  Treg within the tumor, which could contribute to FOXP3+ density independently of blood-derived influx.
+- Inter-patient heterogeneity in tumor size, stromal content, and microregional chemokine gradients is collapsed into a single
+  average density measurement, limiting the ability to resolve spatially varying trafficking parameters.
+primary_data_source:
+  authors:
+  - Jiang Y
+  - Du Z
+  - Yang F
+  - Di Y
+  - Li J
+  - Zhou Z
+  - Pillarisetty VG
+  - Fu D
+  doi: 10.1371/journal.pone.0106741
+  source_tag: Jiang2014
+  title: FOXP3+ lymphocyte density in pancreatic cancer correlates with lymph node metastasis
+  year: 2014
+secondary_data_sources:
+- authors:
+  - Hiraoka N
+  - Onozato K
+  - Kosuge T
+  - Hirohashi S
+  contribution: Clin Cancer Res study quantifying FOXP3+ regulatory T cells in human PDAC, premalignant PanIN lesions, and
+    non-neoplastic pancreas, demonstrating progressive enrichment of FOXP3+ Tregs during pancreatic carcinogenesis and linking
+    high prevalence to poor prognosis.
+  doi: 10.1158/1078-0432.CCR-06-0369
+  source_quality: primary_human_clinical
+  source_tag: Hiraoka2006
+  title: Prevalence of FOXP3+ regulatory T cells increases during the progression of pancreatic ductal adenocarcinoma and
+    its premalignant lesions
+  url: null
+  year: 2006
+- authors:
+  - Liyanage UK
+  - Moore TT
+  - Joo HG
+  - Tanaka Y
+  - Herrmann V
+  - Gomez C
+  - Klenk C
+  - Peterson T
+  - Jaffee EM
+  - Gorelik L
+  - Smith BD
+  - Kirkwood JM
+  - Lotze MT
+  - Whiteside TL
+  contribution: Provides prevalence of CD4+CD25+ Treg-enriched cells among CD4+ T cells in peripheral blood, tumor-infiltrating
+    lymphocytes, and regional lymph nodes from pancreas cancer patients, used to estimate blood Treg fraction and tumor-enriched
+    prevalence.
+  doi: 10.4049/jimmunol.169.5.2756
+  source_quality: primary_human_clinical
+  source_tag: Liyanage2002
+  title: Prevalence of regulatory T cells is increased in peripheral blood and tumor microenvironment of patients with pancreas
+    or breast adenocarcinoma
+  url: null
+  year: 2002
+- authors:
+  - Kamallou A
+  - Haji Abdolbaghi M
+  - Mohraz M
+  - Rasolinejad M
+  - Karbasi E
+  - Ansaripour B
+  - Soltani S
+  - Rezaei A
+  - Khalili N
+  - Amirzargar A
+  contribution: Provides absolute CD4+ T cell counts in healthy adults (mean 1039.99 ± 338.02 cells/µL), used as a proxy for
+    central CD4+ counts in PDAC patients to convert Treg fractions into a proxy for central Treg-enriched CD4+ numbers.
+  doi: null
+  source_quality: primary_human_clinical
+  source_tag: Kamallou2014
+  title: Reference values of lymphocyte sub-populations in healthy human immunodeficiency virus-negative Iranian adults
+  url: https://iji.sums.ac.ir/article_16654.html
+  year: 2014
+- authors:
+  - Wang X
+  - Lang M
+  - Zhao T
+  - Feng X
+  - Zheng C
+  - Huang C
+  - Hao J
+  - Dong J
+  - Luo L
+  - Li X
+  - Lan C
+  - Yu W
+  - Yu M
+  - Yang S
+  - Ren H
+  contribution: Provides mechanistic evidence that cancer cell-expressed FOXP3 (c-FOXP3) upregulates CCL5 and recruits FOXP3+
+    Treg cells from peripheral blood to PDAC tumors in vitro and in vivo, supporting the interpretation that high intratumoral
+    FOXP3+ density is driven largely by active recruitment rather than local proliferation.
+  doi: 10.1038/onc.2016.458
+  source_quality: primary_human_clinical
+  source_tag: Wang2017
+  title: Cancer-FOXP3 directly activated CCL5 to recruit FOXP3+Treg cells in pancreatic ductal adenocarcinoma
+  url: null
+  year: 2016
+- authors:
+  - Tan MCB
+  - Goedegebuure PS
+  - Belt BA
+  - Flaherty B
+  - Sankpal N
+  - Gillanders WE
+  - Eberlein TJ
+  - Hsieh CS
+  - Linehan DC
+  contribution: Demonstrates in a Pan02 murine pancreatic cancer model that CCL5/CCR5-dependent chemotaxis drives preferential
+    Treg accumulation in tumors and that disrupting this axis reduces intratumoral Treg prevalence by ~50%, reinforcing the
+    modeling assumption that recruitment, not proliferation, dominates Treg accumulation in PDAC tumors.
+  doi: 10.4049/jimmunol.182.3.1746
+  source_quality: primary_animal_in_vivo
+  source_tag: Tan2009
+  title: Disruption of CCR5-dependent homing of regulatory T cells inhibits tumor growth in a murine model of pancreatic cancer
+  url: null
+  year: 2009
+- authors:
+  - Jang JE
+  - Hajdu CH
+  - Liot C
+  - Miller G
+  - Dustin ML
+  - Bar-Sagi D
+  contribution: Provides longitudinal data in orthotopic KrasG12D pancreatic neoplasia and KPC-derived tumors showing rapid
+    accumulation and activation of Foxp3+ Treg cells within weeks of tumor implantation, supporting the quasi-steady-state
+    assumption and highlighting the importance of Treg trafficking early in PDAC development.
+  doi: 10.1016/j.celrep.2017.06.062
+  source_quality: primary_animal_in_vivo
+  source_tag: Jang2017
+  title: Crosstalk between regulatory T cells and tumor-associated dendritic cells negates anti-tumor immunity in pancreatic
+    cancer
+  url: null
+  year: 2017
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The primary data (Jiang2014) are FOXP3+ lymphocyte densities measured directly in resected
+    human pancreatic ductal adenocarcinoma specimens, the same disease indication modeled in QSPIO-PDAC. The algebraic submodel
+    uses these PDAC tumor measurements together with peripheral Treg prevalence in pancreas cancer patients and generic adult
+    CD4+ T cell counts to constrain the tumor extravasation rate q_Treg_T_in for Treg/Th cells in human PDAC.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: The Jiang2014 cohort comprises untreated PDAC patients undergoing radical resection, with typical
+    desmoplastic and immunosuppressive tumor microenvironments. These conditions closely match the baseline PDAC TME represented
+    in QSPIO-PDAC, so additional uncertainty from TME translation is limited.
+  validation_warnings: null
+study_interpretation: Jiang2014 quantified FOXP3+ lymphocytes (putative regulatory T cells) in primary pancreatic ductal adenocarcinoma
+  and adjacent paratumoral pancreas, reporting an average of 4.8±5.2 FOXP3+ cells per high-power field in tumor vs 0.47±0.94
+  per high-power field in paratumoral tissue, with higher densities in poorly differentiated and node-positive tumors. Hiraoka2006
+  independently showed that the prevalence of FOXP3+ regulatory T cells among CD4+ T cells increases along the PanIN-to-PDAC
+  progression sequence, linking Treg accumulation to human PDAC carcinogenesis. Liyanage2002 demonstrated that pancreas cancer
+  patients have elevated CD4+CD25+ Treg-enriched cells in peripheral blood (13.2% of CD4+ cells) and even higher prevalence
+  in tumor-infiltrating lymphocytes (~20%), indicating a recruitment bias of Treg toward the tumor microenvironment. Kamallou2014
+  provides typical adult CD4+ T cell absolute counts (~1.0×10^9 CD4+ cells/L), which, combined with the pancreas cancer Treg
+  fraction, yields a proxy for central Treg-enriched CD4+ cell numbers. Under a quasi-steady state approximation where q_Treg_T_in-mediated
+  influx from blood balances an effective intratumoral Treg loss rate, these data together imply that the tumor extravasation
+  rate must be sufficiently high to sustain FOXP3+ cell densities on the order of 10^7 cells/cm^3 in PDAC. This submodel encodes
+  that relationship algebraically, allowing Bayesian updating of q_Treg_T_in given priors on intratumoral Treg loss and measured
+  tumor FOXP3+ density.
+target_id: q_Treg_T_in_Jiang2014_Liyanage2002

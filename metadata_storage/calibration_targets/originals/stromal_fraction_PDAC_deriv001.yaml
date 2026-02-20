@@ -1,0 +1,156 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to construct the calibration target distribution from the reported median
+      TSP (degenerate distribution centered at the median).
+    name: n_mc_samples
+    rationale: 10,000 samples is a standard choice that provides numerically stable sample medians and quantiles while keeping
+      computation inexpensive; here all samples are set to the reported median, so this mainly follows the standard Monte
+      Carlo template.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 0.661
+    - 0.661
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    # Reported median tumor stroma\
+    \ percentage (TSP, % of tumor area occupied by stroma)\n    median_percent = inputs['tsp_median_percent']  # Pint Quantity\
+    \ with 'percent' units\n    n_mc_samples = int(inputs['n_mc_samples'].magnitude)\n\n    # Convert percent to dimensionless\
+    \ fraction [0, 1]\n    median_frac = median_percent.to('dimensionless')\n\n    # Construct a degenerate empirical distribution\
+    \ concentrated at the reported median.\n    # This preserves the reported central tendency exactly while keeping the MC\
+    \ interface.\n    samples = np.full(n_mc_samples, median_frac.magnitude) * median_frac.units\n\n    median_obs = np.median(samples)\n\
+    \    ci95_lower = np.percentile(samples, 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n       \
+    \ 'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }\n"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Median tumor stroma percentage (TSP) across 142 resected PDAC specimens, defined as area of CA19-9-negative
+      stroma divided by total tumor tissue area, expressed in %.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: tsp_median_percent
+    source_ref: Bengtsson2026_TSP
+    source_type: text
+    units: percent
+    value: 66.1
+    value_location: Results, Stroma assessment section
+    value_snippet: The distribution of TSP among patients is shown in Fig. 2. The median TSP was 66.1%, ranging from 27.8%
+      to 99.9%.
+  median:
+  - 0.661
+  sample_size: 142
+  sample_size_rationale: 'n=142 resected PDAC specimens described in the Materials and methods (Data source) section: "Tissue
+    microarrays (TMAs) were constructed from resected PDAC specimens (n = 142)."'
+  units: dimensionless
+experimental_context:
+  assay_type: Digital histopathology of CA19-9-immunolabeled tissue microarray cores with ImageJ-based color deconvolution
+    to quantify tumor stroma percentage.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary PDAC resection specimens (pancreatic head and body/tail) from pancreatectomy procedures performed
+    with curative intent.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Surgery-first cohort of primary PDAC; no neoadjuvant chemotherapy or radiotherapy was given before resection
+      ("No patient received neoadjuvant treatment").
+    status: off_treatment
+key_assumptions:
+- The reported median tumor stroma percentage (66.1%) across 142 resected PDAC specimens is representative of the broader
+  population of resectable, treatment-naive primary PDAC tumors targeted by the QSP model.
+- Tumor stroma percentage measured on CA19-9-immunolabeled 2 mm TMA cores (up to four regions per tumor) is assumed to approximate
+  the whole-tumor stromal area fraction at resection, despite potential intratumoral heterogeneity and regional sampling bias.
+- For calibration, the complex stromal compartment (CAFs, ECM, immune and vascular elements) is represented by a single tumor-level
+  stromal fraction parameter (pdac_stromal_fraction); differences in detailed stromal composition are assumed to have secondary
+  impact on this global area fraction compared with its overall magnitude.
+- The calibration target treats the reported median TSP as an exact central tendency with negligible additional statistical
+  uncertainty relative to biological and source-to-target variability; this is operationalized as a degenerate Monte Carlo
+  distribution concentrated at the median.
+key_study_limitations:
+- Stromal quantification was performed on tissue microarray cores rather than whole-slide sections, so the measured tumor
+  stroma percentage may not fully capture spatial heterogeneity of stroma within the entire tumor mass.
+- TSP was derived from CA19-9-immunolabeled sections using digital thresholding and color deconvolution; cases with poor separation
+  between labeled tumor and stroma required manual estimation by two analysts, introducing potential observer-dependent variability.
+- The cohort consists of consecutive patients undergoing pancreatic resection with curative intent at a single Swedish tertiary
+  center between 1995 and 2017; findings may not generalize to unresectable or metastatic PDAC, or to institutions with different
+  patient selection criteria and pathology workflows.
+- Only the cohort-level median and range of TSP (27.8–99.9%) are reported; the calibration target therefore uses a degenerate
+  distribution centered at the median and does not explicitly propagate uncertainty from the observed spread in TSP values.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Compute tumor stromal area fraction at resection.\n\
+    \n    The clinical measurement (tumor stroma percentage, TSP) is defined as the\n    fraction of histologic tumor area\
+    \ occupied by CA19-9-negative stromal\n    compartment (fibroblasts, ECM and other non-epithelial components).\n\n   \
+    \ In this calibration target we represent TSP as a single stromal fraction\n    parameter, `pdac_stromal_fraction`, rather\
+    \ than explicitly converting each\n    modeled stromal species to area. The observable therefore returns this\n    parameter\
+    \ as the model-predicted stromal area fraction at resection,\n    broadcast over the full simulation time vector.\n  \
+    \  \"\"\"\n    import numpy as np\n\n    stromal_fraction = constants['pdac_stromal_fraction'].to('dimensionless')\n\n\
+    \    # Broadcast constant stromal fraction over the provided time array\n    values = np.full_like(time.magnitude, stromal_fraction.magnitude)\n\
+    \    return values * stromal_fraction.units\n"
+  constants:
+  - biological_basis: Curated reference value summarizing that primary human PDAC tumors typically consist of approximately
+      60–90% desmoplastic stroma by area; the consensus stromal fraction for resectable PDAC is set to 0.75 in the reference
+      database based on multiple histologic studies.
+    name: pdac_stromal_fraction
+    reference_db_name: pdac_stromal_fraction
+    reference_db_names: null
+    source_tag: null
+    source_type: reference_db
+    units: dimensionless
+    value: 0.75
+  experimental_denominator: null
+  inputs: []
+  mapping_rationale: The experimental tumor stroma percentage (TSP) is the fraction of histologic tumor area that is CA19-9-negative
+    stroma (CAF-rich, ECM-rich compartment) relative to total tumor tissue area (CA19-9-positive epithelial tumor islands
+    plus stroma). In the QSP model, detailed stromal composition (CAFs, ECM, other non-epithelial cells) is lumped into a
+    single stromal fraction parameter, pdac_stromal_fraction, which specifies the fraction of tumor area occupied by stroma
+    at resection. This observable therefore maps the measured TSP directly onto pdac_stromal_fraction, treating it as a global
+    tumor-level property rather than computing area explicitly from individual cell and ECM species.
+  model_denominator_species: null
+  species: []
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: Histologic stroma includes CAFs, extracellular matrix, immune cells, endothelial cells
+    and neural elements. The current QSP model does not represent all of these components as separate species; instead their
+    combined area contribution is captured implicitly by the stromal fraction constant pdac_stromal_fraction.
+primary_data_source:
+  doi: 10.1016/j.sopen.2026.01.002
+  first_author: Bengtsson
+  source_tag: Bengtsson2026_TSP
+  title: Digital quantification of stroma percentage enhances prognostic stratification in pancreatic cancer
+  year: 2026
+scenario:
+  description: Natural progression of resectable primary PDAC followed by pancreatic resection with curative intent; tumor
+    stroma percentage is measured on the resected primary tumor at the time of surgery using digital image analysis of CA19-9-immunolabeled
+    TMA cores.
+  interventions:
+  - intervention_description: No systemic anticancer therapy prior to surgery (no neoadjuvant chemotherapy or radiotherapy);
+      patients underwent a surgery-first approach for resectable PDAC.
+  - intervention_description: Pancreatic resection with curative intent at the time of diagnosis (pancreatoduodenectomy or
+      distal pancreatectomy as appropriate); the primary PDAC tumor and surrounding stroma were excised, formalin-fixed, paraffin-embedded,
+      and sampled into tissue microarrays for digital quantification of tumor stroma percentage.
+secondary_data_sources:
+- doi_or_url: null
+  first_author: ReferenceDB
+  source_tag: PDAC_Reference_StromaFraction
+  title: Curated reference value for PDAC stromal fraction (area-based) used in QSP model reference database
+  year: 2024
+source_relevance: null
+study_interpretation: This study digitally quantified the tumor stroma percentage (TSP) in resected primary human PDAC using
+  CA19-9-immunolabeled tissue microarray cores and ImageJ-based color deconvolution. For each of 142 treatment-naive, surgically
+  resected PDAC cases, up to four tumor regions were analyzed and the stromal area (CA19-9-negative) was divided by total
+  tumor tissue area to obtain TSP. The cohort-level distribution of TSP had a median of 66.1% (range 27.8–99.9%), confirming
+  that resectable PDAC is typically highly desmoplastic. In the QSP model, this observable constrains the stromal area fraction
+  parameter (pdac_stromal_fraction), which represents the fraction of tumor area occupied by stroma at the time of resection
+  in resectable, treatment-naive PDAC.

@@ -1,0 +1,176 @@
+calibration:
+  identifiability_notes: This target provides a single effective constraint on the magnitude of k_M1_pol under strong pro-inflammatory
+    drive (saturating IL-12/IFNg conditions, where the Hill term in the full model is near 1). Because the data are indirect
+    (based on transcriptional and cytokine reprogramming rather than direct counts of M1 vs M2 macrophages) and come from
+    murine peritoneal macrophages in vitro, the resulting posterior for k_M1_pol should remain relatively broad and may be
+    correlated with the IL12_50 and IFNg_50 parameters that modulate the effective polarization rate in vivo. Additional in
+    vivo tumor-associated macrophage data (e.g., time-resolved changes in M1/M2 markers after cytokine or checkpoint therapy)
+    would be needed to more tightly identify k_M1_pol and disentangle it from context-dependent cytokine levels and other
+    macrophage fluxes (recruitment, death, M1-to-M2 polarization).
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    # Reported time scale for strong\
+      \ M2-to-M1 reprogramming is 24–48 h.\n    # We model the effective half-time t_half as uniformly distributed between\n\
+      \    # 24 h and 48 h, then convert to a first-order rate constant in 1/day.\n    t_half_hours = inputs['m2_to_m1_repol_time'].to('hour').magnitude\n\
+      \    # Use the reported 95% interval [24, 48] h directly rather than the point value.\n    low_h = 24.0\n    high_h\
+      \ = 48.0\n    samples_h = np.random.uniform(low_h, high_h, 10000)\n    # Convert to days\n    samples_d = samples_h\
+      \ / 24.0\n    k_samples = np.log(2.0) / samples_d  # 1/day\n    return {\n        'median': float(np.median(k_samples)),\n\
+      \        'ci95_lower': float(np.percentile(k_samples, 2.5)),\n        'ci95_upper': float(np.percentile(k_samples, 97.5)),\n\
+      \    }"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: k_M1_pol is positive and expected to vary approximately log-normally across experiments and biological contexts.
+        The derived distribution over k_M1_pol from the reported 24–48 h repolarization window is used to parameterize a lognormal
+        observation model for Bayesian calibration.
+    name: k_M1_pol_from_M2_repolarization_horhold2020
+    observable: null
+    sample_size: 2
+    sample_size_rationale: '[Scrubbed due to ''secret'']'
+    units: 1/day
+    uses_inputs:
+    - m2_to_m1_repol_time
+  model:
+    data_rationale: Hörhold et al. measured the time course of M2-like murine macrophages reprogrammed toward an M1-like phenotype
+      after siRNA knockdown of key transcription factors. They report that by 24 h the cytokine profile has already shifted
+      to an M1-like pattern, with maximal changes in M1/M2 marker gene expression at 24–48 h. This provides an approximate
+      characteristic time scale for M2-to-M1 repolarization, but not a full cell-count time course, so using an effective
+      half-time is appropriate.
+    formula: k_M1_pol = ln(2) / t_half_M2_to_M1
+    submodel_rationale: 'In the full QSPIO-PDAC model, M2-to-M1 polarization in the tumor compartment is modeled as a first-order
+      transition: d(Mac_M2)/dt = -k_M1_pol * Mac_M2 * H(IL12, IFNg), d(Mac_M1)/dt = +k_M1_pol * Mac_M2 * H(IL12, IFNg), where
+      H(IL12, IFNg) is a Hill-type function that approaches 1 when IL-12 and/or IFNg are high. Under saturating IL-12/IFNg,
+      this reduces to a simple first-order process with effective half-time t_half = ln(2)/k_M1_pol. The direct_conversion
+      submodel explicitly encodes this relationship, allowing us to infer k_M1_pol from an estimated half-time of M2-to-M1
+      repolarization under strong pro-inflammatory drive.'
+    type: direct_conversion
+  parameters:
+  - name: k_M1_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -0.6931471805599453
+      rationale: k_M1_pol is a positive first-order polarization rate. Mouse in vitro data suggest a characteristic M2-to-M1
+        repolarization time on the order of 1–2 days, corresponding to k in the 0.3–0.7 1/day range. A lognormal prior with
+        median ~0.5 1/day (mu=ln(0.5)) and one-log10-wide uncertainty (sigma=1.0) allows for order-of-magnitude variation
+        and cross-species/context translation.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+  state_variables: null
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Peritoneal exudate cells harvested after thioglycolate injection, then polarized in vitro with IL-4
+      (M2-like) or LPS+IFNg (M1-like).
+    name: peritoneal macrophages (thioglycolate-elicited PEC)
+    phenotype: M2-like macrophages reprogrammed toward M1-like phenotype by siRNA knockdown of E2f1, Myc, Pparg, Stat6
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: normoxic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    substrate: standard tissue culture plastic (not explicitly specified)
+  indication: null
+  species: mouse
+  system: in_vitro_primary_cells
+inputs:
+- extraction_method: manual
+  input_type: inferred_estimate
+  n: 2
+  name: m2_to_m1_repol_time
+  role: target
+  source_location: '[Scrubbed due to ''secret'']'
+  source_ref: Hörhold2020
+  uncertainty:
+    ci95:
+    - 24.0
+    - 48.0
+    sd: null
+  units: hour
+  value: 24.0
+  value_snippet: As a first validation, we performed qPCR analysis of selected genes of the literature signature at three
+    time points after transfection. The highest impact of the knockdown on the gene expression of M1-like and M2-like associated
+    genes was observed at 24 h and 48 h after transfection with the combined siRNA pool (Fig 5, S5 Table). Ten and eight out
+    of fourteen M1- and M2-associated genes, respectively, switched their gene expression as expected at 24 h and 48 h after
+    transfection. [...] At 24 h after transfection of the M2-like macrophages with the siRNA pool, the cytokine profile had
+    already shifted to an M1-like phenotype in the transfected group compared to the control group (mock treated M2-like macrophages)
+    (Fig 6A).
+key_assumptions:
+- M2-like macrophages reprogrammed by siRNA-mediated knockdown of E2f1, Myc, Pparg and Stat6 have a similar intrinsic polarization
+  time scale to M2 tumor-associated macrophages exposed to strong IL-12/IFNg stimulation in vivo.
+- The 24–48 h window over which most M1/M2 marker genes and cytokines switch expression can be reasonably approximated by
+  an effective half-time for the M2-to-M1 transition, even though individual markers may exhibit distinct kinetics.
+- Macrophage death, proliferation, recruitment, and M1-to-M2 transitions are negligible over the 72 h in vitro reprogramming
+  experiment, so the dominant relevant process is M2-to-M1 phenotypic conversion.
+- Species (mouse vs human) and microenvironmental differences mainly introduce multiplicative uncertainty in k_M1_pol (order-of-magnitude
+  scale), rather than fundamentally changing the qualitative first-order nature of the polarization process.
+- The Hill-type dependence of M2-to-M1 polarization on IL-12 and IFNg in the full QSP model can be approximated as H(IL12,
+  IFNg) ≈ 1 in the Hörhold et al. setting, because the siRNA perturbation induces a maximally pro-inflammatory transcriptional
+  program analogous to strong cytokine stimulation.
+key_study_limitations:
+- Repolarization is achieved via non-physiological siRNA knockdown of transcription factors rather than direct cytokine stimulation
+  (IL-12/IFNg), so the measured time scale may not exactly match cytokine-driven polarization kinetics.
+- '[Scrubbed due to ''secret'']'
+- Experiments use murine peritoneal exudate macrophages in vitro, whereas the QSPIO-PDAC model targets human PDAC tumor-associated
+  macrophages in a desmoplastic, hypoxic, and immunosuppressive microenvironment.
+- Time resolution is limited to 24, 48, and 72 h; faster dynamics occurring within the first 12 h cannot be resolved, so the
+  true half-time could be shorter than 24 h.
+- No explicit statistical model for repolarization time is provided in the paper; the 24–48 h window is interpreted qualitatively
+  from gene expression and cytokine profiles, leading to relatively broad uncertainty in the derived k_M1_pol.
+primary_data_source:
+  authors:
+  - Franziska Hörhold
+  - David Eisel
+  - Marcus Oswald
+  - Amol Kolte
+  - Daniela Roll
+  - Wolfram Osen
+  - Stefan B. Eichmüller
+  - Rainer König
+  doi: 10.1371/journal.pcbi.1007657
+  source_tag: Hörhold2020
+  title: Reprogramming of macrophages employing gene regulatory and metabolic network models
+  year: 2020
+secondary_data_sources:
+- authors: null
+  contribution: Provides additional experimental evidence that M2-polarized murine RAW 264.7 macrophages can be repolarized
+    toward an M1-like phenotype over a 3-day period when exposed to lactate oxidase and iron oxide nanoparticles at acidic
+    pH, mimicking aspects of the tumor microenvironment. Used qualitatively to support the plausibility of first-order M2-to-M1
+    repolarization on a 1–3 day time scale under strong perturbations.
+  doi: 10.3390/ijms222413346
+  source_quality: primary_animal_in_vitro
+  source_tag: Liao2021
+  title: Synergistic Effect of Repolarization of M2 to M1 Macrophages Induced by Iron Oxide Nanoparticles Combined with Lactate
+    Oxidase
+  url: null
+  year: 2021
+source_relevance:
+  estimated_translation_uncertainty_fold: 5.0
+  indication_match: proxy
+  indication_match_justification: The target QSP model describes human pancreatic ductal adenocarcinoma (PDAC) tumor-associated
+    macrophages, whereas Hörhold et al. study murine peritoneal exudate macrophages polarized and reprogrammed in vitro without
+    a tumor present. We use these data purely to constrain the intrinsic time scale of M2-to-M1 phenotypic switching under
+    strong pro-inflammatory drive, which is largely governed by cell-intrinsic signaling and gene-regulatory processes that
+    are expected to be similar across tissues and indications. However, differences in species (mouse vs human), macrophage
+    ontogeny, and the absence of a desmoplastic PDAC tumor microenvironment introduce substantial uncertainty in mapping this
+    rate directly to human PDAC TAMs.
+  perturbation_relevance: Repolarization was induced by siRNA-mediated knockdown of four transcription factors (E2f1, Myc,
+    Pparg, Stat6) in IL-4-polarized M2-like macrophages, rather than by IL-12/IFNg stimulation. We assume that the time required
+    for coordinated transcriptional and cytokine reprogramming under this strong synthetic perturbation is comparable to or
+    slightly faster than physiologic M2-to-M1 repolarization driven by high IL-12/IFNg in tumors. Thus, the inferred k_M1_pol
+    should be interpreted as an approximate upper bound on the intrinsic polarization rate under maximally pro-inflammatory
+    conditions and may overestimate rates in human PDAC TAMs.
+  perturbation_type: genetic_perturbation
+  source_quality: primary_animal_in_vitro
+  species_source: mouse
+  species_target: human
+  tme_compatibility: moderate
+  tme_compatibility_notes: Experiments were performed in 2D culture of murine peritoneal macrophages without stromal barriers,
+    hypoxia, or chronic suppressive cytokines characteristic of PDAC. These conditions likely allow somewhat faster polarization
+    than in the dense, immunosuppressive PDAC tumor microenvironment, but the measured time scale mainly reflects intracellular
+    signaling and gene-regulatory processes that should not differ by orders of magnitude across TMEs.
+  validation_warnings: null
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_M1_pol_repolarization_horhold2020

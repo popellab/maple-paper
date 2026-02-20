@@ -1,0 +1,134 @@
+calibration:
+  identifiability_notes: '[Scrubbed due to ''secret'']'
+  independent_variable: null
+  measurements:
+  - distribution_code: '[Scrubbed due to ''secret'']'
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: '[Scrubbed due to ''secret'']'
+    name: k_CCL2_sec_from_LeukemiaCellLines
+    observable: null
+    sample_size: 4
+    sample_size_rationale: '[Scrubbed due to ''secret'']'
+    units: nanomole / cell / day
+    uses_inputs:
+    - mcp1_constitutive_min_pg_per_ml_per_millioncells
+    - mcp1_constitutive_max_pg_per_ml_per_millioncells
+  model:
+    data_rationale: '[Scrubbed due to ''secret'']'
+    formula: k_CCL2_sec = (MCP1_pg_per_ml_per_1e6cells * 1e-12 g/pg / MW_CCL2_g_per_mol * 1e9 nmol/mol) / (1e6 cells * 1 day)
+    submodel_rationale: '[Scrubbed due to ''secret'']'
+    type: direct_conversion
+  parameters:
+  - name: k_CCL2_sec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -23.13
+      rationale: '[Scrubbed due to ''secret'']'
+      sigma: 1.0
+      upper: null
+    units: nanomole / cell / day
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: myelomonocytic leukemia cell line
+    name: HL-60
+    species: human
+    tissue_origin: hematopoietic
+  - cell_type: myelomonocytic leukemia cell line
+    name: ML-2
+    species: human
+    tissue_origin: hematopoietic
+  - cell_type: myelomonocytic leukemia cell line
+    name: MONO-MAC-6
+    species: human
+    tissue_origin: hematopoietic
+  - cell_type: myelomonocytic leukemia cell line
+    name: MUTZ-3
+    species: human
+    tissue_origin: hematopoietic
+  cell_types: null
+  culture_conditions: null
+  indication: acute myelomonocytic leukemia
+  species: human
+  system: in_vitro_immortalized
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 4
+  name: mcp1_constitutive_min_pg_per_ml_per_millioncells
+  role: auxiliary
+  source_location: Abstract
+  source_ref: Steube1999_MCP1
+  uncertainty: null
+  units: pg / milliliter
+  value: 440.0
+  value_snippet: this chemokine is produced constitutively by the cell lines HL-60, ML-2, MONO-MAC-6 and MUTZ-3 ranging between
+    440 and 1400 pg/ml MCP-1 per million cells.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 4
+  name: mcp1_constitutive_max_pg_per_ml_per_millioncells
+  role: auxiliary
+  source_location: Abstract
+  source_ref: Steube1999_MCP1
+  uncertainty: null
+  units: pg / milliliter
+  value: 1400.0
+  value_snippet: this chemokine is produced constitutively by the cell lines HL-60, ML-2, MONO-MAC-6 and MUTZ-3 ranging between
+    440 and 1400 pg/ml MCP-1 per million cells.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 1
+  name: mcp1_stimulated_max_ng_per_ml_per_millioncells_24h
+  role: auxiliary
+  source_location: Abstract
+  source_ref: Steube1999_MCP1
+  uncertainty: null
+  units: ng / milliliter
+  value: 80.0
+  value_snippet: The highest amount of MCP-1 (> 80 ng/ml within 24 h) was achieved by TPA stimulation of MUTZ-3 cells.
+key_assumptions:
+- The reported range 440 to 1400 pg/ml MCP-1 per million cells refers to the amount accumulated in culture supernatant over
+  approximately 24 h under unstimulated, near-physiologic conditions.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- The molar mass of human CCL2 (MCP-1) is approximated as 8.7 kDa for converting pg to nmol; isoform and post-translational
+  modification differences are ignored.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+key_study_limitations:
+- The study was performed in leukemia cell lines, not pancreatic ductal adenocarcinoma cells, so lineage-specific regulatory
+  mechanisms of CCL2 expression are not captured.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- Post-translational processing, binding to extracellular matrix components, and potential receptor-mediated uptake of CCL2
+  are not characterized in this assay but could affect effective chemokine availability in vivo.
+primary_data_source:
+  authors:
+  - Steube KG
+  - Meyer C
+  - Drexler HG
+  doi: 10.1016/S0145-2126(99)00107-1
+  source_tag: Steube1999_MCP1
+  title: '[Scrubbed due to ''secret'']'
+  year: 1999
+secondary_data_sources: null
+source_relevance:
+  estimated_translation_uncertainty_fold: 20.0
+  indication_match: proxy
+  indication_match_justification: '[Scrubbed due to ''secret'']'
+  perturbation_relevance: null
+  perturbation_type: physiological_baseline
+  source_quality: primary_human_in_vitro
+  species_source: human
+  species_target: human
+  tme_compatibility: low
+  tme_compatibility_notes: '[Scrubbed due to ''secret'']'
+  validation_warnings: null
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_CCL2_sec_Steube1999_proxy

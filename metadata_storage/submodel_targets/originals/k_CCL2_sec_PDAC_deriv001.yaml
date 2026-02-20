@@ -1,0 +1,174 @@
+calibration:
+  identifiability_notes: Because the algebraic relationship C_meas·V = k_CCL2_sec·N_cells·t (ignoring degradation) directly
+    links the measured concentration to k_CCL2_sec, the parameter is structurally identifiable given known N_cells, t, medium
+    volume, and molecular weight. However, uncertainty in the true medium volume, possible chemokine degradation, and biological
+    differences between benign prostate stroma and PDAC tumor/stromal cells mean that the experimental data constrain only
+    the order of magnitude of k_CCL2_sec. This is reflected in the wide lognormal prior and the stochastic propagation of
+    measurement uncertainty in the distribution_code.
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    conc_mean = inputs['CCL2_prsc_unstim_mean'].magnitude\n\
+      \    conc_sd = inputs['CCL2_prsc_unstim_sd'].magnitude\n\n    V_ml = inputs['V_medium_ml'].magnitude\n    N_cells =\
+      \ inputs['n_cells_prsc'].magnitude\n    t_h = inputs['incubation_time_hours'].magnitude\n\n    # Sample concentrations,\
+      \ truncating at zero to avoid negatives\n    samples = np.random.normal(conc_mean, conc_sd, 10000)\n    samples = np.clip(samples,\
+      \ 1e-6, None)\n\n    MW = 8.7e3  # g/mol for MCP-1/CCL2\n\n    mass_pg = samples * V_ml\n    mass_g = mass_pg * 1e-12\n\
+      \    moles = mass_g / MW\n    nmol = moles * 1e9\n\n    days = t_h / 24.0\n    k_samples = nmol / (N_cells * days)\n\
+      \n    return {'median': float(np.median(k_samples))}"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: '[Scrubbed due to ''secret'']'
+    name: derived_k_CCL2_sec_from_PrSC
+    observable: null
+    sample_size: 3
+    sample_size_rationale: Same replicate number as the underlying ELISA measurement (assumed n=3).
+    units: nanomole/cell/day
+    uses_inputs:
+    - CCL2_prsc_unstim_mean
+    - CCL2_prsc_unstim_sd
+    - n_cells_prsc
+    - incubation_time_hours
+    - V_medium_ml
+  model:
+    data_rationale: '[Scrubbed due to ''secret'']'
+    formula: k_CCL2_sec = f(CCL2_prsc_unstim_mean, CCL2_prsc_unstim_sd, n_cells_prsc, incubation_time_hours, V_medium_ml)
+      converting pg/mL over 48 h in 1 mL from 1e5 cells to nmol/cell/day using MW≈8.7 kDa.
+    submodel_rationale: '[Scrubbed due to ''secret'']'
+    type: direct_conversion
+  parameters:
+  - name: k_CCL2_sec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -20.64
+      rationale: '[Scrubbed due to ''secret'']'
+      sigma: 1.5
+      upper: null
+    units: nanomole/cell/day
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: stromal fibroblast-like cells
+    name: PrSC
+    species: human
+    tissue_origin: prostate
+  - cell_type: epithelial cells
+    name: PrEC
+    species: human
+    tissue_origin: prostate
+  cell_types: null
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: normoxic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    substrate: 24-well tissue culture plastic
+  indication: '[Scrubbed due to ''secret'']'
+  species: human
+  system: in_vitro_primary_cells
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: CCL2_prsc_unstim_mean
+  role: target
+  source_location: Figure 4B, unstimulated PrSC bar; Results text
+  source_ref: Fujita2010
+  uncertainty:
+    ci95: null
+    sd: 631.0
+  units: pg/milliliter
+  value: 1888.0
+  value_snippet: '[Scrubbed due to ''secret'']'
+- extraction_method: manual
+  input_type: assumed_value
+  n: 3
+  name: CCL2_prsc_unstim_sd
+  role: auxiliary
+  source_location: Figure 4B, unstimulated PrSC bar; Results text
+  source_ref: Fujita2010
+  uncertainty: null
+  units: pg/milliliter
+  value: 631.0
+  value_snippet: '[Scrubbed due to ''secret'']'
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: n_cells_prsc
+  role: fixed_parameter
+  source_location: Methods, Measurement of MCP-1 in Cell Culture Conditioned Media
+  source_ref: Fujita2010
+  uncertainty: null
+  units: cell
+  value: 100000.0
+  value_snippet: 1×10^{5} of each cell type were seeded in 24-well plates and 24 hr later media were changed to media with
+    or without cytokines.
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: incubation_time_hours
+  role: fixed_parameter
+  source_location: Methods, Measurement of MCP-1 in Cell Culture Conditioned Media
+  source_ref: Fujita2010
+  uncertainty: null
+  units: hour
+  value: 48.0
+  value_snippet: After 48 hr of incubation, supernatants were collected, centrifuged at 1,000g for 10 min to remove cells
+    and subjected to ELISA.
+- extraction_method: manual
+  input_type: assumed_value
+  n: null
+  name: V_medium_ml
+  role: fixed_parameter
+  source_location: Cell culture conditions for 24-well plates (not explicitly specified)
+  source_ref: Fujita2010
+  uncertainty: null
+  units: milliliter
+  value: 1.0
+  value_snippet: Standard 24-well cell culture assays typically use ~1 mL medium per well; the exact volume was not reported
+    in the paper.
+key_assumptions:
+- '[Scrubbed due to ''secret'']'
+- The medium volume in 24-well plates was approximately 1 mL per well; deviations (e.g., 0.5–1.0 mL) primarily rescale the
+  inferred k_CCL2_sec and are absorbed into the broad prior.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- The unstimulated PrSC condition (1,888±631 pg/mL) is more representative of chronic, low-grade inflammation in tumor stroma
+  than are the high-cytokine stimulation conditions (IL-1β, IFN-γ, IL-2), which likely correspond to acute activation and
+  would overestimate baseline k_CCL2_sec.
+- '[Scrubbed due to ''secret'']'
+key_study_limitations:
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- Medium volume in 24-well plates was not reported and is assumed to be 1 mL, introducing an unquantified scaling uncertainty
+  in k_CCL2_sec.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- PrSC are stromal fibroblast-like cells; PDAC CCL2 production involves both cancer cells and activated pancreatic stellate
+  cells. The mapping from a single cell type to the lumped tumor-cell-based parameter k_CCL2_sec is approximate.
+primary_data_source:
+  authors:
+  - Kazutoshi Fujita
+  - Charles M. Ewing
+  - Robert H. Getzenberg
+  - J. Kellogg Parsons
+  - William B. Isaacs
+  - Christian P. Pavlovich
+  doi: 10.1002/pros.21081
+  source_tag: Fujita2010
+  title: Monocyte chemotactic protein-1 (MCP-1/CCL2) is associated with prostatic growth dysregulation and benign prostatic
+    hyperplasia
+  year: 2009
+secondary_data_sources:
+- authors: null
+  contribution: Provides quantitative baseline plasma MCP-1 (CCL2) levels in advanced PDAC patients (median 522 pg/mL), supporting
+    the relevance of CCL2 as a systemic and tumor-associated chemokine in PDAC but not directly used for rate calibration.
+  doi: null
+  source_tag: Kindler2014
+  title: 'Prognostic and Predictive Blood-Based Biomarkers in Patients with Advanced Pancreatic Cancer: Results from CALGB80303
+    (Alliance)'
+  url: https://pmc.ncbi.nlm.nih.gov/articles/PMC4219241/
+  year: 2014
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_CCL2_sec_Fujita2010_PrSC

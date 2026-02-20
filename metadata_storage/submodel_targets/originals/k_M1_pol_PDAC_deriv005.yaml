@@ -1,0 +1,212 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: The M1:M2 ratio is positive and expected to exhibit multiplicative inter-patient variability; a lognormal
+        likelihood is appropriate.
+    name: m1_m2_ratio_dlbcl
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    import numpy as np\n    m1 = inputs['m1_fraction_mean']\n\
+      \    m1_sd = inputs['m1_fraction_sd']\n    m2 = inputs['m2_fraction_mean']\n    m2_sd = inputs['m2_fraction_sd']\n \
+      \   # Mean M1:M2 ratio\n    ratio_mean = (m1 / m2).to('dimensionless')\n    # Propagate relative SD assuming independent\
+      \ errors\n    rel_sd_m1 = m1_sd.magnitude / m1.magnitude\n    rel_sd_m2 = m2_sd.magnitude / m2.magnitude\n    cv_ratio\
+      \ = float(np.sqrt(rel_sd_m1**2 + rel_sd_m2**2))\n    return {\n        'value': ratio_mean,\n        'sd': cv_ratio,\n\
+      \        'sd_uncertain': False,\n    }\n"
+    sample_size: 3
+    sample_size_rationale: Canonical M1 and M2 TAM fractions were quantified in 3 primary DLBCL cases; data are reported as
+      mean ± SD across these patients.
+    units: dimensionless
+    uses_inputs:
+    - m1_fraction_mean
+    - m1_fraction_sd
+    - m2_fraction_mean
+    - m2_fraction_sd
+  forward_model:
+    data_rationale: The study quantifies canonical M1 (CD86+CD163−) and canonical M2 (CD86−CD163+) tumor-associated macrophages
+      as percentages of CD68+ TAMs in human DLBCL biopsies. At steady state, the observed fraction ratio M1:M2 primarily reflects
+      the balance of M2→M1 versus M1→M2 polarization rates, assuming comparable recruitment and death rates across phenotypes.
+    drive_denominator: '1.0'
+    drive_numerator: '1.0'
+    independent_variable: null
+    rate_denominator: k_M2_pol
+    rate_numerator: k_M1_pol
+    state_variables: null
+    submodel_rationale: In the full PDAC QSP model, k_M1_pol governs V_T.Mac_M2 → V_T.Mac_M1 polarization, while k_M2_pol
+      governs the reverse M1→M2 transition. Under quasi-steady polarization dynamics with similar net loss and recruitment
+      across phenotypes, the steady-state M1:M2 abundance ratio scales approximately with k_M1_pol/k_M2_pol. The SteadyStateRatio
+      model therefore maps the canonical M1:M2 TAM ratio onto the polarization rate ratio, while acknowledging substantial
+      uncertainty due to indication and TME differences.
+    type: steady_state_ratio
+    unit_conversion_factor: '1.0'
+  identifiability_notes: This target constrains primarily the ratio k_M1_pol/k_M2_pol via the observed canonical M1:M2 TAM
+    fraction in DLBCL. Absolute magnitudes of k_M1_pol and k_M2_pol remain weakly identified and must be informed by other
+    PDAC-specific targets (e.g., pharmacologic polarization assays, macrophage turnover data). The presence of a large noncanonical
+    M1M2 TAM subset means that the canonical M1 and M2 fractions only approximate the pure Mac_M1 and Mac_M2 pools of the
+    PDAC QSP model; we treat this as an additional source of model discrepancy captured via the large translation-uncertainty
+    factor in source_relevance.
+  parameters:
+  - name: k_M1_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: Wide prior centered at 1/day to cover plausible macrophage polarization rates (approximately 0.01–10 1/day)
+        given limited translational relevance of DLBCL TAM data to PDAC.
+      sigma: 2.0
+      upper: null
+    units: 1/day
+  - name: k_M2_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: Wide prior for reverse M1→M2 polarization rate; only the ratio k_M1_pol/k_M2_pol is informed by this target,
+        so a broad prior avoids biasing the inferred ratio.
+      sigma: 2.0
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Immunofluorescence and flow cytometry on primary DLBCL biopsies.
+    name: Tumor-associated macrophages (CD68+ TAMs)
+    phenotype: CD68+ macrophages within DLBCL lesions, further subdivided into canonical M1 (CD86+CD163−), canonical M2 (CD86−CD163+),
+      and noncanonical CD86+CD163+ M1M2 cells.
+  culture_conditions: null
+  indication: Diffuse large B cell lymphoma (DLBCL)
+  species: human
+  system: human_clinical_tumor_biopsies
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: m1_fraction_mean
+  role: target
+  source_access: null
+  source_location: Results, Noncanonical tumor-associated macrophages are frequent in DLBCL
+  source_ref: Manfroi2021_DLBCL_TAM
+  uncertainty:
+    ci95: null
+    sd: 0.0
+  units: dimensionless
+  value: 0.1574
+  value_snippet: canonical M1 and M2 TAMs represented 15.74% ± 1.2% and 21.1% ± 4.76%, respectively, of CD68+ macrophages
+    in DLBCL lesions.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: m1_fraction_sd
+  role: auxiliary
+  source_access: null
+  source_location: Results, Noncanonical tumor-associated macrophages are frequent in DLBCL
+  source_ref: Manfroi2021_DLBCL_TAM
+  uncertainty:
+    ci95: null
+    sd: 0.0
+  units: dimensionless
+  value: 0.012
+  value_snippet: canonical M1 and M2 TAMs represented 15.74% ± 1.2% and 21.1% ± 4.76%, respectively, of CD68+ macrophages
+    in DLBCL lesions.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: m2_fraction_mean
+  role: target
+  source_access: null
+  source_location: Results, Noncanonical tumor-associated macrophages are frequent in DLBCL
+  source_ref: Manfroi2021_DLBCL_TAM
+  uncertainty:
+    ci95: null
+    sd: 0.0
+  units: dimensionless
+  value: 0.211
+  value_snippet: canonical M1 and M2 TAMs represented 15.74% ± 1.2% and 21.1% ± 4.76%, respectively, of CD68+ macrophages
+    in DLBCL lesions.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: m2_fraction_sd
+  role: auxiliary
+  source_access: null
+  source_location: Results, Noncanonical tumor-associated macrophages are frequent in DLBCL
+  source_ref: Manfroi2021_DLBCL_TAM
+  uncertainty:
+    ci95: null
+    sd: 0.0
+  units: dimensionless
+  value: 0.0476
+  value_snippet: canonical M1 and M2 TAMs represented 15.74% ± 1.2% and 21.1% ± 4.76%, respectively, of CD68+ macrophages
+    in DLBCL lesions.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 3
+  name: dlbcl_tam_n_patients
+  role: auxiliary
+  source_access: null
+  source_location: Results, Noncanonical tumor-associated macrophages are frequent in DLBCL
+  source_ref: Manfroi2021_DLBCL_TAM
+  uncertainty:
+    ci95: null
+    sd: 0.0
+  units: dimensionless
+  value: 3.0
+  value_snippet: Data are mean ± SD and are representative of the 3 DLBCL patients shown in Figure 5B.
+key_assumptions:
+- Canonical CD86+CD163− M1 and CD86−CD163+ M2 TAM subsets in DLBCL approximate the pure Mac_M1 and Mac_M2 populations represented
+  in the PDAC QSP model; mixed CD86+CD163+ cells are treated as an intermediate phenotype not explicitly modeled.
+- Macrophage recruitment and death rates are similar for M1 and M2 subsets at pathological steady state, so that the observed
+  M1:M2 abundance ratio primarily reflects the balance of M2→M1 vs. M1→M2 polarization rates.
+- The intrinsic polarization machinery of human TAMs (e.g., STAT1/STAT6, NF-kB, IRF5) is broadly conserved across tumor types,
+  making the DLBCL M1:M2 balance a very rough proxy for PDAC, albeit with large uncertainty.
+- Measurement errors in canonical M1 and M2 TAM fractions are approximately independent and can be propagated to the M1:M2
+  ratio using standard error-propagation formulas.
+key_study_limitations:
+- 'Indication mismatch: DLBCL arises in lymphoid tissue and has a very different stromal and vascular microenvironment compared
+  to PDAC, limiting direct quantitative translation of TAM ratios.'
+- A large noncanonical CD86+CD163+ M1M2 population (approximately half of all TAMs) is present and not explicitly represented
+  in the PDAC QSP model, introducing structural model discrepancy.
+- The canonical M1 and M2 fractions are reported from only three DLBCL cases, yielding limited statistical power and uncertain
+  generalizability.
+- Marker-based M1/M2 classification (CD86/CD163) is an oversimplification of macrophage polarization, which exists on a continuum
+  and may not map cleanly to functional anti- vs pro-tumor phenotypes.
+primary_data_source:
+  authors:
+  - Manfroi B
+  - Hoffmann B
+  - et al.
+  doi: 10.1182/bloodadvances.2021004203
+  source_tag: Manfroi2021_DLBCL_TAM
+  title: The microenvironment of DLBCL is characterized by noncanonical macrophages recruited by tumor-derived CCL5
+  year: 2021
+secondary_data_sources: null
+source_relevance:
+  estimated_translation_uncertainty_fold: 30.0
+  indication_match: proxy
+  indication_match_justification: The primary data quantify canonical M1 and M2 TAM fractions in human DLBCL biopsies using
+    CD68, CD86, and CD163 as markers. These measurements inform the intrinsic balance between M1- and M2-like polarization
+    states in a human tumor microenvironment, which is mechanistically related to the M2→M1 polarization process encoded by
+    k_M1_pol. However, DLBCL arises in lymphoid tissue with a highly different stromal architecture, vasculature, and cytokine
+    milieu than PDAC, so the absolute M1:M2 ratio and the degree of mixed M1M2 phenotypes may differ by orders of magnitude.
+    We therefore use this source only to weakly inform the plausible order-of-one magnitude for the polarization rate ratio,
+    with a large translation-uncertainty factor.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: low
+  tme_compatibility_notes: DLBCL lesions are lymphoid-organ tumors with relatively permissive immune infiltration and limited
+    desmoplastic stroma, in contrast to the dense, hypoxic, and T cell–excluded PDAC microenvironment. TAM ontogeny, exposure
+    to stromal cues, and cytokine gradients (e.g., IL-10, TGFbeta, IFNg, IL-12) are therefore substantially different. As
+    a result, the canonical M1:M2 fraction measured in DLBCL likely overestimates the M1 contribution relative to PDAC and
+    should be treated as a very uncertain proxy for PDAC TAM polarization balance.
+  validation_warnings: []
+study_interpretation: The Manfroi2021 DLBCL study quantifies canonical M1 and M2 tumor-associated macrophages in human lymphoma
+  biopsies using CD68, CD86, and CD163 markers. Canonical M1 (CD86+CD163−) and canonical M2 (CD86−CD163+) TAMs constitute
+  roughly 16% and 21% of the total CD68+ macrophage pool, respectively, with the remainder belonging to a noncanonical CD86+CD163+
+  M1M2 subset. Interpreted through a simple polarization-balance lens, this implies an order-of-one M1:M2 ratio at pathological
+  steady state, suggesting that the forward (M2→M1) polarization rate is of similar magnitude to, but modestly lower than,
+  the reverse (M1→M2) rate. We use this as a weak cross-indication constraint on the ratio k_M1_pol/k_M2_pol in the PDAC QSP
+  model, acknowledging substantial differences in tumor microenvironments and macrophage ontogeny between DLBCL and PDAC.
+target_id: k_M1_pol_steady_state_ratio_DLBCL2021

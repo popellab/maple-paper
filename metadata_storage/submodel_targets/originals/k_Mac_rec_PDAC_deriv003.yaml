@@ -1,0 +1,199 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: IHC-positive pixel counts are positive and typically right-skewed across patients, so a lognormal likelihood
+        with SD specified as coefficient of variation is appropriate.
+    name: cd68_tam_ihc_index
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    mean_idx = inputs['cd68_pixels_mean']     \
+      \   # dimensionless CD68-positive pixels/HPF\n    cv = inputs['assumed_cv_tam_ihc'].magnitude  # dimensionless coefficient\
+      \ of variation\n    return {\n        'value': mean_idx,\n        'sd': cv,\n        'sd_uncertain': True,\n       \
+      \ 'n': int(inputs['n_patients_cd40'].magnitude),\n    }\n"
+    sample_size: null
+    sample_size_rationale: null
+    units: dimensionless
+    uses_inputs:
+    - cd68_pixels_mean
+    - assumed_cv_tam_ihc
+    - n_patients_cd40
+  forward_model:
+    code: "def compute(params, inputs, ureg):\n    # k_Mac_rec [cell/(mL*day)], scale_mac_index [mL*day/cell], cd68_pixels_mean\
+      \ dimensionless\n    k = params['k_Mac_rec']\n    s = params['scale_mac_index']\n    cd68 = inputs['cd68_pixels_mean']\n\
+      \    cd68_index = s * k * cd68\n    return cd68_index * ureg('')\n"
+    code_julia: "function compute(params, inputs)\n    k = params[\"k_Mac_rec\"]\n    s = params[\"scale_mac_index\"]\n  \
+      \  cd68 = inputs[\"cd68_pixels_mean\"]\n    return s * k * cd68\nend"
+    data_rationale: Chang et al. quantified tumor-associated macrophages in human PDAC by ImageJ-based positive pixels per
+      high-power field for CD68, CD163 and HLA-DR in 12 resected pancreatic cancers. The mean CD68-positive pixels/HPF are
+      treated as a proxy for steady-state total TAM density in PDAC.
+    formula: cd68_index = scale_mac_index * k_Mac_rec * cd68_pixels_mean
+    independent_variable: null
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, macrophage recruitment enters the Mac_M1 equation as k_Mac_rec*V_T*CCL2/(CCL2+CCL2_50).
+      At pre-treatment steady state, this influx balances an effective first-order loss, giving macrophage density proportional
+      to k_Mac_rec times a lumped tumor/chemokine factor divided by effective loss. We collapse those poorly constrained factors
+      into scale_mac_index so that the observable CD68 TAM index is proportional to k_Mac_rec while preserving its mechanistic
+      role as the recruitment rate.
+    type: algebraic
+  identifiability_notes: With a single CD68-derived TAM density, k_Mac_rec and scale_mac_index are highly correlated; only
+    their product is directly constrained. CD163 and HLA-DR measurements inform M1/M2 composition but not the absolute recruitment
+    rate. This submodel therefore constrains k_Mac_rec up to an unknown scaling factor encoding tumor volume, CCL2 drive and
+    effective loss; absolute macrophage units must be anchored by other targets in the global QSP model.
+  parameters:
+  - name: k_Mac_rec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: k_Mac_rec is a positive recruitment rate. A wide lognormal prior is used because IHC-based TAM densities
+        constrain only the product of recruitment and effective loss terms rather than k_Mac_rec directly.
+      sigma: 2.0
+      upper: null
+    units: cell/(milliliter*day)
+  - name: scale_mac_index
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: scale_mac_index lumps tumor volume, CCL2 drive, and effective loss rate into a single scaling factor mapping
+        k_Mac_rec to the CD68-positive pixel index; this is a phenomenological scaling so a weak prior is appropriate.
+      sigma: 2.0
+      upper: null
+    units: milliliter*day/cell
+experimental_context:
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: pancreatic ductal adenocarcinoma
+  species: human
+  system: in_vivo_clinical
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 12
+  name: cd68_pixels_mean
+  role: target
+  source_access: open_access
+  source_location: Gut Liver 2021;16(4):645-659, Results section
+  source_ref: Chang2022_CD40
+  uncertainty:
+    ci95: null
+    sd: 1.0
+  units: dimensionless
+  value: 21865.0
+  value_snippet: The mean positive pixels/HPF were 21,865 for CD68, 7,553 for CD163, and 4,823 for HLA-DR.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 12
+  name: cd163_pixels_mean
+  role: auxiliary
+  source_access: open_access
+  source_location: Gut Liver 2021;16(4):645-659, Results section
+  source_ref: Chang2022_CD40
+  uncertainty:
+    ci95: null
+    sd: 1.0
+  units: dimensionless
+  value: 7553.0
+  value_snippet: The mean positive pixels/HPF were 21,865 for CD68, 7,553 for CD163, and 4,823 for HLA-DR.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 12
+  name: hladr_pixels_mean
+  role: auxiliary
+  source_access: open_access
+  source_location: Gut Liver 2021;16(4):645-659, Results section
+  source_ref: Chang2022_CD40
+  uncertainty:
+    ci95: null
+    sd: 1.0
+  units: dimensionless
+  value: 4823.0
+  value_snippet: The mean positive pixels/HPF were 21,865 for CD68, 7,553 for CD163, and 4,823 for HLA-DR.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: n_patients_cd40
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Figure 1 legend: ''Expression of macrophage and regulatory T cell markers in surgically resected human
+    pancreatic cancers (n=12)'''
+  source_ref: Chang2022_CD40
+  uncertainty: null
+  units: dimensionless
+  value: 12.0
+  value_snippet: Expression of macrophage and regulatory T cell markers in surgically resected human pancreatic cancers (n=12).
+- extraction_method: manual
+  input_type: assumed_value
+  n: 1
+  name: assumed_cv_tam_ihc
+  role: auxiliary
+  source_access: open_access
+  source_location: Model assumptions (not explicitly stated in paper)
+  source_ref: Chang2022_CD40
+  uncertainty:
+    ci95: null
+    sd: 0.25
+  units: dimensionless
+  value: 0.5
+  value_snippet: We assumed a coefficient of variation of 50% for TAM IHC density to capture substantial between-patient heterogeneity.
+key_assumptions:
+- CD68-positive pixels/HPF are proportional to total TAM number in the imaged region; saturation and overlap effects are neglected.
+- Pre-treatment PDAC samples approximate a steady state of macrophage recruitment and loss, so CD68 index reflects a time-invariant
+  balance determined by k_Mac_rec and effective loss.
+- The scaling factor scale_mac_index can lump tumor volume, CCL2 levels and effective macrophage loss into a single parameter
+  without biasing the inferred order of magnitude of k_Mac_rec.
+- A coefficient of variation of 50% reasonably captures inter-patient heterogeneity in TAM IHC density in the absence of reported
+  SD/SEM; this uncertainty is flagged as uncertain in the observation model.
+key_study_limitations:
+- Macrophage abundance is reported as positive pixels/HPF instead of cells per unit area/volume, requiring an extra scaling
+  assumption to connect to model cell units.
+- Cohort size (n=12) is modest, and IHC quantification does not separate intratumoral vs stromal subregions, whereas the QSP
+  model aggregates both.
+- Study focuses on resectable PDAC, which may differ from metastatic or unresectable disease states sometimes simulated in
+  QSPIO-PDAC.
+- Variance (SD/SEM) for CD68 pixel counts is not reported, so measurement uncertainty is approximated via an assumed CV.
+primary_data_source:
+  authors:
+  - Chang JH
+  - et al.
+  doi: 10.5009/gnl210311
+  source_tag: Chang2022_CD40
+  title: CD40 Agonists Alter the Pancreatic Cancer Microenvironment by Shifting the Macrophage Phenotype toward M1 and Suppress
+    Human Pancreatic Cancer in Organotypic Slice Cultures
+  year: 2021
+secondary_data_sources:
+- authors:
+  - Ino Y
+  - et al.
+  contribution: Provides complementary human PDAC evidence that M2 macrophages (CD163+ or CD204+) predominate among tumour-infiltrating
+    macrophages and that higher M2 and pan-macrophage infiltration correlate with worse survival, supporting interpretation
+    of the CD68/CD163/HLA-DR balance in Chang2022_CD40 as reflective of an M2-biased TAM compartment.
+  doi: 10.1038/bjc.2013.32
+  source_quality: primary_human_clinical
+  source_tag: Ino2013_PDC
+  title: Immune cell infiltration as an indicator of the immune microenvironment of pancreatic cancer
+  url: null
+  year: 2013
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The study analyzes tumor-associated macrophages (CD68, CD163, HLA-DR) in surgically resected
+    human pancreatic ductal adenocarcinoma specimens and matched organotypic slice cultures, directly matching the PDAC indication
+    and tumor microenvironment modeled in QSPIO-PDAC.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: Macrophage markers are quantified directly in PDAC tumor tissue and in ex vivo tumor slice cultures
+    that preserve stromal and immune components, closely matching the desmoplastic, immunosuppressive TME represented in QSPIO-PDAC.
+  validation_warnings: null
+study_interpretation: Chang et al. quantify macrophage marker expression in human PDAC using pixel-based IHC for CD68 (pan-macrophage),
+  CD163 (M2) and HLA-DR (M1-like). The mean CD68-positive pixels/HPF reflect overall TAM abundance in untreated resectable
+  PDAC. In the QSPIO-PDAC context, CD68 IHC is interpreted as a steady-state proxy for total intratumoral macrophage density
+  arising from balance between k_Mac_rec-driven recruitment and effective loss. The algebraic submodel maps k_Mac_rec, via
+  a phenomenological scaling factor, to the observed CD68-positive pixel index.
+target_id: k_Mac_rec_humanPDAC_CD40_2021

@@ -1,0 +1,186 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Frequencies are positive and typically right-skewed across patients; modeling measurement noise on the log
+        scale via a lognormal likelihood is appropriate.
+    name: mmdsc_fraction_pdac_trovato2019
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size):\n    mean = inputs['mmdsc_fraction_cd14_hdrlow_mean']\n\
+      \    sd = inputs['mmdsc_fraction_cd14_hdrlow_sd']\n    cv = sd / mean\n    return {\n        'value': mean,\n      \
+      \  'sd': cv,\n        'sd_uncertain': True,\n        'n': int(inputs['mmdsc_fraction_cd14_hdrlow_n']),\n    }"
+    sample_size: 29
+    sample_size_rationale: Number of PDAC tumor samples analyzed by flow cytometry for tumor-infiltrating leukocyte composition
+      in Trovato et al. (n = 29).
+    units: percent
+    uses_inputs:
+    - mmdsc_fraction_cd14_hdrlow_mean
+    - mmdsc_fraction_cd14_hdrlow_sd
+    - mmdsc_fraction_cd14_hdrlow_n
+  forward_model:
+    data_rationale: Trovato et al. (2019) quantified the abundance of multiple immune subsets in freshly digested PDAC tumor
+      biopsies from 29 treatment-naive patients using multicolor flow cytometry. They report the frequency of monocytic MDSCs
+      (defined as CD14+HLA-DR-/lo cells) as 0.969 +/- 0.167% of CD45+ tumor-infiltrating leukocytes. Under a quasi-steady-state
+      assumption for the chronic PDAC microenvironment at the time of surgery or biopsy, this fractional abundance constrains
+      the balance between MDSC recruitment into the tumor and their loss (death and clearance).
+    drive_factor: '1.0'
+    independent_variable: null
+    loss_rate: k_MDSC_death
+    parent_density:
+      reference_ref: pdac_cd45_density_volumetric
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, intratumoral MDSCs obey d(MDSC_T)/dt = k_MDSC_rec * V_T * f(CCL2,IL6)
+      - k_MDSC_death * MDSC_T - other loss terms. For large, established PDAC tumors with high CCL2 and IL-6, we approximate
+      chemokine-dependent recruitment as effectively saturated (f(CCL2,IL6) ~ 1), so that the net recruitment rate per tumor
+      volume is governed by k_MDSC_rec. At steady state, the fraction of CD45+ cells that are MDSCs is proportional to the
+      ratio k_MDSC_rec / k_MDSC_death scaled by the total CD45+ cell density in PDAC. The steady_state_fraction submodel captures
+      this algebraic balance while preserving the same mechanistic roles of k_MDSC_rec (recruitment) and k_MDSC_death (loss)
+      as in the full ODE system.
+    target_rate: k_MDSC_rec
+    type: steady_state_fraction
+    unit_conversion_factor: '1.0'
+  identifiability_notes: This target constrains the ratio k_MDSC_rec / (k_MDSC_death * parent_density) through the observed
+    fraction of CD45+ cells that are CD14+HLA-DR-/lo MDSCs in PDAC tumors. With k_MDSC_rec and k_MDSC_death both treated as
+    free parameters, only their ratio is identifiable from this single steady-state fraction measurement; absolute values
+    of each parameter remain correlated. Dimensional anchoring is provided by the reference CD45+ leukocyte density in PDAC
+    (pdac_cd45_density_volumetric), so the inferred combination k_MDSC_rec / k_MDSC_death has units of cell/(mL*day). To separately
+    constrain k_MDSC_death, additional data are required (for example, MDSC Ki-67 positivity or in situ turnover), or informative
+    priors on MDSC lifetimes. In practice, this clinical PDAC target is intended to be combined with other murine and human
+    data (for example, Hong2015, Porembka2012) in a joint calibration, where those additional targets help regularize k_MDSC_death
+    while this study primarily anchors the overall magnitude of k_MDSC_rec in human PDAC.
+  parameters:
+  - name: k_MDSC_rec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 15.0
+      rationale: Very weakly informative prior centered around 3e6 cell/(mL*day), spanning several orders of magnitude to
+        cover literature estimates from mouse PDAC and human tumors. Reflects large uncertainty in absolute MDSC recruitment
+        rates.
+      sigma: 2.0
+      upper: null
+    units: cell/(milliliter*day)
+  - name: k_MDSC_death
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: Weakly informative prior for effective MDSC loss (death + clearance) in tumor, centered at 1/day with approximately
+        10-fold variability, consistent with typical myeloid cell lifetimes in tissues.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Enzymatic digestion of surgical or biopsy specimens followed by multicolor flow cytrometry.
+    name: tumor-infiltrating leukocytes
+    phenotype: CD45+ immune cells from treatment-naive PDAC tumor biopsies
+  culture_conditions: null
+  indication: PDAC
+  species: human
+  system: in_vivo_clinical
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 29
+  name: mmdsc_fraction_cd14_hdrlow_mean
+  role: target
+  source_access: open_access
+  source_location: Results, section 'The frequency of tumor-infiltrating T cells inversely correlates with the presence of
+    PMNs and M-MDSCs', description of PDAC tissue immune composition
+  source_ref: Trovato2019_MDSC_PDAC
+  uncertainty: null
+  units: percent
+  value: 0.969
+  value_snippet: we observed a higher frequency of several myeloid cells, such as PMNs (28.89 +/- 4.693), M-MDSCs (0.969 +/-
+    0.167), e-MDSC (1.235 +/- 0.198) and macrophages (8.832 +/- 2.265) and Tregs (1.092 +/- 0.196)
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 29
+  name: mmdsc_fraction_cd14_hdrlow_sd
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, section 'The frequency of tumor-infiltrating T cells inversely correlates with the presence of
+    PMNs and M-MDSCs', description of PDAC tissue immune composition
+  source_ref: Trovato2019_MDSC_PDAC
+  uncertainty: null
+  units: percent
+  value: 0.167
+  value_snippet: we observed a higher frequency of several myeloid cells, such as PMNs (28.89 +/- 4.693), M-MDSCs (0.969 +/-
+    0.167), e-MDSC (1.235 +/- 0.198) and macrophages (8.832 +/- 2.265) and Tregs (1.092 +/- 0.196)
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: mmdsc_fraction_cd14_hdrlow_n
+  role: auxiliary
+  source_access: open_access
+  source_location: 'Results, same section: ''we analysed infiltrating leukocytes isolated from 29 tumor samples from treatment-naive
+    PDAC patients'''
+  source_ref: Trovato2019_MDSC_PDAC
+  uncertainty: null
+  units: dimensionless
+  value: 29.0
+  value_snippet: we analysed infiltrating leukocytes isolated from 29 tumor samples from treatment-naive PDAC patients
+key_assumptions:
+- Tumor-infiltrating CD14+HLA-DR-/lo cells in Trovato et al. are an adequate phenotypic proxy for the MDSC population represented
+  in the QSPIO-PDAC model.
+- Resected or biopsied PDAC tumors from treatment-naive patients are in a quasi-steady-state for MDSC trafficking, so that
+  recruitment approximately balances loss over the timescale probed by the cross-sectional measurements.
+- Chemokine- and cytokine-dependent drivers of MDSC recruitment (for example, CCL2, IL-6) are near saturating in advanced
+  PDAC, allowing the recruitment term in the full model to be approximated by k_MDSC_rec times tumor volume without explicit
+  CCL2 or IL-6 modulation in this submodel.
+- Effective MDSC loss in tumor can be represented by a single first-order rate k_MDSC_death that aggregates true cell death
+  and any clearance or egress processes relevant on the timescale of days.
+- Inter-patient heterogeneity in immune composition (reflected in the reported variability) is treated as measurement and
+  biological noise around a single population-level mean fraction for calibration purposes.
+key_study_limitations:
+- The study reports the mean and variability of MDSC and other immune subset frequencies across 29 patients but does not stratify
+  by detailed clinical covariates (for example, stage, tumor size, anatomical site), which may contribute additional heterogeneity
+  compared with the homogeneous virtual patient population in the model.
+- The reported variability (0.969 +/- 0.167%) is given without explicit clarification in the text as SD vs. SEM for Figure
+  1; here it is treated as SD, and this ambiguity is reflected by marking the observational SD as uncertain in the error model.
+- Flow cytometric gating of human MDSC subsets is challenging and may include or exclude functionally distinct myeloid populations;
+  the CD14+HLA-DR-/lo gate captures monocytic MDSCs but does not explicitly quantify granulocytic or PMN-MDSCs in tumor.
+- The data provide only a single steady-state fraction for one MDSC subset, so k_MDSC_rec and k_MDSC_death are not separately
+  identifiable from this target alone; additional data or priors are needed to break this degeneracy.
+primary_data_source:
+  authors:
+  - Trovato R
+  - Fiore A
+  - Sartori S
+  - et al.
+  doi: 10.1186/s40425-019-0734-6
+  source_tag: Trovato2019_MDSC_PDAC
+  title: Immunosuppression by monocytic myeloid-derived suppressor cells in patients with pancreatic ductal carcinoma is orchestrated
+    by STAT3
+  year: 2019
+secondary_data_sources: null
+source_relevance:
+  estimated_translation_uncertainty_fold: 3.0
+  indication_match: exact
+  indication_match_justification: The study analyzes immune cell composition, including tumor-infiltrating MDSC-like CD14+HLA-DR-/lo
+    cells, directly in freshly digested human PDAC tumor samples from treatment-naive patients. This matches the QSPIO-PDAC
+    model indication (pancreatic ductal adenocarcinoma) and directly probes the same tumor compartment and immunosuppressive
+    myeloid population represented by MDSC in the model.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: Samples are human PDAC tumors obtained at surgery or biopsy prior to systemic therapy, exhibiting
+    a typical desmoplastic and immunosuppressive microenvironment with abundant myeloid cells. This closely matches the tumor
+    microenvironment assumptions encoded in the QSPIO-PDAC model.
+  validation_warnings: null
+study_interpretation: Trovato et al. (2019) provide quantitative flow cytometry data on the composition of tumor-infiltrating
+  leukocytes in human PDAC. Among CD45+ cells, monocytic MDSCs (CD14+HLA-DR-/lo) constitute on average approximately 1% (0.969
+  +/- 0.167%) of the infiltrate, while other myeloid subsets (PMNs, macrophages, e-MDSCs) and Tregs are also reported. Assuming
+  that established PDAC tumors at resection are in a quasi-steady-state with respect to myeloid trafficking, this fractional
+  abundance reflects a balance between continuous recruitment of MDSCs into the tumor and their loss through death and clearance.
+  Using a reference CD45+ cell density for PDAC, the observed fraction constrains the combination k_MDSC_rec / k_MDSC_death
+  and thereby anchors the magnitude of the MDSC recruitment rate parameter k_MDSC_rec in the human clinical setting. This
+  provides an independent clinical PDAC target complementary to earlier human tumor data (for example, Porembka2012) and preclinical
+  murine PDAC studies (for example, Hong2015), helping to reconcile mouse and human estimates of MDSC trafficking.
+target_id: k_MDSC_rec_pdac_trovato2019
