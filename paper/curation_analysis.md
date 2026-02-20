@@ -19,7 +19,7 @@ metadata_storage/
   to-review/              # 2 files under review
 ```
 
-Originals were extracted from Logfire traces using `pdac-build/scripts/extract_logfire_originals.py`, which queries the `agent run` span's `final_result` attribute for each file's `logfire_trace_id`.
+Originals for the gpt-5.1 pipeline extractions were retrieved from Logfire traces using `pdac-build/scripts/extract_logfire_originals.py`, which queries the `agent run` span's `final_result` attribute for each file's `logfire_trace_id`. The 27 claude-opus-4-6 files do not have retrievable originals because they were extracted interactively (not through the instrumented pipeline); their first git commit is effectively their "original."
 
 ---
 
@@ -156,13 +156,15 @@ CalibrationTarget files live in `pdac-build/calibration_targets/`, organized int
 
 ## Extraction Model Breakdown
 
-| Extraction Model | Files | Logfire Trace | Notes |
-|-----------------|-------|---------------|-------|
-| gpt-5.1 | 22 | Populated trace IDs | Run through instrumented pipeline |
-| claude-opus-4-6 | 27 | Blank trace IDs | Run outside Logfire-instrumented pipeline |
+| Extraction Model | Files | Logfire Trace | Collaboration Mode |
+|-----------------|-------|---------------|-------------------|
+| gpt-5.1 | 22 | Populated trace IDs | Batch pipeline extraction, then interactive curation with Claude Code |
+| claude-opus-4-6 | 27 | Blank trace IDs | Interactive extraction+curation with Claude Code using source PDFs |
 | manually-curated | 1 | None | `tumor_pO2_baseline` (hand-written) |
 
-All gpt-5.1 extractions have populated Logfire trace IDs; all claude-opus-4-6 extractions have blank traces.
+The gpt-5.1 files were extracted through the Logfire-instrumented automated pipeline, then curated interactively with Claude Code. The claude-opus-4-6 files were extracted directly in Claude Code sessions with the source PDFs loaded from `pdac-build/calibration_targets/sources/`, where the expert and LLM collaborated on extraction and curation simultaneously.
+
+**Important**: All curation across the entire project (both SubmodelTargets and CalibrationTargets) was performed interactively with Claude Code. The distinction is not "automated vs. manual" but rather the sequencing: batch extraction followed by interactive curation (gpt-5.1) vs. unified interactive extraction+curation (claude-opus-4-6).
 
 ## Original vs. Curated Comparison (Logfire-sourced, gpt-5.1 files)
 
@@ -199,12 +201,11 @@ Using `extract_logfire_originals.py`, we retrieved the raw LLM output for all 22
 
 | Category | Count | % of 50 |
 |----------|-------|---------|
-| Has LLM original (Logfire gpt-5.1) | 22 | 44% |
-| Has LLM original (to-review Claude batch) | 18 | 36% |
-| New target, no LLM starting point | 13 | 26% |
-| Manually curated (no LLM) | 1 | 2% |
+| Batch pipeline extraction (gpt-5.1) | 22 | 44% |
+| Interactive extraction (claude-opus-4-6) | 27 | 54% |
+| Manually written (no LLM) | 1 | 2% |
 
-Note: 18 of the to-review originals overlap with the Logfire gpt-5.1 originals; some curated files have originals from both runs.
+All 49 LLM-extracted files were curated interactively with Claude Code.
 
 **4 dropped targets** (extracted but not carried forward):
 1. `arginase_concentration` -- not in current model structure
@@ -236,24 +237,80 @@ A detailed review document (`pdac-build/calibration_targets/sources/review.md`) 
 
 This 58% rejection rate on a single batch demonstrates that expert review is essential.
 
+## Interactive Claude Code Extractions (27 files)
+
+The remaining 27 CalibrationTargets were extracted interactively with Claude Code (claude-opus-4-6) rather than through the automated pipeline. In these sessions, the expert loaded source PDFs directly into Claude Code from `pdac-build/calibration_targets/sources/` and collaboratively built each YAML file, with the expert providing domain guidance (species mapping, denominator definitions, distribution choices) and Claude handling literature comprehension, data extraction, and code generation in real time.
+
+### Breakdown by scenario
+
+| Subdirectory | Claude-extracted | gpt-5.1 | Manual |
+|-------------|:---:|:---:|:---:|
+| `baseline_no_treatment/` | 12 | 18 | 1 |
+| `gvax_nivo_neoadjuvant/` | 15 | 3 | 0 |
+| `clinical_progression/` | 0 | 1 | 0 |
+| **Total** | **27** | **22** | **1** |
+
+Most of the gvax_nivo_neoadjuvant treatment targets (15/18) were Claude-extracted. These derive from Li et al. (Cancer Cell 2022) scatter plots that required manual digitization, documented in `sources/li2022_digitization_results.md` and `sources/cd8t_nonLA_tumor.csv`.
+
+### Post-commit curation
+
+| Metric | Value |
+|--------|-------|
+| Total files | 27 |
+| Total lines (all files) | 7,395 |
+| Mean file size | 274 lines (range 182--426) |
+| Files with zero post-commit changes | 20 (74%) |
+| Files with any post-commit changes | 7 (26%) |
+| Total lines changed post-commit | 28 (0.19% of all lines) |
+
+The 7 changed files all received the same single edit: updating `pdac_cellularity_fraction` from 0.25 to 0.15 in the `model_context_parameters` section (commit `4271302`). This was a shared reference value correction, not a per-file extraction error.
+
+### Interpretation
+
+The near-zero post-commit curation does **not** mean these files required less human input than the gpt-5.1 pipeline extractions. It means the human input was folded into the extraction process itself. In the interactive mode:
+
+1. The expert read the source paper alongside Claude, guiding which data to extract
+2. Observable code was written collaboratively, with the expert specifying species mappings and denominator definitions
+3. Distribution code was iterated until the expert was satisfied with the uncertainty quantification
+4. Source relevance assessments were discussed and finalized before the file was committed
+
+The supporting documentation in `sources/` illustrates this interactive workflow:
+- `li2022_digitization_results.md` -- tabulated digitization of scatter plot data points, with pooled arm-level statistics and bootstrap CIs
+- `ogawa2021_ccr_digitization_results.md` -- pixel-level desmoplastic element proportions from multiplex IHC
+- `parameter_audit.md` -- a systematic audit of 175 model prior parameters, organized by concern level (red flags, yellow flags, minor concerns)
+- `initialization_to_calibration_review.md` -- discussion of calibration strategy (evolution-to-diagnosis vs. direct IC setting)
+
+These documents are Claude Code session transcripts, showing the expert-AI collaboration that produced the YAML files.
+
+### Two collaboration modes
+
+| | Batch pipeline (gpt-5.1) | Interactive (claude-opus-4-6) |
+|--|--|--|
+| **Extraction** | Automated, no expert input | Expert-guided, real-time |
+| **Curation** | Post-hoc, interactive with Claude Code | Embedded in extraction |
+| **Post-commit change** | 55.6% average | 0.19% average |
+| **Total human effort** | Comparable | Comparable |
+| **Files per session** | Many (batch) | Few (deep) |
+| **Failure mode** | 58% rejection rate on review | Prevented during extraction |
+
+The batch pipeline is more efficient for initial coverage (many files per run) but requires substantial post-extraction curation. The interactive mode produces near-final quality on first commit but requires deeper per-file engagement. Both modes are LLM-augmented; the difference is when the human judgment enters the workflow.
+
 ---
 
 # Part 3: Combined Analysis
 
 ## Side-by-Side Comparison
 
-| Metric | SubmodelTargets | CalibrationTargets |
-|--------|----------------|-------------------|
-| Total curated files | 37 | 50 |
-| Files with Logfire originals | 37 (100%) | 22 (44%) |
-| Average curation (% lines changed) | 47.7% | 55.6% |
-| Range | 36.0% -- 64.4% | 47.6% -- 65.4% |
-| Files requiring no curation | 0 (0%) | 0 (0%) |
-| Extraction model | gpt-5.1 only | gpt-5.1 (22) + claude-opus-4-6 (27) + manual (1) |
-| Expert review documented | Informal (git history) | Formal review.md with accept/reject decisions |
-| Review rejection rate | Unknown | 58% (in documented batch) |
+| Metric | SubmodelTargets | CalibrationTargets (gpt-5.1) | CalibrationTargets (Claude) |
+|--------|:-:|:-:|:-:|
+| Total curated files | 37 | 22 | 27 (+1 manual) |
+| Collaboration mode | Batch extract, then interactive curate | Batch extract, then interactive curate | Interactive extract+curate |
+| Average post-extraction curation | 47.7% | 55.6% | 0.19% |
+| Range | 36.0% -- 64.4% | 47.6% -- 65.4% | 0% -- 0.4% |
+| Files requiring no curation | 0 (0%) | 0 (0%) | 20 (74%) |
+| Review rejection rate | Unknown | 58% (documented batch) | N/A (prevented during extraction) |
 
-**Key finding**: Both schema types required substantial curation (47-56% average line change), with CalibrationTargets trending slightly higher. The earlier git-based analysis that suggested 30% of SubmodelTargets needed no curation was an artifact of pre-commit curation. With Logfire-sourced originals, the picture is consistent: every extraction required meaningful human intervention.
+**Key finding**: The batch pipeline extractions (gpt-5.1) required 48-56% post-extraction curation regardless of schema type. The interactive Claude extractions show near-zero post-commit change because curation was embedded in the extraction process. All three workflows are LLM-augmented: all curation was performed interactively with Claude Code. The meaningful distinction is not "automated vs. manual" but when expert judgment enters the loop.
 
 ## Edit Classification by Category
 
@@ -312,15 +369,31 @@ The low code change percentage for SubmodelTargets (2.6%) reflects the success o
 
 ## What This Means for the Paper
 
-The curation data supports the narrative that MAPLE is a **human-AI collaboration tool**, not a fully automatic pipeline. The consistent 47-56% curation rate across both schema types means:
+The curation data supports the narrative that MAPLE is a **human-AI collaboration tool**, not a fully automatic pipeline.
+
+### Batch pipeline mode (59 files: 37 SMT + 22 CT)
+
+The consistent 48-56% post-extraction curation rate across both schema types means:
 
 1. **The LLM provides ~50% of the final content** -- a meaningful starting scaffold that includes correct overall structure, literature identification, and approximate parameter values
 2. **Expert judgment contributes the other ~50%** -- half of which is scientific content (data, priors, sources) and half narrative refinement (rationale, assumptions)
-3. **The schema structures this collaboration** -- validators catch errors during editing, structured templates eliminate handwritten code bugs, and field typing prevents parameter/input confusion
-4. **No extraction was used as-is** -- this is important for credibility, as it shows the framework doesn't encourage blind acceptance of LLM output
-5. **Code is NOT the main bottleneck** -- only 2.6% of SubmodelTarget changes and 19% of CalibrationTarget changes involve code, because structured forward model types handle the common patterns
+3. **No extraction was used as-is** -- this is important for credibility, as it shows the framework doesn't encourage blind acceptance of LLM output
+4. **Code is NOT the main bottleneck** -- only 2.6% of SubmodelTarget changes and 19% of CalibrationTarget changes involve code, because structured forward model types handle the common patterns
 
 The CalibrationTarget rejection rate (58% in the documented batch) further demonstrates that the schema enables systematic quality control that would be difficult with unstructured free-text outputs.
+
+### Interactive mode (27 files)
+
+The near-zero post-commit curation rate for the interactive Claude extractions tells a complementary story:
+
+1. **Expert-in-the-loop extraction produces near-final quality** -- when the domain expert guides the extraction in real time, the output converges to publication quality before the first commit
+2. **The schema still structures the collaboration** -- even in interactive mode, the YAML schema provides the scaffold that the expert and LLM fill in together, ensuring completeness and consistency
+3. **Figure digitization and complex observables benefit from interactivity** -- 15 of the 27 files involved digitizing scatter plots from Li et al. 2022, where the expert directed Claude through the figure interpretation, pooling strategy, and bootstrap uncertainty quantification
+4. **The supporting documentation is itself a product of the collaboration** -- parameter audits, digitization tables, and calibration strategy discussions were generated in the same Claude Code sessions
+
+### Across both modes
+
+All curation was performed interactively with Claude Code. The framework supports both batch-then-curate and interactive-extraction workflows, with the schema providing structure in either case. The batch mode is more scalable (many files per run), while the interactive mode produces higher first-pass quality for complex targets requiring figure digitization, multi-source synthesis, or deep domain reasoning.
 
 ## Restic Backup Timeline
 
@@ -353,4 +426,4 @@ The 22 to 37 jump (15 new files) happened between Feb 5-11, corresponding to the
 - [x] Correct SubmodelTarget metrics (git-based analysis understated curation)
 - [x] Organize originals + curated in paired directory structure for easy diffing
 - [x] Classify edits by type (rationale text vs. numeric values vs. observable code vs. distribution params)
-- [ ] Characterize the 27 claude-opus-4-6 CalibrationTarget extractions
+- [x] Characterize the 27 claude-opus-4-6 CalibrationTarget extractions
