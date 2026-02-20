@@ -255,14 +255,70 @@ This 58% rejection rate on a single batch demonstrates that expert review is ess
 
 **Key finding**: Both schema types required substantial curation (47-56% average line change), with CalibrationTargets trending slightly higher. The earlier git-based analysis that suggested 30% of SubmodelTargets needed no curation was an artifact of pre-commit curation. With Logfire-sourced originals, the picture is consistent: every extraction required meaningful human intervention.
 
+## Edit Classification by Category
+
+Using `difflib.SequenceMatcher` on each original/curated pair, we classified every changed line by the YAML section it belongs to, then grouped into semantic categories. This reveals *what kind of expert judgment* drove the curation.
+
+### SubmodelTarget edit breakdown (n=37, 15,017 changed lines)
+
+| Category | Lines | % of total |
+|----------|------:|-----------:|
+| Input data (values, snippets, sources) | 4,356 | 29.0% |
+| Text & rationale (interpretation, assumptions, limitations, identifiability) | 3,581 | 23.8% |
+| Model structure (forward model type, state variables, error model) | 1,971 | 13.1% |
+| Data sources / references | 1,376 | 9.2% |
+| Prior & likelihood (distribution params, bounds) | 1,362 | 9.1% |
+| Source relevance (applicability assessment) | 738 | 4.9% |
+| Experimental context (species, system, culture) | 730 | 4.9% |
+| Metadata & formatting (tags, trace IDs, YAML style) | 394 | 2.6% |
+| Code (compute / observation functions) | 392 | 2.6% |
+| Other | 117 | 0.8% |
+
+Notable: 65% of files (24/37) had their forward model type changed (e.g., `direct_conversion` to `algebraic`, `batch_accumulation`, or `steady_state_*`). 95% (35/37) had observation code changes. 100% had prior distribution adjustments.
+
+### CalibrationTarget edit breakdown (n=22, 9,391 changed lines)
+
+| Category | Lines | % of total |
+|----------|------:|-----------:|
+| Empirical data & distribution (inputs, distribution code, CI values) | 4,377 | 46.6% |
+| Observable code & structure (species mapping, denominator, constants) | 1,793 | 19.1% |
+| Text & rationale (interpretation, assumptions, limitations) | 1,313 | 14.0% |
+| Experimental context (species, system, culture) | 718 | 7.6% |
+| Scenario configuration | 378 | 4.0% |
+| Data sources / references | 334 | 3.6% |
+| Metadata & formatting | 203 | 2.2% |
+| Source relevance | 180 | 1.9% |
+| Other | 95 | 1.0% |
+
+### High-level grouping
+
+Collapsing into three interpretive categories:
+
+| Group | SubmodelTargets | CalibrationTargets | What it represents |
+|-------|:-:|:-:|---|
+| **Scientific content** | 52% | 52% | Data values, priors, source papers, relevance assessments |
+| **Narrative & documentation** | 29% | 22% | Rationale text, assumptions, limitations, experimental context |
+| **Structural & technical** | 16% | 23% | Schema migration, code, observable structure, scenario config |
+| **Metadata & formatting** | 3% | 2% | Tags, trace IDs, YAML formatting |
+
+The most striking finding is that **scientific content changes account for exactly 52% of all edits in both schema types**, despite the different overall curation rates (48% for SMT, 56% for CT). This means:
+
+- The LLM produces a structurally correct scaffold with reasonable literature identification
+- The expert contributes domain-specific judgment: adjusting data values, widening/narrowing priors, selecting different source papers, and assessing relevance
+- Roughly a quarter of changes are narrative refinement (more precise biological language, better-justified assumptions)
+- Technical/structural changes (16-23%) reflect schema evolution during the project rather than LLM error
+
+The low code change percentage for SubmodelTargets (2.6%) reflects the success of structured forward model types: rather than editing handwritten code, experts select a model type and the framework generates the code. CalibrationTargets show higher structural change (19%) because observable code (mapping model species to experimental measurements) requires deep domain knowledge that the LLM frequently gets wrong (incorrect denominators, missing area corrections, wrong species sums).
+
 ## What This Means for the Paper
 
 The curation data supports the narrative that MAPLE is a **human-AI collaboration tool**, not a fully automatic pipeline. The consistent 47-56% curation rate across both schema types means:
 
 1. **The LLM provides ~50% of the final content** -- a meaningful starting scaffold that includes correct overall structure, literature identification, and approximate parameter values
-2. **Expert judgment contributes the other ~50%** -- refining biological language, adjusting priors, fixing observable code, changing source papers, and catching methodological mismatches
-3. **The schema structures this collaboration** -- validators catch errors during editing, structured templates prevent code bugs, and field typing prevents parameter/input confusion
+2. **Expert judgment contributes the other ~50%** -- half of which is scientific content (data, priors, sources) and half narrative refinement (rationale, assumptions)
+3. **The schema structures this collaboration** -- validators catch errors during editing, structured templates eliminate handwritten code bugs, and field typing prevents parameter/input confusion
 4. **No extraction was used as-is** -- this is important for credibility, as it shows the framework doesn't encourage blind acceptance of LLM output
+5. **Code is NOT the main bottleneck** -- only 2.6% of SubmodelTarget changes and 19% of CalibrationTarget changes involve code, because structured forward model types handle the common patterns
 
 The CalibrationTarget rejection rate (58% in the documented batch) further demonstrates that the schema enables systematic quality control that would be difficult with unstructured free-text outputs.
 
@@ -296,5 +352,5 @@ The 22 to 37 jump (15 new files) happened between Feb 5-11, corresponding to the
 - [x] Query Logfire traces for all 37 SubmodelTargets to get true original-vs-curated diffs
 - [x] Correct SubmodelTarget metrics (git-based analysis understated curation)
 - [x] Organize originals + curated in paired directory structure for easy diffing
-- [ ] Classify edits by type (rationale text vs. numeric values vs. observable code vs. distribution params) for a finer-grained breakdown
+- [x] Classify edits by type (rationale text vs. numeric values vs. observable code vs. distribution params)
 - [ ] Characterize the 27 claude-opus-4-6 CalibrationTarget extractions
