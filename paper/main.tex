@@ -16,8 +16,6 @@
 \usepackage{natbib}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{float}
-\usepackage{minted}
-
 % Cross-reference supplementary material
 \externaldocument{supplementary}
 
@@ -27,12 +25,6 @@
 \input{generated/yaml_stats}
 \input{generated/ct_stats}
 \input{generated/inference_stats}
-
-% Minted settings
-\setminted{fontsize=\footnotesize, breaklines, frame=single, framesep=2mm}
-\setminted[yaml]{style=friendly}
-\setminted[julia]{style=friendly}
-\renewcommand{\listingscaption}{Code block}
 
 % Title
 \title{MAPLE: Model-Aware Parameter Literature Extraction for QSP Model Calibration}
@@ -233,7 +225,7 @@ When the translator processes multiple YAML files, it identifies parameters that
 
 The mechanics of parameter sharing are straightforward. Consider two targets A and B that both involve a parameter \texttt{k\_shared}. In the generated Turing model, the parameter is declared once with its prior, then used in the simulation functions for both targets:
 
-\begin{minted}{julia}
+\begin{verbatim}
 @model function joint_model()
     # Shared parameter declared once
     k_shared ~ LogNormal(mu, sigma)
@@ -245,7 +237,7 @@ The mechanics of parameter sharing are straightforward. Consider two targets A a
     obs_A ~ Normal(pred_A, sigma_A)
     obs_B ~ Normal(pred_B, sigma_B)
 end
-\end{minted}
+\end{verbatim}
 
 The NUTS sampler explores this joint posterior, finding values of \texttt{k\_shared} that are consistent with both observations. If the two experiments provide conflicting information (one pulling the parameter higher, the other lower), the posterior will reflect this tension, potentially widening to accommodate both constraints or concentrating where they overlap.
 

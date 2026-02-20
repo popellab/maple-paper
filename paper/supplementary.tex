@@ -7,13 +7,6 @@
 \usepackage{multirow}
 \usepackage{hyperref}
 \usepackage[dvipsnames]{xcolor}
-\usepackage{minted}
-
-% Minted settings
-\setminted{fontsize=\footnotesize, breaklines, frame=single, framesep=2mm}
-\setminted[yaml]{style=friendly}
-\setminted[python]{style=friendly}
-\setminted[julia]{style=friendly}
 
 \title{Supplementary Materials:\\LLM-Assisted Extraction of QSP Calibration Targets}
 \author{Joel Eliason}
@@ -42,7 +35,7 @@ This target constrains the proliferation rate parameter \texttt{k\_apsc\_prolif}
 
 \subsection{Complete YAML Specification}
 
-\begin{minted}{yaml}
+\begin{verbatim}
 # Schema: SubmodelTarget
 # Target: Activated PSC proliferation rate
 
@@ -250,7 +243,7 @@ secondary_data_sources:
     source_tag: Apte1999_PSC_Cytokines
     contribution: |
       Provides context on PSC activation and cytokine response protocols.
-\end{minted}
+\end{verbatim}
 
 \subsection{Schema Structure Summary}
 
@@ -345,7 +338,7 @@ The validation framework includes ten automated checks implemented as Pydantic \
 
 The DOI validator queries the CrossRef API to verify that every cited DOI resolves to a valid publication. This catches fabricated citations before they enter the calibration pipeline. The validator also performs fuzzy matching on title and year to detect metadata inconsistencies.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 def resolve_doi(doi: str) -> Optional[dict]:
     """Resolve DOI and get metadata from CrossRef."""
     doi_clean = doi.replace("https://doi.org/", "").strip()
@@ -383,7 +376,7 @@ def validate_doi_resolution_and_metadata(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("DOI validation errors:\n  - " + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If an LLM fabricates a citation with DOI \texttt{10.1234/fake.2023.12345}, the CrossRef query returns a 404 error and validation fails with:
 \begin{verbatim}
@@ -395,7 +388,7 @@ Verify at https://doi.org/10.1234/fake.2023.12345
 
 The value-in-snippet validator checks that each extracted numeric value appears in its associated source text. This catches hallucinations where an LLM extracts a plausible but incorrect value. The validator handles multiple numeric formats including scientific notation, percentages, and Unicode superscripts.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 def check_value_in_text(text: str, value: float) -> bool:
     """Check if numeric value appears in text."""
     text_norm = text.lower().replace(",", "")
@@ -439,7 +432,7 @@ def validate_input_values_in_snippets(self) -> "SubmodelTarget":
         raise ValueError("Value-snippet mismatches (possible hallucination):\n  - "
                         + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If an input claims \texttt{value: 4.37} but the snippet reads ``Cell proliferation was 3.21-fold of control'', validation fails with:
 \begin{verbatim}
@@ -454,7 +447,7 @@ This validator is particularly effective because LLMs that hallucinate values ra
 
 The unit validator parses all unit strings using Pint, a Python library for physical quantities. Malformed or unrecognized units trigger validation failure.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 @model_validator(mode="after")
 def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     """Validate that all unit strings are valid Pint units."""
@@ -476,7 +469,7 @@ def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("Invalid Pint units:\n  - " + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If a parameter specifies \texttt{units: cells/mL/day} (invalid compound unit), validation fails with:
 \begin{verbatim}
@@ -504,7 +497,7 @@ These validators catch internal inconsistencies where an LLM generates reference
 
 The translator generates Julia scripts with the following structure:
 
-\begin{minted}{julia}
+\begin{verbatim}
 using DifferentialEquations
 using Turing
 using Distributions
@@ -541,7 +534,7 @@ end
 # Run inference
 model = proliferation_model()
 chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
-\end{minted}
+\end{verbatim}
 
 For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
 
@@ -556,7 +549,7 @@ This section provides the key Pydantic model definitions that implement both cal
 
 The \texttt{SubmodelTarget} class is the entry point for validation. When a YAML file is loaded, Pydantic recursively validates all nested models.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class SubmodelTarget(BaseModel):
     """
     Submodel-based calibration target for QSP parameter inference.
@@ -603,13 +596,13 @@ class SubmodelTarget(BaseModel):
 
     # Validators (10 total) defined via Pydantic decorators
     # See Section S3 for implementation details
-\end{minted}
+\end{verbatim}
 
 \subsection{Input Model}
 
 Each input captures a single value extracted from literature with full provenance:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class InputType(str, Enum):
     """Type of input extracted from literature."""
     DIRECT_MEASUREMENT = "direct_measurement"   # Value reported directly
@@ -640,13 +633,13 @@ class Input(BaseModel):
         default=None,
         description="Exact text from paper containing the value (for validation)"
     )
-\end{minted}
+\end{verbatim}
 
 \subsection{Model Type Discriminated Union}
 
 The schema uses Pydantic's discriminated union pattern to support multiple model types, each with type-specific required fields:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class BaseModelSpec(BaseModel):
     """Base class for all model specifications."""
     data_rationale: str = Field(
@@ -691,7 +684,7 @@ Model = Annotated[
     ],
     Field(discriminator="type"),
 ]
-\end{minted}
+\end{verbatim}
 
 The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \texttt{type} field in the YAML to determine which model class to instantiate. This ensures that an \texttt{exponential\_growth} model is validated against \texttt{ExponentialGrowthModel} (which requires \texttt{rate\_constant}) while a \texttt{two\_state} model is validated against \texttt{TwoStateModel} (which requires \texttt{forward\_rate}).
 
@@ -699,7 +692,7 @@ The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \text
 
 Priors are specified with distribution type and parameters:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class PriorDistribution(str, Enum):
     """Supported prior distribution types."""
     LOGNORMAL = "lognormal"    # For positive parameters (rates, densities)
@@ -728,13 +721,13 @@ class Prior(BaseModel):
             if self.lower >= self.upper:
                 raise ValueError("uniform lower must be < upper")
         return self
-\end{minted}
+\end{verbatim}
 
 \subsection{Loading and Validating YAML Files}
 
 To load and validate a calibration target:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 import yaml
 from qsp_llm_workflows.core.calibration import SubmodelTarget
 
@@ -749,7 +742,7 @@ target = SubmodelTarget(**data)
 print(f"Target: {target.target_id}")
 print(f"Parameters: {[p.name for p in target.calibration.parameters]}")
 print(f"Model type: {target.calibration.model.type}")
-\end{minted}
+\end{verbatim}
 
 If validation fails, Pydantic raises a \texttt{ValidationError} with detailed error messages:
 
@@ -765,7 +758,7 @@ primary_data_source.doi
 
 The \texttt{CalibrationTarget} schema represents clinical and in vivo endpoints for full-model calibration. Where SubmodelTarget isolates a single mechanism, CalibrationTarget operates on the full model state.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class CalibrationTarget(BaseModel):
     """
     Calibration target for full-model Bayesian inference.
@@ -801,13 +794,13 @@ class CalibrationTarget(BaseModel):
     source_relevance: Optional[SourceRelevanceAssessment] = None
 
     # 30+ validators (see Section S3)
-\end{minted}
+\end{verbatim}
 
 \subsection{Observable}
 
 The \texttt{Observable} specifies how to compute the experimental measurement from full model species. Unlike SubmodelTarget's forward model (which defines isolated dynamics), the observable operates on the solved full-model state.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class Observable(BaseModel):
     """
     Full-model observable for CalibrationTarget.
@@ -841,7 +834,7 @@ class Observable(BaseModel):
     # Denominator audit fields for density/fraction observables
     experimental_denominator: Optional[str] = None
     model_denominator_species: Optional[List[str]] = None
-\end{minted}
+\end{verbatim}
 
 Each \texttt{ObservableConstant} requires a \texttt{biological\_basis} explanation and must trace to either the curated reference database or a specific literature source.
 
@@ -849,7 +842,7 @@ Each \texttt{ObservableConstant} requires a \texttt{biological\_basis} explanati
 
 The empirical data block derives summary statistics from literature inputs via Monte Carlo simulation.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class CalibrationTargetEstimates(BaseModel):
     """
     Empirical data block: literature values -> distribution for likelihood.
@@ -881,13 +874,13 @@ class CalibrationTargetEstimates(BaseModel):
         description="Python: derive_distribution(inputs, ureg) -> "
                     "{'median': [...], 'ci95': [...], 'units': str}"
     )
-\end{minted}
+\end{verbatim}
 
 \subsection{Scenario and Intervention}
 
 For studies involving treatment, the \texttt{Scenario} captures the clinical context.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class Intervention(BaseModel):
     """A single treatment intervention."""
     agent: str = Field(description="Drug or treatment name")
@@ -903,7 +896,7 @@ class Scenario(BaseModel):
     description: str = Field(
         description="Narrative description of the clinical scenario"
     )
-\end{minted}
+\end{verbatim}
 
 %=============================================================================
 \section{S6: SubmodelTarget Schema Details}
@@ -929,8 +922,8 @@ Each input captures a single value extracted from literature with full provenanc
 
 Code block~\ref{lst:input} shows a representative input.
 
-\begin{listing}[H]
-\begin{minted}{yaml}
+\begin{figure}[H]
+\begin{verbatim}
 inputs:
   - name: pdgf_fold_mean
     value: 4.37
@@ -944,10 +937,10 @@ inputs:
     source_location: Abstract
     value_snippet: "Cell proliferation (4.37 +/- 0.49-
                     and 2.96 +/- 0.39-fold of control)."
-\end{minted}
+\end{verbatim}
 \caption{An input capturing a proliferation measurement with provenance.}
 \label{lst:input}
-\end{listing}
+\end{figure}
 
 \subsection{S6.2: Parameter and Prior Specification}
 
@@ -955,8 +948,8 @@ Each parameter includes a prior distribution with documented rationale. The sche
 
 Code block~\ref{lst:param} shows a parameter specification.
 
-\begin{listing}[H]
-\begin{minted}{yaml}
+\begin{figure}[H]
+\begin{verbatim}
 calibration:
   parameters:
     - name: k_apsc_prolif
@@ -968,10 +961,10 @@ calibration:
         rationale: |
           Wide prior centered at 1/day. A 4-fold increase
           in 1 day implies k ~ ln(4) ~ 1.4/day.
-\end{minted}
+\end{verbatim}
 \caption{A parameter with lognormal prior and documented rationale.}
 \label{lst:param}
-\end{listing}
+\end{figure}
 
 \subsection{S6.3: Forward Model Specification}
 
@@ -979,8 +972,8 @@ The forward model captures the dynamics relevant to the experiment. For time-cou
 
 Code block~\ref{lst:model} shows a forward model using the exponential growth template.
 
-\begin{listing}[H]
-\begin{minted}{yaml}
+\begin{figure}[H]
+\begin{verbatim}
 calibration:
   forward_model:
     type: exponential_growth
@@ -1001,10 +994,10 @@ calibration:
     submodel_rationale: |
       At saturating PDGF, the full model reduces to
       dN/dt = k_apsc_prolif * N.
-\end{minted}
+\end{verbatim}
 \caption{Forward model specification with state variable and time span.}
 \label{lst:model}
-\end{listing}
+\end{figure}
 
 \subsection{S6.4: Error Model Specification}
 
@@ -1012,8 +1005,8 @@ The error model specifies the statistical relationship between predictions and o
 
 Code block~\ref{lst:error-model} shows a complete error model entry.
 
-\begin{listing}[H]
-\begin{minted}{yaml}
+\begin{figure}[H]
+\begin{verbatim}
   error_model:
     - name: viability_48h
       units: dimensionless
@@ -1033,10 +1026,10 @@ Code block~\ref{lst:error-model} shows a complete error model entry.
         distribution: normal
         rationale: |
           Viability near 1 with small SD; normal adequate.
-\end{minted}
+\end{verbatim}
 \caption{Error model specification linking forward model predictions to observed data.}
 \label{lst:error-model}
-\end{listing}
+\end{figure}
 
 %=============================================================================
 \section{S7: Complete CalibrationTarget Example}
@@ -1053,7 +1046,7 @@ This target constrains baseline intratumoral CD8+ T cell density using immunohis
 
 The observable maps full model species to the experimental measurement:
 
-\begin{minted}[fontsize=\scriptsize]{yaml}
+\begin{verbatim}
 observable:
   code: |
     def compute_observable(time, species_dict, constants, ureg):
@@ -1098,13 +1091,13 @@ observable:
     cellularity fraction.
   experimental_denominator: "mm^2 of tumor tissue section area"
   model_denominator_species: [V_T.C1]
-\end{minted}
+\end{verbatim}
 
 \subsection{Empirical Data}
 
 The distribution code combines two patient subgroups (DOG1-negative and DOG1-positive) via mixture-of-lognormals Monte Carlo:
 
-\begin{minted}[fontsize=\scriptsize]{yaml}
+\begin{verbatim}
 empirical_data:
   median: [138.8]
   ci95: [[20.3, 965.2]]
@@ -1192,11 +1185,11 @@ empirical_data:
                       float(np.percentile(samples, 97.5))]],
             'units': 'cell / millimeter**2'
         }
-\end{minted}
+\end{verbatim}
 
 \subsection{Source and Context}
 
-\begin{minted}[fontsize=\scriptsize]{yaml}
+\begin{verbatim}
 primary_data_source:
   doi: "10.7717/peerj.11397"
   title: ""; expression of immune cell markers in the tumor
@@ -1227,7 +1220,7 @@ key_study_limitations:
   - "TMA cores (0.6mm) may not represent whole-slide heterogeneity"
   - "Mixed pathologic stages without neoadjuvant therapy reporting"
   - "2D histology section vs. 3D model compartment"
-\end{minted}
+\end{verbatim}
 
 %=============================================================================
 \section{S8: CalibrationTarget Detailed Metrics}

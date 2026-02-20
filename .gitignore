@@ -42,3 +42,4 @@ _minted
 *.jl
 *.png
 notes/
+paper/diff_output/
