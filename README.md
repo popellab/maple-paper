@@ -1,6 +1,6 @@
 # MAPLE Paper
 
-Manuscript and supporting materials for "MAPLE: Model-Aware Parameter Literature Extraction for QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
+Manuscript and supporting materials for "Structured Schemas for LLM-Modeler Collaboration in QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
 
 MAPLE is a framework for LLM-assisted calibration of quantitative systems pharmacology (QSP) models. It combines model-aware literature search (using LLM web search guided by mechanistic context) with validated extraction and automatic code generation for Bayesian inference.
 
@@ -11,21 +11,20 @@ qsp-llm-workflows-paper/
 ├── paper/                    # Manuscript
 │   ├── main.tex             # Main manuscript
 │   ├── supplementary.tex    # Supplementary materials (S1-S5)
-│   ├── cpt_article_outline.md # Article outline
+│   ├── generated/           # Auto-generated tables, figures, and LaTeX macros
 │   └── references.bib       # Bibliography
 │
-├── examples/                 # PDAC calibration targets (YAML)
-│   ├── psc_*.yaml           # Pancreatic stellate cell targets
-│   ├── ecm_*.yaml           # ECM secretion targets
-│   ├── tcell_*.yaml         # T cell killing targets
-│   ├── tgfb_*.yaml          # TGF-beta secretion targets
-│   └── treg_*.yaml          # Treg suppression targets
+├── scripts/                  # Statistics generation scripts
+│   ├── generate_results.py  # Extraction pipeline metrics
+│   ├── generate_curation_stats.py  # Curation field-level change metrics
+│   └── generate_ct_stats.py # CalibrationTarget summary stats
+│
+├── metadata_storage/         # Original and curated YAML files for diffing
+│
+├── examples/                 # PDAC calibration target examples (YAML)
 │
 ├── prompts/                  # LLM prompts for extraction
 │   └── extract_calibration_target.md
-│
-├── presentation/             # Conference presentations
-│   └── calibration_workflow_presentation.tex
 │
 └── archive/                  # Old manuscript materials
 ```
@@ -40,7 +39,7 @@ qsp-llm-workflows-paper/
 
 ## Related Repository
 
-MAPLE (SubmodelTarget schema, validators, Julia translator) is implemented in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
+MAPLE (SubmodelTarget and CalibrationTarget schemas, validators, Julia translator) is implemented in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
 
 ## Building the Paper
 

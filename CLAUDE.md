@@ -30,11 +30,19 @@ The framework code is in `../qsp-llm-workflows/` (sibling directory). Schema and
 - Do not include "Co-Authored-By: Claude" or any AI attribution in commit messages
 - Use concise, descriptive commit messages
 
+## Generated Statistics
+
+All quantitative results in the paper come from auto-generated LaTeX macros:
+- `paper/generated/extraction_stats.tex` - Extraction pipeline metrics (from `scripts/generate_results.py`)
+- `paper/generated/curation_stats.tex` - Curation field-level change metrics (from `scripts/generate_curation_stats.py`)
+- `paper/generated/ct_stats.tex` - CalibrationTarget summary stats (from `scripts/generate_ct_stats.py`)
+- `paper/generated/yaml_stats.tex` - Source characteristics (from `scripts/generate_results.py`)
+
 ## Current State
 
 - Introduction: Complete
 - Methods: Complete
-- Results: Partially complete (placeholder values in tables)
-- Discussion: To be written
-- Conclusions: To be written
+- Results: Complete
+- Discussion: Complete
+- Study Highlights: Complete
 - Supplementary S1-S5: Complete

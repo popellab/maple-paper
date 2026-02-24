@@ -60,6 +60,7 @@ class ExtractionMetrics:
     total_duration_sec: float = 0.0
     total_tokens: int = 0
     total_cost: float = 0.0
+    n_single_retry: int = 0
     retry_distribution: dict = field(default_factory=dict)
     error_categories: dict = field(default_factory=dict)
     tool_usage: dict = field(default_factory=dict)  # Aggregated tool usage
@@ -192,6 +193,7 @@ def collect_extraction_metrics() -> ExtractionMetrics:
     metrics.total_retries = sum(retry_counts)
     metrics.max_retries = max(retry_counts) if retry_counts else 0
     metrics.retry_distribution = dict(Counter(retry_counts))
+    metrics.n_single_retry = sum(1 for r in retry_counts if r == 1)
     metrics.error_categories = dict(error_cats)
     metrics.tool_usage = dict(tool_usage)
 
@@ -399,6 +401,7 @@ def generate_extraction_stats_tex(metrics: ExtractionMetrics) -> str:
         f"\\newcommand{{\\firstAttemptRate}}{{{metrics.first_attempt_rate*100:.1f}\\%}}",
         f"\\newcommand{{\\totalRetries}}{{{metrics.total_retries}}}",
         f"\\newcommand{{\\maxRetries}}{{{metrics.max_retries}}}",
+        f"\\newcommand{{\\nSingleRetry}}{{{metrics.n_single_retry}}}",
         f"\\newcommand{{\\avgDurationMin}}{{{metrics.avg_duration_min:.1f}}}",
         f"\\newcommand{{\\avgTokensK}}{{{metrics.avg_tokens/1000:.0f}k}}",
         f"\\newcommand{{\\avgCost}}{{\\${metrics.avg_cost:.2f}}}",
