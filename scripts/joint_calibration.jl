@@ -1253,7 +1253,7 @@ for (i, pname) in enumerate(param_names)
         fill=true, fillalpha=0.2, color=:gray, linewidth=1, linecolor=:gray,
         xlabel=param_labels[i], ylabel="",
         label="Prior", legend=false, grid=false, framestyle=:box,
-        xrotation=45, guidefontsize=10, tickfontsize=8)
+        xrotation=45)
 
     # Overlay posterior density
     density!(plt, samples;
@@ -1267,10 +1267,9 @@ for (i, pname) in enumerate(param_names)
     push!(plots, plt)
 end
 
-p = plot(plots...; layout=(7, 3), size=(1800, 1600), margin=10mm)
+p = plot(plots...; layout=(7, 3), size=(1200, 1000), margin=8mm)
 savefig(p, "posterior_marginals.png")
-savefig(p, "posterior_marginals.pdf")
-println("Saved: posterior_marginals.png, posterior_marginals.pdf")
+println("Saved: posterior_marginals.png")
 
 # ======================================================================
 # SAVE RESULTS TO JSON FOR AUTOMATED PROCESSING

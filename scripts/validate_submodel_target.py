@@ -16,8 +16,8 @@ from qsp_llm_workflows.core.calibration.submodel_target import SubmodelTarget
 from qsp_llm_workflows.core.model_structure import ModelStructure
 
 # Model structure path relative to this script
-MODEL_STRUCTURE_PATH = Path(__file__).parent.parent / "supporting_files" / "model_structure.json"
-REFERENCE_VALUES_PATH = Path(__file__).parent.parent / "supporting_files" / "reference_values.yaml"
+MODEL_STRUCTURE_PATH = Path(__file__).parent.parent / "batch_extraction" / "model_structure.json"
+REFERENCE_VALUES_PATH = Path(__file__).parent.parent / "batch_extraction" / "reference_values.yaml"
 
 
 def load_model_structure() -> ModelStructure:

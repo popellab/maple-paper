@@ -16,7 +16,7 @@ Options:
     --single-output     Output path for single-target script (default: scripts/single_targets_combined.jl)
     --skip-joint        Skip joint inference generation
     --skip-single       Skip single-target generation
-    --model-structure   Path to model_structure.json (default: supporting_files/model_structure.json)
+    --model-structure   Path to model_structure.json (default: batch_extraction/model_structure.json)
 """
 
 import argparse
@@ -73,13 +73,19 @@ def main():
     parser.add_argument("--skip-single", action="store_true", help="Skip single-target generation")
     parser.add_argument(
         "--model-structure",
-        default="supporting_files/model_structure.json",
+        default="batch_extraction/model_structure.json",
         help="Path to model_structure.json",
+    )
+    parser.add_argument(
+        "--reference-values",
+        default="batch_extraction/reference_values.yaml",
+        help="Path to reference_values.yaml",
     )
     args = parser.parse_args()
 
     yaml_dir = Path(args.yaml_dir)
     model_structure = Path(args.model_structure)
+    reference_values = Path(args.reference_values)
 
     if not yaml_dir.is_dir():
         print(f"Error: directory '{yaml_dir}' does not exist", file=sys.stderr)
@@ -87,6 +93,10 @@ def main():
 
     if not model_structure.is_file():
         print(f"Error: model structure file '{model_structure}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    if not reference_values.is_file():
+        print(f"Error: reference values file '{reference_values}' not found", file=sys.stderr)
         sys.exit(1)
 
     yaml_files = find_yaml_files(yaml_dir)
@@ -107,6 +117,7 @@ def main():
         joint_args = [
             "--joint",
             "--model-structure", str(model_structure),
+            "--reference-values", str(reference_values),
             "--output", args.joint_output,
         ]
         if not args.sample_sigma:
@@ -120,6 +131,7 @@ def main():
         single_args = [
             "--single-all",
             "--model-structure", str(model_structure),
+            "--reference-values", str(reference_values),
             "--output", args.single_output,
         ]
         single_args.extend(yaml_paths)

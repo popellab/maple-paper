@@ -19,6 +19,8 @@ batch_extraction/               # Extraction provenance (inputs to qsp-llm-workf
   model_context.txt             # Model description passed to LLM
   model_definitions.json        # ODE species/parameter definitions
   species_units.json            # Unit mappings for model species
+  reference_values.yaml         # Curated reference constants (also used by inference/validation)
+  model_structure.json          # Model structure (also used by inference/validation, requires MATLAB to regenerate)
 
 metadata_storage/               # Extraction outputs (YAML files)
   submodel_targets/curated/     # 37 curated SubmodelTarget YAMLs (paper stats + inference)
@@ -41,9 +43,7 @@ scripts/                        # Statistics and inference generation
     query_logfire.py               # Query extraction run traces
     query_logfire_errors.py        # Query extraction errors
 
-supporting_files/               # Pipeline runtime files
-  model_structure.json          # Model structure (used by inference/validation scripts)
-  reference_values.yaml         # Curated reference constants (used by inference/validation)
+supporting_files/               # Reference PDFs (gitignored)
 ```
 
 ## Writing Style

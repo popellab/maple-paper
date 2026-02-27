@@ -19,7 +19,9 @@ qsp-llm-workflows-paper/
 │   ├── extraction_targets.csv    # 19 PDAC parameters targeted for extraction
 │   ├── model_context.txt         # Model description passed to LLM
 │   ├── model_definitions.json    # ODE species/parameter definitions
-│   └── species_units.json        # Unit mappings for model species
+│   ├── species_units.json        # Unit mappings for model species
+│   ├── reference_values.yaml    # Curated reference constants
+│   └── model_structure.json    # Model structure (requires MATLAB to regenerate)
 │
 ├── metadata_storage/             # Extraction outputs (YAML files)
 │   ├── submodel_targets/
@@ -43,9 +45,7 @@ qsp-llm-workflows-paper/
 │       ├── query_logfire.py
 │       └── query_logfire_errors.py
 │
-└── supporting_files/             # Pipeline runtime files
-    ├── model_structure.json      # Model structure for validation/inference
-    └── reference_values.yaml     # Curated reference constants
+└── supporting_files/             # Reference PDFs (gitignored)
 ```
 
 ## Setup

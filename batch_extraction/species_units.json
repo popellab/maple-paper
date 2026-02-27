@@ -67,6 +67,10 @@
     "units": "cell",
     "description": "Number of Th cells in the peripheral compartment"
   },
+  "V_P.NK": {
+    "units": "cell",
+    "description": "Number of NK cells in the peripheral compartment"
+  },
   "V_T.C_x": {
     "units": "cell",
     "description": "Dead cancer cells in the tumour compartment"
@@ -87,9 +91,9 @@
     "units": "cell",
     "description": "Tumor carrying capacity (vasculature-dependent)"
   },
-  "V_T.c_vas": {
+  "V_T.VEGF": {
     "units": "picogram/milliliter",
-    "description": "Angiogenic factor concentration in tumor"
+    "description": "VEGF concentration in tumor"
   },
   "V_T.Treg": {
     "units": "cell",
@@ -107,13 +111,21 @@
     "units": "nanomolarity",
     "description": "IFNg in the tumor comparment"
   },
-  "V_T.APC": {
+  "V_T.cDC1": {
     "units": "cell",
-    "description": "Number of naive antigen presenting cells in the tumour"
+    "description": "Immature cDC1 (CD11c+CD141+BATF3+CD83-, cross-presenting) in tumor"
   },
-  "V_T.mAPC": {
+  "V_T.cDC2": {
     "units": "cell",
-    "description": "Number of mature antigen presenting cells in the tumour"
+    "description": "Immature cDC2 (CD11c+CD1c+IRF4+CD83-, MHC-II presenting) in tumor"
+  },
+  "V_T.mcDC1": {
+    "units": "cell",
+    "description": "Mature cDC1 (CD83+CD80+CD86+CD141+BATF3+, cross-presenting) in tumor"
+  },
+  "V_T.mcDC2": {
+    "units": "cell",
+    "description": "Mature cDC2 (CD83+CD80+CD86+CD1c+IRF4+, MHC-II presenting) in tumor"
   },
   "V_T.P0": {
     "units": "molarity",
@@ -175,13 +187,37 @@
     "units": "nanomolarity",
     "description": "Concentration of IL-10 in tumor"
   },
+  "V_T.NK": {
+    "units": "cell",
+    "description": "Number of NK cells in the tumor compartment"
+  },
+  "V_T.XCL1": {
+    "units": "nanomolarity",
+    "description": ""
+  },
+  "V_T.lactate": {
+    "units": "micromolarity",
+    "description": "Tumor lactate concentration from Warburg metabolism (micromolarity)"
+  },
+  "V_T.CXCL9": {
+    "units": "nanomolarity",
+    "description": "Concentration of CXCL9/10 (lumped CXCR3 ligands) in the tumor compartment"
+  },
   "V_T.qPSC": {
     "units": "cell",
-    "description": "Quiescent pancreatic stellate cells in tumor compartment. In normal pancreas, PSCs store vitamin A and maintain stromal homeostasis. Recommend non-zero initial condition: ~0.04 * initial cancer cells"
+    "description": "Quiescent pancreatic stellate cells in tumor compartment. In normal pancreas, PSCs store vitamin A and maintain stromal homeostasis."
   },
-  "V_T.aPSC": {
+  "V_T.iCAF": {
     "units": "cell",
-    "description": "Activated pancreatic stellate cells (primary CAF population in PDAC). aPSCs lose vitamin A, express αSMA, secrete ECM and immunosuppressive factors. Recommend small non-zero initial: ~0.01 * initial cancer cells"
+    "description": "Inflammatory cancer-associated fibroblasts. Secrete IL-6 and CCL5, driving MDSC recruitment and M2 polarization. Favored when TGFb is low (Biffi 2019, Elyada 2019)."
+  },
+  "V_T.myCAF": {
+    "units": "cell",
+    "description": "Myofibroblastic cancer-associated fibroblasts. Secrete ECM, CXCL12, TGFb, VEGF. Build desmoplastic barrier. Favored by TGFb signaling (Biffi 2019)."
+  },
+  "V_T.apCAF": {
+    "units": "cell",
+    "description": "Antigen-presenting cancer-associated fibroblasts. Express MHC-II, present tumor antigen tolerogenically -> Treg induction. Rarest subtype ~2-5% of CAFs (Elyada 2019)."
   },
   "V_T.ECM": {
     "units": "milligram",
@@ -189,15 +225,15 @@
   },
   "V_T.PDGF": {
     "units": "nanomolarity",
-    "description": "Platelet-derived growth factor in tumor compartment. Key activator of PSCs and driver of aPSC proliferation."
+    "description": "Platelet-derived growth factor in tumor compartment. Key activator of PSCs and driver of CAF proliferation."
   },
   "V_T.CXCL12": {
     "units": "nanomolarity",
-    "description": "CXCL12/SDF-1 chemokine secreted by aPSCs. Major T cell exclusion mechanism in PDAC via CXCR4 signaling."
+    "description": "CXCL12/SDF-1 chemokine secreted by iCAFs. Major T cell exclusion mechanism in PDAC via CXCR4 signaling (Elyada 2019, Ogawa 2021)."
   },
   "V_T.IL6": {
     "units": "nanomolarity",
-    "description": "Interleukin-6 inflammatory cytokine. Promotes MDSC recruitment, M2 polarization, tumor progression."
+    "description": "Interleukin-6 inflammatory cytokine secreted by iCAFs. Promotes MDSC recruitment, M2 polarization, tumor progression."
   },
   "V_LN.nTreg": {
     "units": "cell",
@@ -227,13 +263,21 @@
     "units": "cell",
     "description": "Number of CD8 cells in the lymph node compartment"
   },
-  "V_LN.APC": {
+  "V_LN.cDC1": {
     "units": "cell",
-    "description": "Number of naive antigen presenting cells in the lymph node"
+    "description": "Immature cDC1 (CD11c+CD141+BATF3+CD83-) in lymph node"
   },
-  "V_LN.mAPC": {
+  "V_LN.cDC2": {
     "units": "cell",
-    "description": "Number of mature antigen presenting cells in the lymph node"
+    "description": "Immature cDC2 (CD11c+CD1c+IRF4+CD83-) in lymph node"
+  },
+  "V_LN.mcDC1": {
+    "units": "cell",
+    "description": "Mature cDC1 (CD83+CD80+CD86+CD141+BATF3+CCR7+) in lymph node"
+  },
+  "V_LN.mcDC2": {
+    "units": "cell",
+    "description": "Mature cDC2 (CD83+CD80+CD86+CD1c+IRF4+CCR7+) in lymph node"
   },
   "V_LN.aPD1": {
     "units": "nanomolarity",
@@ -707,6 +751,10 @@
     "units": "dimensionless",
     "description": "Hill function of CD28 on APCs for T cell activation"
   },
+  "H_XCL1_cDC1": {
+    "units": "dimensionless",
+    "description": "Hill function for XCL1-mediated cDC1 recruitment (set by NK_module)"
+  },
   "k_C1_growth": {
     "units": "1/day",
     "description": "Cancer growth rate"
@@ -747,7 +795,7 @@
     "units": "1/day",
     "description": "Angiogenic factor degradation rate"
   },
-  "c_vas_50": {
+  "VEGF_50": {
     "units": "picogram/milliliter",
     "description": "Half-maximal angiogenic factor concentration for tumor capacity growth"
   },
@@ -782,6 +830,14 @@
   "k_Treg_death": {
     "units": "1/day",
     "description": "Treg death rate"
+  },
+  "k_Treg_pro_tumor": {
+    "units": "1/day",
+    "description": "Tumor-local Treg proliferation rate (Ki67+ 30-60% in PDAC TME)"
+  },
+  "rho_Treg_max": {
+    "units": "cell/milliliter",
+    "description": "Max Treg density in tumor (carrying capacity for local proliferation)"
   },
   "q_Treg_P_in": {
     "units": "1/minute",
@@ -898,10 +954,6 @@
   "k_CCR5_Treg_rec": {
     "units": "1/(centimeter^3*minute)",
     "description": "CCR5-dependent Treg recruitment rate to tumor"
-  },
-  "k_CCL5_sec_apsc": {
-    "units": "nanomole/cell/day",
-    "description": "CCL5 secretion rate by activated PSCs"
   },
   "H_CCL5_Treg": {
     "units": "dimensionless",
@@ -1051,33 +1103,77 @@
     "units": "1/day",
     "description": "Effective T cell killing rate including all inhibition factors"
   },
-  "k_APC_mat": {
+  "k_APC_mat_cDC1": {
     "units": "1/day",
-    "description": "Maximum rate of APC maturation "
+    "description": "Rate of cDC1 maturation (BATF3 program)"
+  },
+  "k_APC_mat_cDC2": {
+    "units": "1/day",
+    "description": "Rate of cDC2 maturation"
   },
   "k_APC_mig": {
     "units": "1/day",
-    "description": "Rate of APC migration "
+    "description": "Rate of APC migration"
   },
   "k_APC_death": {
     "units": "1/day",
-    "description": "Rate of APC death "
+    "description": "Rate of APC death"
   },
   "k_mAPC_death": {
     "units": "1/day",
     "description": "Rate of mAPC death"
   },
-  "APC0_T": {
+  "APC0_cDC1_T": {
     "units": "cell/milliliter",
-    "description": "Steady state density of CD103+ APCs in the tumor, calculated to fit basal APC equal to 26000/cm^3 from (Lavin 2017, PMID: 28475900)"
+    "description": "cDC1 homeostatic density in tumor"
   },
-  "APC0_LN": {
+  "APC0_cDC2_T": {
     "units": "cell/milliliter",
-    "description": "Steady state density of all APC subtypes in the LN (Catron 2004, PMID: 15357945)- divided by 10 to only take CD103+ based on (Lavin 2017, PMID: 28475900)"
+    "description": "cDC2 homeostatic density in tumor"
+  },
+  "APC0_cDC1_LN": {
+    "units": "cell/milliliter",
+    "description": "cDC1 homeostatic density in LN"
+  },
+  "APC0_cDC2_LN": {
+    "units": "cell/milliliter",
+    "description": "cDC2 homeostatic density in LN"
   },
   "n_sites_APC": {
     "units": "dimensionless",
-    "description": "Maxium number of T Cells an APC can interact with "
+    "description": "Maximum number of T Cells an APC can interact with"
+  },
+  "DAMP_50": {
+    "units": "cell/day",
+    "description": "Half-maximal tumor death rate for DAMP-mediated APC maturation"
+  },
+  "H_DAMP": {
+    "units": "dimensionless",
+    "description": "Hill function for DAMP-mediated APC maturation (uses R_Tcell = total cancer death rate)"
+  },
+  "TGFb_50_APC": {
+    "units": "nanomolarity",
+    "description": "Half-maximal TGFb for inhibition of APC maturation"
+  },
+  "H_TGFb_APC": {
+    "units": "dimensionless",
+    "description": "Hill function for TGFb inhibition of APC maturation"
+  },
+  "H_ECM_APC_mig": {
+    "units": "dimensionless",
+    "description": "Hill function for ECM inhibition of APC migration and recruitment"
+  },
+  "APC_total_T": {
+    "units": "cell",
+    "description": "Total immature DCs in tumor (cDC1+cDC2; CD11c+CD83-)"
+  },
+  "mAPC_total_T": {
+    "units": "cell",
+    "description": "Total mature DCs in tumor (mcDC1+mcDC2; CD83+ by IHC)"
+  },
+  "mAPC_total_LN": {
+    "units": "cell",
+    "description": "Total mature DCs in LN (mcDC1+mcDC2; CD83+CCR7+)"
   },
   "kin": {
     "units": "1/day",
@@ -1799,6 +1895,218 @@
     "units": "dimensionless",
     "description": "Hill function for IL-6 promotion of M2 macrophage polarization"
   },
+  "k_NK_rec": {
+    "units": "cell/(milliliter*day)",
+    "description": "NK cell recruitment rate to tumor"
+  },
+  "k_NK_death": {
+    "units": "1/day",
+    "description": "NK cell death/turnover rate"
+  },
+  "k_NK_kill": {
+    "units": "1/day",
+    "description": "NK cell killing rate of tumor cells"
+  },
+  "K_NK_C": {
+    "units": "dimensionless",
+    "description": "NK-tumor association coefficient"
+  },
+  "k_IFNg_NK_sec": {
+    "units": "nanomole/(cell*day)",
+    "description": "IFNg secretion rate by NK cells"
+  },
+  "IL10_50_NK": {
+    "units": "nanomolarity",
+    "description": "IL-10 EC50 for NK suppression"
+  },
+  "TGFb_50_NK": {
+    "units": "nanomolarity",
+    "description": "TGFb EC50 for NK suppression"
+  },
+  "IL12_50_NK": {
+    "units": "nanomolarity",
+    "description": "IL-12 EC50 for NK activation"
+  },
+  "q_NK_P_in": {
+    "units": "1/day",
+    "description": "NK peripheral homeostasis rate"
+  },
+  "NK_P_steady": {
+    "units": "cell",
+    "description": "Peripheral NK steady-state count"
+  },
+  "vol_NK": {
+    "units": "micrometer^3/cell",
+    "description": "Volume of a single NK cell"
+  },
+  "H_IL10_NK": {
+    "units": "dimensionless",
+    "description": "Hill function for IL-10 suppression of NK function"
+  },
+  "H_TGFb_NK": {
+    "units": "dimensionless",
+    "description": "Hill function for TGFb suppression of NK function"
+  },
+  "H_IL12_NK": {
+    "units": "dimensionless",
+    "description": "Hill function for IL-12 activation of NK function"
+  },
+  "k_XCL1_NK": {
+    "units": "nanomole/cell/day",
+    "description": "XCL1 secretion rate by NK cells"
+  },
+  "k_XCL1_deg": {
+    "units": "1/day",
+    "description": "XCL1 degradation rate"
+  },
+  "XCL1_50_cDC1": {
+    "units": "nanomolarity",
+    "description": "XCL1 EC50 for cDC1 recruitment"
+  },
+  "pO2_normal": {
+    "units": "millimeter_mercury",
+    "description": "Normal tissue pO2 (mmHg)"
+  },
+  "k_O2_demand": {
+    "units": "dimensionless",
+    "description": "O2 demand coefficient per metabolically active cell"
+  },
+  "VEGF_norm_50": {
+    "units": "picogram/milliliter",
+    "description": "VEGF level for half-max vascular aberration"
+  },
+  "pO2_50": {
+    "units": "millimeter_mercury",
+    "description": "pO2 for half-max HIF activation (mmHg)"
+  },
+  "n_HIF": {
+    "units": "dimensionless",
+    "description": "Hill coefficient for HIF activation"
+  },
+  "k_VEGF_HIF": {
+    "units": "picogram/(cell*day)",
+    "description": "HIF-driven VEGF secretion rate per cancer cell"
+  },
+  "k_PDL1_HIF": {
+    "units": "molecule/day",
+    "description": "HIF-driven PD-L1 synthesis rate on cancer cells"
+  },
+  "r_PDL1_HIF": {
+    "units": "dimensionless",
+    "description": "Max fold-increase PD-L1 from HIF"
+  },
+  "pO2": {
+    "units": "millimeter_mercury",
+    "description": "Tumor oxygen partial pressure (mmHg). Quasi-steady-state."
+  },
+  "HIF": {
+    "units": "dimensionless",
+    "description": "HIF-1alpha activity (0-1). Inverse Hill function of pO2."
+  },
+  "pO2_ratio": {
+    "units": "dimensionless",
+    "description": "pO2/pO2_50 ratio (dimensionless). Intermediate for HIF Hill function."
+  },
+  "glc_normal": {
+    "units": "micromolarity",
+    "description": "Normal pancreas tissue glucose concentration (micromolarity, Battini 2017)"
+  },
+  "k_glc_tumor": {
+    "units": "dimensionless",
+    "description": "Glucose consumption coefficient per cancer cell"
+  },
+  "k_glc_immune": {
+    "units": "dimensionless",
+    "description": "Glucose consumption coefficient per immune cell"
+  },
+  "glc_50_Teff": {
+    "units": "micromolarity",
+    "description": "Glucose level for half-max T cell effector function"
+  },
+  "n_glc_Teff": {
+    "units": "dimensionless",
+    "description": "Hill coefficient for glucose-T cell function"
+  },
+  "k_lac_Csec": {
+    "units": "micromole/cell/day",
+    "description": "Lactate secretion rate per cancer cell (Warburg)"
+  },
+  "k_lac_clear": {
+    "units": "1/day",
+    "description": "Lactate clearance rate"
+  },
+  "lac_50_M2": {
+    "units": "micromolarity",
+    "description": "Lactate concentration for half-max M2 polarization drive"
+  },
+  "lac_50_Teff": {
+    "units": "micromolarity",
+    "description": "Lactate concentration for half-max T cell and NK suppression"
+  },
+  "f_HIF_glycolysis": {
+    "units": "dimensionless",
+    "description": "Fold-increase in glycolytic rate from HIF activation"
+  },
+  "glc_50_C": {
+    "units": "micromolarity",
+    "description": "Glucose EC50 for cancer cell proliferation. Lower than glc_50_Teff (500 uM) reflecting Warburg adaptation (GLUT1 overexpression)."
+  },
+  "H_glc_C": {
+    "units": "dimensionless",
+    "description": "Glucose limitation of cancer cell proliferation"
+  },
+  "glc": {
+    "units": "micromolarity",
+    "description": "Tumor tissue glucose concentration (micromolarity). Quasi-steady-state."
+  },
+  "glc_ratio": {
+    "units": "dimensionless",
+    "description": "glc/glc_50_Teff ratio (dimensionless). Intermediate for glucose Hill function."
+  },
+  "H_glc_Teff": {
+    "units": "dimensionless",
+    "description": "Glucose availability for T cell effector function (1=full, 0=impaired). Positive Hill."
+  },
+  "H_lac_M2": {
+    "units": "dimensionless",
+    "description": "Lactate-driven M2 polarization (0=none, 1=maximal)."
+  },
+  "H_lac_Teff": {
+    "units": "dimensionless",
+    "description": "Lactate-driven suppression of T cell and NK effector function (0=none, 1=maximal)."
+  },
+  "k_CXCL9_sec": {
+    "units": "nanomole/cell/day",
+    "description": "CXCL9/10 secretion rate by tumor cells, M1 macrophages, and cDC1s (IFNg-dependent)"
+  },
+  "k_CXCL9_deg": {
+    "units": "1/day",
+    "description": "CXCL9/10 degradation rate"
+  },
+  "IFNg_50_CXCL9": {
+    "units": "nanomolarity",
+    "description": "IFNg EC50 for CXCL9/10 induction (JAK-STAT1 dependent)"
+  },
+  "CXCL9_50_Trec": {
+    "units": "nanomolarity",
+    "description": "Half-maximal CXCL9/10 concentration for CXCR3-mediated recruitment"
+  },
+  "k_CXCR3_rec": {
+    "units": "1/(centimeter^3*minute)",
+    "description": "CXCR3-dependent CD8 T cell recruitment rate (additive to baseline q_CD8_T_in)"
+  },
+  "k_CXCR3_NK_rec": {
+    "units": "cell/(milliliter*day)",
+    "description": "CXCR3-dependent NK cell recruitment rate (additive to baseline k_NK_rec)"
+  },
+  "H_IFNg_CXCL9": {
+    "units": "dimensionless",
+    "description": "Hill function for IFNg induction of CXCL9/10 (JAK-STAT1)"
+  },
+  "H_CXCL9_Trec": {
+    "units": "dimensionless",
+    "description": "Hill function for CXCR3-mediated T cell/NK recruitment"
+  },
   "k_psc_encounter": {
     "units": "cell/(milliliter*day)",
     "description": "Rate of encountering resident PSCs as tumor expands into pancreas"
@@ -1807,21 +2115,45 @@
     "units": "cell/milliliter",
     "description": "Constitutive PSC density in pancreatic tissue"
   },
-  "k_psc_activation": {
+  "k_psc_activation_myCAF": {
     "units": "1/day",
-    "description": "PSC activation rate (qPSC -> aPSC)"
+    "description": "qPSC->myCAF activation rate (TGFb-driven)"
   },
-  "k_apsc_prolif": {
+  "k_psc_activation_iCAF": {
     "units": "1/day",
-    "description": "aPSC proliferation rate"
+    "description": "qPSC->iCAF activation rate (low TGFb)"
+  },
+  "k_psc_activation_apCAF": {
+    "units": "1/day",
+    "description": "qPSC->apCAF activation rate (constitutive low)"
+  },
+  "k_iCAF_to_myCAF": {
+    "units": "1/day",
+    "description": "iCAF->myCAF interconversion (TGFb-driven)"
+  },
+  "k_myCAF_to_iCAF": {
+    "units": "1/day",
+    "description": "myCAF->iCAF interconversion (low TGFb)"
+  },
+  "k_myCAF_prolif": {
+    "units": "1/day",
+    "description": "myCAF proliferation rate"
+  },
+  "k_iCAF_prolif": {
+    "units": "1/day",
+    "description": "iCAF proliferation rate"
+  },
+  "f_stroma_max": {
+    "units": "dimensionless",
+    "description": "Max CAF:cancer ratio — logistic carrying capacity for stromal cells"
   },
   "k_ECM_qpsc_sec": {
     "units": "milligram/(cell*day)",
     "description": "ECM secretion rate by quiescent PSCs"
   },
-  "k_ECM_apsc_sec": {
+  "k_ECM_myCAF_sec": {
     "units": "milligram/(cell*day)",
-    "description": "ECM secretion rate by activated PSCs (typically 5-10x higher than qPSC)"
+    "description": "ECM secretion rate by myCAFs"
   },
   "k_ECM_deg": {
     "units": "1/day",
@@ -1851,9 +2183,17 @@
     "units": "1/day",
     "description": "Death rate of quiescent PSCs"
   },
-  "k_apsc_death": {
+  "k_iCAF_death": {
     "units": "1/day",
-    "description": "Death rate of activated PSCs"
+    "description": "Death rate of iCAFs"
+  },
+  "k_myCAF_death": {
+    "units": "1/day",
+    "description": "Death rate of myCAFs"
+  },
+  "k_apCAF_death": {
+    "units": "1/day",
+    "description": "Death rate of apCAFs"
   },
   "f_ECM_50_T_exh": {
     "units": "dimensionless",
@@ -1863,6 +2203,10 @@
     "units": "dimensionless",
     "description": "Desmoplasia severity (ECM/ECM_max) for 50% T cell motility inhibition"
   },
+  "f_ECM_50_APC_mig": {
+    "units": "dimensionless",
+    "description": "Desmoplasia severity (ECM/ECM_max) for 50% APC migration inhibition"
+  },
   "ECM_50_T_exh": {
     "units": "milligram/millilitre",
     "description": "EC50 for ECM exhaustion (derived: f_ECM_50_T_exh * ECM_max)"
@@ -1871,13 +2215,37 @@
     "units": "milligram/millilitre",
     "description": "EC50 for ECM motility (derived: f_ECM_50_T_mot * ECM_max)"
   },
+  "ECM_50_APC_mig": {
+    "units": "milligram/millilitre",
+    "description": "EC50 for ECM APC migration inhibition (derived: f_ECM_50_APC_mig * ECM_max)"
+  },
+  "f_ECM_50_Kmax": {
+    "units": "dimensionless",
+    "description": "Desmoplasia severity (fraction of ECM_max) for 50% carrying capacity reduction. 0.5 = consistent with stroma-depletion worsening PDAC (Rhim 2014, Ozdemir 2014)."
+  },
+  "ECM_50_Kmax": {
+    "units": "milligram/millilitre",
+    "description": "(derived: f_ECM_50_Kmax * ECM_max)"
+  },
+  "k_stroma_support": {
+    "units": "dimensionless",
+    "description": "Stromal contribution to cancer carrying capacity. Each CAF adds k_stroma_support cells of carrying capacity via nutrient/growth factor provision."
+  },
   "vol_qPSCcell": {
     "units": "micrometer^3/cell",
     "description": "Volume of quiescent PSC"
   },
-  "vol_aPSCcell": {
+  "vol_iCAFcell": {
     "units": "micrometer^3/cell",
-    "description": "Volume of activated PSC (typically larger than qPSC)"
+    "description": "Volume of iCAF"
+  },
+  "vol_myCAFcell": {
+    "units": "micrometer^3/cell",
+    "description": "Volume of myCAF"
+  },
+  "vol_apCAFcell": {
+    "units": "micrometer^3/cell",
+    "description": "Volume of apCAF"
   },
   "k_PDGF_sec": {
     "units": "nanomolarity*liter/(cell*day)",
@@ -1893,11 +2261,11 @@
   },
   "PDGF_50_prolif": {
     "units": "nanomolarity",
-    "description": "EC50 for PDGF-driven aPSC proliferation"
+    "description": "EC50 for PDGF-driven CAF proliferation"
   },
-  "k_CXCL12_sec": {
+  "k_CXCL12_sec_iCAF": {
     "units": "nanomolarity*liter/(cell*day)",
-    "description": "CXCL12 secretion rate by aPSCs"
+    "description": "CXCL12 secretion rate by iCAFs"
   },
   "k_CXCL12_deg": {
     "units": "1/day",
@@ -1907,9 +2275,9 @@
     "units": "nanomolarity",
     "description": "EC50 for CXCL12-mediated T cell exclusion"
   },
-  "k_IL6_sec_apsc": {
+  "k_IL6_sec_iCAF": {
     "units": "nanomolarity*liter/(cell*day)",
-    "description": "IL-6 secretion rate by aPSCs"
+    "description": "IL-6 secretion rate by iCAFs"
   },
   "k_IL6_deg": {
     "units": "1/day",
@@ -1923,13 +2291,57 @@
     "units": "nanomolarity",
     "description": "EC50 for IL-6 promotion of M2 polarization"
   },
-  "k_vas_apsc_sec": {
-    "units": "picogram/(cell*day)",
-    "description": "Angiogenic factor secretion rate by aPSCs"
+  "IL6_50_iCAF": {
+    "units": "nanomolarity",
+    "description": "EC50 for IL-6 autocrine feedback promoting iCAF phenotype"
   },
-  "k_TGFb_sec_apsc": {
+  "f_IL6_iCAF": {
+    "units": "dimensionless",
+    "description": "Fold-enhancement of iCAF formation by IL-6 feedback"
+  },
+  "H_IL6_iCAF": {
+    "units": "dimensionless",
+    "description": "Hill function for IL-6 autocrine feedback on iCAF phenotype (Biffi 2019)"
+  },
+  "k_vas_myCAF_sec": {
+    "units": "picogram/(cell*day)",
+    "description": "Angiogenic factor secretion rate by myCAFs"
+  },
+  "k_P1_up_apCAF": {
+    "units": "1/(cell*day)",
+    "description": "Antigen uptake rate by apCAFs"
+  },
+  "k_apCAF_Treg": {
+    "units": "1/day",
+    "description": "Max Th->Treg conversion rate via apCAF"
+  },
+  "K_apCAF_Treg": {
+    "units": "cell",
+    "description": "Half-max apCAF count for Treg induction saturation"
+  },
+  "P1_50_apCAF": {
+    "units": "molarity",
+    "description": "EC50 for antigen-dependent Treg induction by apCAFs"
+  },
+  "aPSC_total": {
+    "units": "cell",
+    "description": "Total activated PSC count (iCAF+myCAF+apCAF). Backward compatibility for test statistics."
+  },
+  "k_TGFb_sec_myCAF": {
     "units": "nanomolarity*liter/(cell*day)",
-    "description": "TGF-β secretion rate by activated PSCs"
+    "description": "TGF-β secretion rate by myCAFs"
+  },
+  "k_CXCL12_sec_cancer": {
+    "units": "nanomolarity*liter/(cell*day)",
+    "description": "CXCL12 secretion rate by tumor cells"
+  },
+  "k_CCL5_sec_iCAF": {
+    "units": "nanomole/cell/day",
+    "description": "CCL5 secretion rate by iCAFs"
+  },
+  "H_P1_apCAF": {
+    "units": "dimensionless",
+    "description": "Hill function for antigen-dependent apCAF Treg induction"
   },
   "k_GVAX_clearance": {
     "units": "1/day",
@@ -1986,10 +2398,6 @@
   "k_mAPC_death_ID": {
     "units": "1/day",
     "description": ""
-  },
-  "ECM_50_Kmax": {
-    "units": "milligram/millilitre",
-    "description": "(derived: f_ECM_50_Kmax * ECM_max)"
   },
   "y_Ag_per_cell": {
     "units": "nanomole/cell",

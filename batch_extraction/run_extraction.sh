@@ -5,6 +5,12 @@
 #   pip install qsp-llm-workflows   # or install from ../qsp-llm-workflows
 #   export OPENAI_API_KEY=...
 #
+# To regenerate model_structure.json and species_units.json (requires MATLAB):
+#   qsp-export-model \
+#     --matlab-model /path/to/pdac-build/scripts/immune_oncology_model_PDAC.m \
+#     --output batch_extraction/model_structure.json \
+#     --structure
+#
 # This script was used to generate the SubmodelTarget YAML files in
 # metadata_storage/submodel_targets/originals/. Each row in extraction_targets.csv
 # produces one extraction attempt per invocation. Multiple derivations per parameter
@@ -20,9 +26,9 @@ OUTPUT_DIR="${REPO_ROOT}/metadata_storage/submodel_targets/to-review"
 # First extraction round (no previous extractions to exclude)
 qsp-extract extraction_targets.csv \
   --type submodel_target \
-  --model-structure "${REPO_ROOT}/supporting_files/model_structure.json" \
+  --model-structure model_structure.json \
   --model-context model_context.txt \
-  --reference-values "${REPO_ROOT}/supporting_files/reference_values.yaml" \
+  --reference-values reference_values.yaml \
   --output-dir "${OUTPUT_DIR}" \
   --model gpt-5.1 \
   --reasoning-effort high \
@@ -33,9 +39,9 @@ qsp-extract extraction_targets.csv \
 #
 # qsp-extract extraction_targets.csv \
 #   --type submodel_target \
-#   --model-structure "${REPO_ROOT}/supporting_files/model_structure.json" \
+#   --model-structure model_structure.json \
 #   --model-context model_context.txt \
-#   --reference-values "${REPO_ROOT}/supporting_files/reference_values.yaml" \
+#   --reference-values reference_values.yaml \
 #   --previous-extractions "${REPO_ROOT}/metadata_storage/submodel_targets/originals" \
 #   --output-dir "${OUTPUT_DIR}" \
 #   --model gpt-5.1 \
