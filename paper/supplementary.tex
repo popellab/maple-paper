@@ -1283,7 +1283,7 @@ The \ctTotal{} targets drew from \ctUniqueDOIs{} unique primary sources (by DOI)
 \section{Inference Results}
 \label{sec:inference-results}
 
-All \nTargets{} SubmodelTargets were translated to a joint Julia inference script using Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. Most targets (\mtAlgebraicPct{}) use closed-form forward models; the rest use simple ODEs (Table~\ref{tab:model-type-dist}).
+All \nYAMLTargets{} SubmodelTargets were translated to a joint Julia inference script using Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. The plurality of targets (\mtAlgebraicPct{}) use closed-form algebraic forward models; the remainder use structured model types including steady-state, batch accumulation, and first-order decay models (Table~\ref{tab:model-type-dist}).
 
 \input{generated/model_type_table}
 

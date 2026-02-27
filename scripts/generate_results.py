@@ -36,6 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 # =============================================================================
 
 METADATA_DIR = Path(__file__).parent.parent / "metadata_storage" / "to-review" / "20260203_125326_submodel_target"
+CURATED_DIR = Path(__file__).parent.parent / "metadata_storage" / "submodel_targets" / "curated"
 OUTPUT_DIR = Path(__file__).parent.parent / "paper" / "generated"
 FIGURES_DIR = OUTPUT_DIR / "figures"
 SCRIPTS_DIR = Path(__file__).parent
@@ -247,10 +248,10 @@ def collect_codegen_metrics() -> CodeGenMetrics:
 
 
 def collect_validation_metrics() -> dict:
-    """Collect validation pass/fail statistics from YAML files."""
+    """Collect validation pass/fail statistics from curated YAML files."""
     from subprocess import run, PIPE
 
-    yaml_files = list(METADATA_DIR.glob("*.yaml"))
+    yaml_files = list(CURATED_DIR.glob("*.yaml"))
 
     # Run the validation script and capture output
     result = run(
@@ -275,10 +276,10 @@ def collect_validation_metrics() -> dict:
 
 
 def collect_yaml_metrics() -> YAMLMetrics:
-    """Collect metrics directly from YAML target files."""
+    """Collect metrics directly from curated YAML target files."""
     metrics = YAMLMetrics()
 
-    yaml_files = sorted(METADATA_DIR.glob("*.yaml"))
+    yaml_files = sorted(CURATED_DIR.glob("*.yaml"))
 
     source_quality = Counter()
     species_trans = Counter()
@@ -1101,6 +1102,12 @@ def generate_model_type_table_tex(yaml_metrics: YAMLMetrics) -> str:
         "saturation": "Saturation ODE",
         "logistic": "Logistic growth ODE",
         "custom_ode": "Custom ODE",
+        "batch_accumulation": "Batch accumulation",
+        "steady_state_density": "Steady-state density",
+        "steady_state_fraction": "Steady-state fraction",
+        "steady_state_concentration": "Steady-state concentration",
+        "steady_state_ratio": "Steady-state ratio",
+        "steady_state_proliferation_index": "Steady-state proliferation index",
         "unknown": "Unknown",
     }
 
@@ -1277,9 +1284,9 @@ def generate_julia_inference_scripts() -> dict:
         "errors": [],
     }
 
-    yaml_files = sorted(METADATA_DIR.glob("*.yaml"))
+    yaml_files = sorted(CURATED_DIR.glob("*.yaml"))
     if not yaml_files:
-        result["errors"].append("No YAML files found in metadata_storage/")
+        result["errors"].append("No YAML files found in curated targets directory")
         return result
 
     if not MODEL_STRUCTURE.exists():
@@ -1441,6 +1448,30 @@ def main():
     # Collect all metrics
     print("\n[1/7] Collecting extraction metrics from Logfire...")
     extraction = collect_extraction_metrics()
+    if extraction.n_targets == 0:
+        # Logfire expired or unavailable; load cached extraction metrics
+        cached_json = OUTPUT_DIR / "metrics.json"
+        if cached_json.exists():
+            cached = json.load(open(cached_json))
+            cached_ext = cached.get("extraction", {})
+            if cached_ext.get("n_targets", 0) > 0:
+                print("  Logfire unavailable; loading cached extraction metrics from metrics.json")
+                extraction = ExtractionMetrics(
+                    n_attempted=cached_ext.get("n_attempted", cached_ext.get("n_targets", 0)),
+                    n_targets=cached_ext["n_targets"],
+                    n_failed=cached_ext.get("n_failed", 0),
+                    n_first_attempt_success=cached_ext.get("n_first_attempt_success", 0),
+                    n_required_retries=cached_ext["n_targets"] - cached_ext.get("n_first_attempt_success", 0),
+                    total_retries=cached_ext.get("total_retries", 0),
+                    max_retries=cached_ext.get("max_retries", 0),
+                    total_duration_sec=cached_ext.get("avg_duration_min", 0) * 60 * cached_ext["n_targets"],
+                    total_tokens=cached_ext.get("avg_tokens", 0) * cached_ext["n_targets"],
+                    total_cost=cached_ext.get("total_cost", 0),
+                    retry_distribution={int(k): v for k, v in cached_ext.get("retry_distribution", {}).items()},
+                    error_categories=cached_ext.get("error_categories", {}),
+                    tool_usage=cached_ext.get("tool_usage", {}),
+                    per_target=cached_ext.get("per_target", []),
+                )
     print(f"  Found {extraction.n_targets} targets")
     print(f"  First-attempt success: {extraction.n_first_attempt_success}/{extraction.n_targets}")
 

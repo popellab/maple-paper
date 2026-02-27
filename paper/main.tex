@@ -228,7 +228,7 @@ We report metrics across four stages of the workflow:
 
 \subsection{SubmodelTarget Extraction and Validation}
 
-We applied MAPLE to \nAttempted{} SubmodelTarget parameters from a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. All \nTargets{} targets were successfully extracted through the automated retry loop (Table~\ref{tab:extraction}). The metrics below characterize the automated first pass; Section~\ref{sec:curation} discusses the subsequent human curation step.
+We applied MAPLE to extract SubmodelTargets for a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. An initial batch of \nTargets{} targets was extracted through the automated retry loop (Table~\ref{tab:extraction}); additional targets were extracted interactively during curation, yielding a final curated set of \nYAMLTargets{} SubmodelTargets used for joint inference. The metrics below characterize the automated first pass; Section~\ref{sec:curation} discusses the subsequent human curation step.
 
 \input{generated/extraction_table}
 
@@ -249,7 +249,7 @@ The LLM used \toolWebSearch{} web searches to find and verify sources, and \tool
 
 \subsubsection{Source Characteristics}
 
-The extracted targets drew from a range of experimental sources (Supplementary Section~\ref{sec:source-characteristics}). Human clinical data accounted for \sqPrimaryHumanClinicalPct{} of targets, with the remainder from animal studies (in vivo and in vitro). About \spHumantohumanPct{} of targets used human data directly; the rest drew from mouse (\spMousetohumanPct{}) or rat (\spRattohumanPct{}) experiments, which could require cross-species scaling before use in a human QSP model. Only \indExactPct{} of targets came from PDAC-specific experiments; most (\indProxyPct{}) relied on proxy indications such as other cancer types, chronic pancreatitis, or fibrosis models with similar biology.
+The \nYAMLTargets{} curated targets drew from a range of experimental sources (Supplementary Section~\ref{sec:source-characteristics}). Human clinical data accounted for \sqPrimaryHumanClinicalPct{} of targets, with the remainder from animal studies (in vivo and in vitro). About \spHumantohumanPct{} of targets used human data directly; the rest drew from mouse (\spMousetohumanPct{}) or rat (\spRattohumanPct{}) experiments, requiring cross-species scaling before use in a human QSP model. About \indExactPct{} of targets came from PDAC-specific experiments; most of the remainder (\indProxyPct{}) relied on proxy indications such as other cancer types, chronic pancreatitis, or fibrosis models with similar biology.
 
 \subsection{Human Curation}
 \label{sec:curation}
@@ -304,7 +304,7 @@ The forward model abstraction similarly separates concerns. Built-in templates f
 
 \subsection{Limitations of Extracted Data}
 
-The source characteristics reveal a fundamental challenge in QSP model calibration. Among SubmodelTargets, only \indExactPct{} came from PDAC-specific experiments; the majority relied on proxy indications. Similarly, \spMousetohumanPct{} required cross-species translation from mouse data. CalibrationTargets face analogous challenges: published PDAC clinical endpoints with the granularity needed for QSP calibration (e.g., per-compartment cell counts, immune subset fractions) are limited, and many baseline tumor microenvironment measurements rely on small cohorts or related indications. These are not failures of the extraction process but rather reflections of available literature: disease-specific experiments measuring the exact quantities needed for model calibration are insufficient to fully constrain all parameters.
+The source characteristics reveal a fundamental challenge in QSP model calibration. Among SubmodelTargets, \indExactPct{} came from PDAC-specific experiments, while the remainder relied on proxy or related indications. Similarly, \spMousetohumanPct{} required cross-species translation from mouse data. CalibrationTargets face analogous challenges: published PDAC clinical endpoints with the granularity needed for QSP calibration (e.g., per-compartment cell counts, immune subset fractions) are limited, and many baseline tumor microenvironment measurements rely on small cohorts or related indications. These are not failures of the extraction process but rather reflections of available literature: disease-specific experiments measuring the exact quantities needed for model calibration are insufficient to fully constrain all parameters.
 
 The schema addresses this reality through explicit documentation. The \texttt{source\_relevance} block requires that cross-species and cross-indication extractions specify translation uncertainty, which propagates to prior widths during inference. This does not solve the underlying data gap, but it makes assumptions explicit and quantifies their impact on parameter uncertainty. A parameter calibrated from mouse fibrosis data with 5-fold translation uncertainty will have a correspondingly wide posterior, appropriately reflecting the limited applicability of available evidence.
 

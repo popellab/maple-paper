@@ -696,6 +696,12 @@ def generate_model_type_table_tex(yaml_metrics: YAMLMetrics) -> str:
         "first_order_decay": "First-order decay ODE",
         "two_state": "Two-state ODE",
         "ode": "General ODE",
+        "batch_accumulation": "Batch accumulation",
+        "steady_state_density": "Steady-state density",
+        "steady_state_fraction": "Steady-state fraction",
+        "steady_state_concentration": "Steady-state concentration",
+        "steady_state_ratio": "Steady-state ratio",
+        "steady_state_proliferation_index": "Steady-state proliferation index",
     }
 
     rows = []
