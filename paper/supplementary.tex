@@ -7,7 +7,7 @@
 \usepackage{multirow}
 \usepackage{float}
 \usepackage{hyperref}
-\usepackage{natbib}
+\usepackage[numbers]{natbib}
 \usepackage[dvipsnames]{xcolor}
 
 \title{Supplementary Materials:\\Structured Schemas for LLM-Expert Collaboration in QSP Model Calibration}
@@ -29,7 +29,7 @@
 \newpage
 
 %=============================================================================
-\section{S1: Complete SubmodelTarget Example}
+\section{Complete SubmodelTarget Example}
 \label{sec:complete-example}
 %=============================================================================
 
@@ -276,7 +276,7 @@ The SubmodelTarget schema has the following top-level structure:
 \end{itemize}
 
 %=============================================================================
-\section{S2: Supported Model Types}
+\section{Supported Model Types}
 \label{sec:model-types}
 %=============================================================================
 
@@ -319,7 +319,7 @@ Accumulation
 Each structured steady-state and accumulation model declares its fields as typed roles: a field can reference a calibration parameter (to be estimated), an extracted input (from the inputs layer), a curated reference value from a shared database, or a numeric literal. This role-based design allows the same template to serve different estimation scenarios depending on which field is treated as the unknown.
 
 %=============================================================================
-\section{S3: Validation Checks}
+\section{Validation Checks}
 \label{sec:validators}
 %=============================================================================
 
@@ -497,7 +497,7 @@ Four validators check that all cross-references within the schema are consistent
 These validators catch internal inconsistencies where an LLM generates references to entities that don't exist elsewhere in the document.
 
 %=============================================================================
-\section{S4: Generated Julia Code Structure}
+\section{Generated Julia Code Structure}
 \label{sec:julia-code}
 %=============================================================================
 
@@ -545,7 +545,7 @@ chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
 For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
 
 %=============================================================================
-\section{S5: Pydantic Model Definitions}
+\section{Pydantic Model Definitions}
 \label{sec:pydantic-models}
 %=============================================================================
 
@@ -905,13 +905,13 @@ class Scenario(BaseModel):
 \end{verbatim}
 
 %=============================================================================
-\section{S6: SubmodelTarget Schema Details}
+\section{SubmodelTarget Schema Details}
 \label{sec:submodel-field-reference}
 %=============================================================================
 
 This section provides detailed field descriptions and representative YAML examples for each layer of the SubmodelTarget schema. These examples are referenced from the Methods section; the complete schema is defined in Section~\ref{sec:pydantic-models}.
 
-\subsection{S6.1: Input Fields}
+\subsection{Input Fields}
 
 Each input captures a single value extracted from literature with full provenance. The key fields are:
 
@@ -948,7 +948,7 @@ inputs:
 \label{lst:input}
 \end{figure}
 
-\subsection{S6.2: Parameter and Prior Specification}
+\subsection{Parameter and Prior Specification}
 
 Each parameter includes a prior distribution with documented rationale. The schema supports four distribution families: LogNormal (positive parameters with multiplicative uncertainty), Normal (unconstrained), Uniform (bounded with no preference), and HalfNormal (positive with mode at zero).
 
@@ -972,7 +972,7 @@ calibration:
 \label{lst:param}
 \end{figure}
 
-\subsection{S6.3: Forward Model Specification}
+\subsection{Forward Model Specification}
 
 The forward model captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice.
 
@@ -1005,7 +1005,7 @@ calibration:
 \label{lst:model}
 \end{figure}
 
-\subsection{S6.4: Error Model Specification}
+\subsection{Error Model Specification}
 
 The error model specifies the statistical relationship between predictions and observed data. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
 
@@ -1038,7 +1038,7 @@ Code block~\ref{lst:error-model} shows a complete error model entry.
 \end{figure}
 
 %=============================================================================
-\section{S7: Complete CalibrationTarget Example}
+\section{Complete CalibrationTarget Example}
 \label{sec:calibration-target-example}
 %=============================================================================
 
@@ -1229,7 +1229,32 @@ key_study_limitations:
 \end{verbatim}
 
 %=============================================================================
-\section{S8: CalibrationTarget Detailed Metrics}
+\section{SubmodelTarget Source Characteristics}
+\label{sec:source-characteristics}
+%=============================================================================
+
+This section provides detailed breakdowns of source quality, species translation, and indication match for the \nTargets{} SubmodelTarget extractions.
+
+\subsection{Source Quality}
+
+Source quality categorizes the type of experimental evidence. \emph{Human clinical} denotes data from human patient samples or clinical measurements. \emph{Human in vitro} denotes experiments using human-derived cell lines or primary human cells in culture. \emph{Animal in vivo} denotes measurements from animal models (e.g., mouse xenografts). \emph{Animal in vitro} denotes experiments using animal-derived cells in culture (e.g., murine splenocyte assays, rat stellate cell cultures).
+
+\input{generated/source_quality_table}
+
+\subsection{Species Translation}
+
+Species translation describes the mapping from the experimental organism to the model target species (human). Targets labeled human$\rightarrow$human required no cross-species translation. Mixed-species entries (e.g., human and rat$\rightarrow$human) indicate that the extraction combined data from multiple species, such as a human clinical measurement anchored by rat-derived kinetic parameters.
+
+\input{generated/species_table}
+
+\subsection{Indication Match}
+
+Indication match describes how closely the experimental disease context matches the PDAC model target. \emph{Exact}: data from PDAC patients or PDAC-derived models. \emph{Proxy}: data from a different indication used as a mechanistic proxy (e.g., other cancer types, chronic pancreatitis, fibrosis models with similar stromal biology). \emph{Related}: data from the same organ or disease class but not a direct match.
+
+\input{generated/indication_table}
+
+%=============================================================================
+\section{CalibrationTarget Detailed Metrics}
 \label{sec:ct-detailed-metrics}
 %=============================================================================
 
@@ -1255,7 +1280,7 @@ Of the \ctAIGenerated{} AI-generated targets, \ctHumanVerified{} (\ctHumanVerifi
 
 The \ctTotal{} targets drew from \ctUniqueDOIs{} unique primary sources (by DOI), with publication years spanning \ctYearMin{}--\ctYearMax{}. Two sources contributed the majority of targets: a neoadjuvant immunotherapy trial (Li et al., Cancer Cell, 2022) provided data for all \ctTreatment{} GVAX/nivolumab targets, and a large-scale immunohistochemistry study (Liudahl et al., Cancer Discovery, 2021) provided data for 11 baseline targets covering immune cell densities, fractions, and ratios.
 
-\section{S9: Inference Results}
+\section{Inference Results}
 \label{sec:inference-results}
 
 All \nTargets{} SubmodelTargets were translated to a joint Julia inference script using Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. Most targets (\mtAlgebraicPct{}) use closed-form forward models; the rest use simple ODEs (Table~\ref{tab:model-type-dist}).
