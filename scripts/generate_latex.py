@@ -1064,18 +1064,17 @@ def generate_posterior_figure(inference_results: dict, output_path: Path):
         print("Warning: No inference results. Skipping posterior figure.")
         return
 
-    # Load raw posterior samples
-    samples_path = SCRIPT_DIR.parent / "metadata_storage" / "posterior_samples.json"
+    # Load raw posterior samples from fixed path
+    samples_path = OUTPUT_DIR / "posterior_samples.json"
     if not samples_path.exists():
-        print(f"Warning: {samples_path} not found. Skipping posterior figure.")
-        print("  Run inference with updated translator to generate samples.")
+        print("Warning: posterior_samples.json not found. Skipping posterior figure.")
         return
 
     with open(samples_path) as f:
         posterior_samples = json.load(f)
 
     # Parse priors from Julia script
-    julia_path = SCRIPT_DIR.parent / "metadata_storage" / "joint_calibration.jl"
+    julia_path = SCRIPT_DIR / "joint_calibration.jl"
     priors = _parse_priors_from_julia(julia_path)
 
     params = inference_results["parameters"]
@@ -1202,11 +1201,12 @@ def main():
     yaml_metrics = YAMLMetrics.from_dict(data.get("yaml_metrics", {}))
     inference = InferenceMetrics.from_dict({}, data.get("inference_available", False))
 
-    # Use fresh inference results if available (from latest inference run)
-    fresh_inference_path = SCRIPT_DIR.parent / "metadata_storage" / "inference_results.json"
-    if fresh_inference_path.exists():
-        print(f"  Using fresh inference from {fresh_inference_path}")
-        with open(fresh_inference_path) as f:
+    # Load inference results from fixed path
+    inference_results = None
+    inference_path = OUTPUT_DIR / "inference_results.json"
+    if inference_path.exists():
+        print(f"  Using inference results from {inference_path}")
+        with open(inference_path) as f:
             inference_results = json.load(f)
     else:
         inference_results = data.get("inference_results")

@@ -22,8 +22,7 @@ import yaml
 # Configuration
 # =============================================================================
 
-PDAC_BUILD = Path(__file__).parent.parent.parent / "pdac-build"
-CT_DIR = PDAC_BUILD / "calibration_targets"
+CT_DIR = Path(__file__).parent.parent / "metadata_storage" / "calibration_targets" / "pdac_build"
 OUTPUT_DIR = Path(__file__).parent.parent / "paper" / "generated"
 
 

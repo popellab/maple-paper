@@ -1287,7 +1287,7 @@ All \nYAMLTargets{} SubmodelTargets were translated to a joint Julia inference s
 
 \input{generated/model_type_table}
 
-The generated script is self-contained, requiring only DifferentialEquations.jl, Turing.jl, and Distributions.jl \citep{JSSv098i16}. Each target contributes a simulate function, observed data constants, and a likelihood term. In this application, each target constrains a single isolated parameter with a closed-form forward model. For such cases, joint Bayesian inference is not strictly necessary; one could simply invert each forward model and propagate measurement uncertainty. The framework is designed for more complex scenarios: when multiple derivations constrain the same parameter, when a single target constrains multiple parameters, or when forward models involve ODEs that cannot be analytically inverted.
+The generated script is self-contained, requiring only DifferentialEquations.jl, Turing.jl, and Distributions.jl \citep{JSSv098i16}. Each target contributes a simulate function, observed data constants, and a likelihood term. In this application, most targets constrain individual parameters through algebraic or structured forward models (steady-state, batch accumulation, first-order decay), with \nSharedParams{} parameters shared across multiple targets. The framework supports arbitrarily complex scenarios: multiple derivations constraining the same parameter, single targets constraining multiple parameters, and forward models involving ODEs that cannot be analytically inverted.
 
 \subsection{Convergence Diagnostics}
 
