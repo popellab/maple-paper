@@ -7,7 +7,7 @@ MAPLE is a framework for LLM-assisted calibration of quantitative systems pharma
 ## Repository Structure
 
 ```
-qsp-llm-workflows-paper/
+maple-paper/
 ├── paper/                        # Manuscript
 │   ├── main.tex                  # Main manuscript
 │   ├── supplementary.tex         # Supplementary materials (S1-S5)
@@ -50,11 +50,11 @@ qsp-llm-workflows-paper/
 
 ## Setup
 
-Create a Python virtual environment and install the [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows) framework as an editable dependency:
+Create a Python virtual environment and install the [MAPLE](https://github.com/popellab/maple) framework as an editable dependency:
 
 ```bash
 uv venv
-uv pip install -e ../qsp-llm-workflows
+uv pip install -e ../maple
 ```
 
 A `.env` file is required at the repository root with the following keys:
@@ -66,7 +66,7 @@ LOGFIRE_READ_TOKEN=...   # For querying extraction metrics from Logfire
 
 ## Reproducing Extractions
 
-The `batch_extraction/` directory contains all inputs needed to reproduce the LLM extraction step using the [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows) framework:
+The `batch_extraction/` directory contains all inputs needed to reproduce the LLM extraction step using the [MAPLE](https://github.com/popellab/maple) framework:
 
 ```bash
 cd batch_extraction
@@ -117,7 +117,7 @@ pdflatex main.tex
 
 ## Related Repository
 
-MAPLE (SubmodelTarget and CalibrationTarget schemas, validators, Julia translator) is implemented in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
+MAPLE (SubmodelTarget and CalibrationTarget schemas, validators, Julia translator) is implemented in [maple](https://github.com/popellab/maple).
 
 ## License
 

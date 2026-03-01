@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Run SubmodelTarget batch extraction using the qsp-llm-workflows framework.
+# Run SubmodelTarget batch extraction using the MAPLE framework.
 #
 # Prerequisites:
-#   pip install qsp-llm-workflows   # or install from ../qsp-llm-workflows
+#   pip install maple   # or install from ../maple
 #   export OPENAI_API_KEY=...
 #
 # To regenerate model_structure.json and species_units.json (requires MATLAB):

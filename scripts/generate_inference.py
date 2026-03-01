@@ -33,7 +33,7 @@ def find_yaml_files(directory: Path) -> list[Path]:
 
 def run_translator(args: list[str], description: str) -> None:
     """Run the julia_translator module with the given arguments."""
-    cmd = [sys.executable, "-m", "qsp_llm_workflows.core.calibration.julia_translator"] + args
+    cmd = [sys.executable, "-m", "maple.core.calibration.julia_translator"] + args
     print(f"  {' '.join(cmd)}\n")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:

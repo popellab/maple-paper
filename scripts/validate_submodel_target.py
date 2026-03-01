@@ -12,8 +12,8 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from qsp_llm_workflows.core.calibration.submodel_target import SubmodelTarget
-from qsp_llm_workflows.core.model_structure import ModelStructure
+from maple.core.calibration.submodel_target import SubmodelTarget
+from maple.core.model_structure import ModelStructure
 
 # Model structure path relative to this script
 MODEL_STRUCTURE_PATH = Path(__file__).parent.parent / "batch_extraction" / "model_structure.json"

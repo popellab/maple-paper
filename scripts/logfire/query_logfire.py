@@ -28,7 +28,7 @@ from logfire.query_client import LogfireQueryClient
 load_dotenv(find_dotenv())
 
 
-# Exception type to category mapping (mirrors qsp_llm_workflows.core.calibration.exceptions)
+# Exception type to category mapping (mirrors maple.core.calibration.exceptions)
 EXCEPTION_CATEGORIES = {
     # Hallucination detection
     "SnippetValueMismatchError": "hallucination",
@@ -157,7 +157,7 @@ class TraceMetrics:
 
         return categories
 
-    def logfire_url(self, org: str = "popel-lab", project: str = "qsp-llm-workflows") -> str:
+    def logfire_url(self, org: str = "popel-lab", project: str = "maple") -> str:
         """Generate Logfire UI URL for this trace."""
         return f"https://logfire-us.pydantic.dev/{org}/{project}/traces/{self.trace_id}"
 

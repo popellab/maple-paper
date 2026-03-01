@@ -1,4 +1,4 @@
-# Claude Code Guidelines for qsp-llm-workflows-paper
+# Claude Code Guidelines for maple-paper
 
 ## Project Overview
 
@@ -13,7 +13,7 @@ paper/                          # Manuscript
   references.bib                # Bibliography
   generated/                    # Auto-generated tables, figures, and LaTeX macros
 
-batch_extraction/               # Extraction provenance (inputs to qsp-llm-workflows)
+batch_extraction/               # Extraction provenance (inputs to maple)
   run_extraction.sh             # Batch extraction invocation script
   extraction_targets.csv        # 19 PDAC parameters targeted for extraction
   model_context.txt             # Model description passed to LLM
@@ -57,7 +57,7 @@ supporting_files/               # Reference PDFs (gitignored)
 
 ## Related Repository
 
-The MAPLE framework code is in `../qsp-llm-workflows/` (sibling directory). Schema definitions, validators, Julia translator, and extraction CLI (`qsp-extract`) are there.
+The MAPLE framework code is in `../maple/` (sibling directory). Schema definitions, validators, Julia translator, and extraction CLI (`qsp-extract`) are there.
 
 ## Git Commits
 
