@@ -1,0 +1,367 @@
+study_interpretation: |
+  This study digitally quantified the tumor stroma percentage (TSP) in resected primary human PDAC using CA19-9-immunolabeled tissue microarray cores and ImageJ-based color deconvolution. For each of 142 treatment-naive, surgically resected PDAC cases, up to four tumor regions were analyzed and the stromal area (CA19-9-negative) was divided by total tumor tissue area to obtain TSP. The cohort-level distribution of TSP had a median of 66.1% (range 27.8–99.9%), confirming that resectable PDAC is typically highly desmoplastic. In the QSP model, this observable is computed from the modeled cellular and ECM species: cancer cells (V_T.C1), CAFs (iCAF, myCAF, apCAF), immune cells (CD8, Th, Treg, NK, MDSC, Mac_M1, Mac_M2, cDC1, cDC2), and extracellular matrix (V_T.ECM), using cell-type-specific volumes and ECM tissue density to reconstruct the stromal volume fraction dynamically.
+
+key_assumptions:
+- |
+  The reported median tumor stroma percentage (66.1%) across 142 resected PDAC specimens is representative of the broader population of resectable, treatment-naive primary PDAC tumors targeted by the QSP model.
+- |
+  Tumor stroma percentage measured on CA19-9-immunolabeled 2 mm TMA cores (up to four regions per tumor) is assumed to approximate the whole-tumor stromal area fraction at resection, despite potential intratumoral heterogeneity and regional sampling bias.
+- |
+  The stromal volume fraction computed from model species (CAFs, immune cells, ECM) is assumed to approximate the histological stromal area fraction (TSP). Volume fraction and area fraction are equivalent in expectation for isotropic, randomly sectioned tissue (stereological principle of Delesse).
+- |
+  Cell volumes are approximated as spheres using reference diameters: cancer cells 17 µm, CAFs 15 µm, macrophages 20 µm, lymphocytes/DCs/MDSCs 7 µm. ECM volume is estimated from ECM mass and hydrated tissue density (~150 mg/mL). These geometric assumptions introduce systematic uncertainty but the dominant contributor (ECM) is well constrained.
+- |
+  The empirical distribution of TSP across 142 patients is modeled as a beta distribution fit by method of moments to the reported median (66.1%) and SD estimated from the reported range (27.8–99.9%), capturing the substantial inter-patient variability in stromal content.
+
+key_study_limitations:
+- |
+  Stromal quantification was performed on tissue microarray cores rather than whole-slide sections, so the measured tumor stroma percentage may not fully capture spatial heterogeneity of stroma within the entire tumor mass.
+- |
+  TSP was derived from CA19-9-immunolabeled sections using digital thresholding and color deconvolution; cases with poor separation between labeled tumor and stroma required manual estimation by two analysts, introducing potential observer-dependent variability.
+- |
+  The cohort consists of consecutive patients undergoing pancreatic resection with curative intent at a single Swedish tertiary center between 1995 and 2017; findings may not generalize to unresectable or metastatic PDAC, or to institutions with different patient selection criteria and pathology workflows.
+- |
+  Only the cohort-level median and range of TSP (27.8–99.9%) are reported, not the full distribution or interquartile range. The beta distribution used for calibration is fit from the median and an SD estimated from the range, which introduces approximation error in the tails.
+
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants, ureg):
+        """Compute tumor stromal volume fraction from model species.
+
+        Stromal fraction = (CAF volume + immune cell volume + ECM volume)
+                         / (cancer cell volume + CAF volume + immune volume + ECM volume)
+
+        Cell volumes derived from spherical geometry using reference diameters.
+        ECM volume from ECM mass (mg) divided by hydrated tissue density (mg/mL).
+        """
+        import numpy as np
+
+        # Cancer cells
+        C1 = species_dict['V_T.C1'].to('cell').magnitude
+
+        # CAF subtypes
+        iCAF = species_dict['V_T.iCAF'].to('cell').magnitude
+        myCAF = species_dict['V_T.myCAF'].to('cell').magnitude
+        apCAF = species_dict['V_T.apCAF'].to('cell').magnitude
+
+        # Lymphocyte-sized immune cells
+        CD8 = species_dict['V_T.CD8'].to('cell').magnitude
+        Th = species_dict['V_T.Th'].to('cell').magnitude
+        Treg = species_dict['V_T.Treg'].to('cell').magnitude
+        NK = species_dict['V_T.NK'].to('cell').magnitude
+        MDSC = species_dict['V_T.MDSC'].to('cell').magnitude
+        cDC1 = species_dict['V_T.cDC1'].to('cell').magnitude
+        cDC2 = species_dict['V_T.cDC2'].to('cell').magnitude
+
+        # Macrophages (larger)
+        Mac_M1 = species_dict['V_T.Mac_M1'].to('cell').magnitude
+        Mac_M2 = species_dict['V_T.Mac_M2'].to('cell').magnitude
+
+        # ECM mass
+        ECM = species_dict['V_T.ECM'].to('milligram').magnitude
+
+        # Cell volumes in mL (from constants, converted from µm³)
+        vol_cancer = constants['vol_cancer_cell'].to('milliliter / cell').magnitude
+        vol_caf = constants['vol_CAF'].to('milliliter / cell').magnitude
+        vol_lymph = constants['vol_lymphocyte'].to('milliliter / cell').magnitude
+        vol_mac = constants['vol_macrophage'].to('milliliter / cell').magnitude
+        ecm_density = constants['ecm_tissue_density'].to('milligram / milliliter').magnitude
+
+        # Volume contributions (mL)
+        cancer_vol = C1 * vol_cancer
+        caf_vol = (iCAF + myCAF + apCAF) * vol_caf
+        lymph_vol = (CD8 + Th + Treg + NK + MDSC + cDC1 + cDC2) * vol_lymph
+        mac_vol = (Mac_M1 + Mac_M2) * vol_mac
+        ecm_vol = ECM / ecm_density
+
+        stromal_vol = caf_vol + lymph_vol + mac_vol + ecm_vol
+        total_vol = cancer_vol + stromal_vol
+
+        stromal_frac = np.where(total_vol > 0, stromal_vol / total_vol, np.nan)
+        return stromal_frac * ureg.dimensionless
+  units: dimensionless
+  species:
+  - V_T.C1
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.CD8
+  - V_T.Th
+  - V_T.Treg
+  - V_T.NK
+  - V_T.MDSC
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.ECM
+  constants:
+  - name: vol_cancer_cell
+    value: 2.572e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from pdac_cancer_cell_diameter = 17 µm: V = π/6 × (17e-4 cm)³ = 2.572e-9 cm³ = 2.572e-9 mL.
+    source_type: derived_from_reference_db
+    reference_db_name:
+    reference_db_names:
+    - pdac_cancer_cell_diameter
+    source_tag:
+  - name: vol_CAF
+    value: 1.767e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from fibroblast_diameter = 15 µm: V = π/6 × (15e-4 cm)³ = 1.767e-9 mL. CAFs in PDAC are elongated stellate-shaped cells; spherical approximation gives effective packing volume.
+    source_type: derived_from_reference_db
+    reference_db_name:
+    reference_db_names:
+    - fibroblast_diameter
+    source_tag:
+  - name: vol_lymphocyte
+    value: 1.796e-10
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from t_cell_diameter = 7 µm: V = π/6 × (7e-4 cm)³ = 1.796e-10 mL. Used for CD8, Th, Treg, NK, MDSC, cDC1, cDC2 as first approximation (DCs are larger in reality but few in number).
+    source_type: derived_from_reference_db
+    reference_db_name:
+    reference_db_names:
+    - t_cell_diameter
+    source_tag:
+  - name: vol_macrophage
+    value: 4.189e-09
+    units: milliliter / cell
+    biological_basis: |
+      Spherical volume from macrophage_diameter = 20 µm: V = π/6 × (20e-4 cm)³ = 4.189e-9 mL. Tissue macrophages are among the largest immune cells in the TME.
+    source_type: derived_from_reference_db
+    reference_db_name:
+    reference_db_names:
+    - macrophage_diameter
+    source_tag:
+  - name: ecm_tissue_density
+    value: 150.0
+    units: milligram / milliliter
+    biological_basis: |
+      Effective density of hydrated desmoplastic ECM in PDAC tissue. Dense collagen networks in PDAC contain ~10-20% dry collagen by weight (dry collagen density ~1300 mg/mL) with the remainder being interstitial water and proteoglycans. An effective tissue density of 100-200 mg/mL reflects the high collagen content characteristic of PDAC desmoplasia.
+    source_type: reference_db
+    reference_db_name: ecm_tissue_density
+    reference_db_names:
+    - ecm_tissue_density
+    source_tag:
+  inputs: []
+  support: unit_interval
+  mapping_rationale: |
+    The experimental tumor stroma percentage (TSP) is the area fraction of CA19-9-negative tissue (stroma) relative to total tumor tissue area. By the Delesse principle, area fraction equals volume fraction for isotropic random sections. The observable computes the model-predicted stromal volume fraction from explicit species: cancer cell volume (V_T.C1 × vol_cancer_cell), CAF volume (iCAF + myCAF + apCAF × vol_CAF), immune cell volume (lymphocytes × vol_lymphocyte + macrophages × vol_macrophage), and ECM volume (V_T.ECM / ecm_tissue_density). Stromal fraction = (CAF + immune + ECM volume) / (cancer + CAF + immune + ECM volume). This makes the target sensitive to the dynamic balance between tumor growth, CAF activation, immune infiltration, and ECM deposition.
+  experimental_denominator: |
+    Total tumor tissue area (CA19-9-positive epithelial islands + CA19-9-negative stroma).
+  model_denominator_species:
+  - V_T.C1
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.CD8
+  - V_T.Th
+  - V_T.Treg
+  - V_T.NK
+  - V_T.MDSC
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.ECM
+  unmodeled_denominator_components: |
+    Histologic stroma includes endothelial cells, pericytes, and neural elements not explicitly modeled. Their combined volume contribution is assumed small relative to ECM and CAFs. Vascular lumen volume is also excluded.
+  aggregation:
+
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier:
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      Surgery-first cohort of primary PDAC; no neoadjuvant chemotherapy or radiotherapy was given before resection ("No patient received neoadjuvant treatment").
+  stage:
+    extent: resectable
+    burden: moderate
+  cell_lines:
+  culture_conditions:
+  tissue_source: |
+    Primary PDAC resection specimens (pancreatic head and body/tail) from pancreatectomy procedures performed with curative intent.
+  assay_type: |
+    Digital histopathology of CA19-9-immunolabeled tissue microarray cores with ImageJ-based color deconvolution to quantify tumor stroma percentage.
+
+scenario:
+  description: |
+    Natural progression of resectable primary PDAC followed by pancreatic resection with curative intent; tumor stroma percentage is measured on the resected primary tumor at the time of surgery using digital image analysis of CA19-9-immunolabeled TMA cores.
+  interventions:
+  - intervention_description: |
+      No systemic anticancer therapy prior to surgery (no neoadjuvant chemotherapy or radiotherapy); patients underwent a surgery-first approach for resectable PDAC.
+  - intervention_description: |
+      Pancreatic resection with curative intent at the time of diagnosis (pancreatoduodenectomy or distal pancreatectomy as appropriate); the primary PDAC tumor and surrounding stroma were excised, formalin-fixed, paraffin-embedded, and sampled into tissue microarrays for digital quantification of tumor stroma percentage.
+
+empirical_data:
+  median:
+  - 0.668
+  ci95:
+  - - 0.424
+    - 0.863
+  units: dimensionless
+  sample_size: 142
+  sample_size_rationale: |
+    n=142 resected PDAC specimens described in the Materials and methods (Data source) section: "Tissue microarrays (TMAs) were constructed from resected PDAC specimens (n = 142)."
+  index_values:
+  index_unit:
+  index_type:
+  inputs:
+  - name: tsp_median_percent
+    value: 66.1
+    units: percent
+    description: |
+      Median tumor stroma percentage (TSP) across 142 resected PDAC specimens, defined as area of CA19-9-negative stroma divided by total tumor tissue area, expressed in %.
+    source_ref: Bengtsson2026_TSP
+    value_location: Results, Stroma assessment section
+    value_snippet: |
+      The distribution of TSP among patients is shown in Fig. 2. The median TSP was 66.1%, ranging from 27.8% to 99.9%.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  - name: tsp_min_percent
+    value: 27.8
+    units: percent
+    description: |
+      Minimum observed tumor stroma percentage across the cohort.
+    source_ref: Bengtsson2026_TSP
+    value_location: Results, Stroma assessment section
+    value_snippet: |
+      The distribution of TSP among patients is shown in Fig. 2. The median TSP was 66.1%, ranging from 27.8% to 99.9%.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  - name: tsp_max_percent
+    value: 99.9
+    units: percent
+    description: |
+      Maximum observed tumor stroma percentage across the cohort.
+    source_ref: Bengtsson2026_TSP
+    value_location: Results, Stroma assessment section
+    value_snippet: |
+      The distribution of TSP among patients is shown in Fig. 2. The median TSP was 66.1%, ranging from 27.8% to 99.9%.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  assumptions:
+  - name: n_mc_samples
+    value: 100000.0
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples for stable beta distribution quantile estimates.
+    rationale: |
+      100,000 samples provide <1% Monte Carlo error on median and 95% CI for a beta distribution.
+  - name: n_patients
+    value: 142.0
+    units: dimensionless
+    description: |
+      Sample size used to interpret the reported range as approximate extreme-order-statistic quantiles.
+    rationale: |
+      For n=142, the expected min and max correspond to approximately the 0.7th and 99.3rd percentiles.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+
+        # Extract reported statistics as dimensionless fractions
+        median_frac = inputs['tsp_median_percent'].to('dimensionless').magnitude
+        min_frac = inputs['tsp_min_percent'].to('dimensionless').magnitude
+        max_frac = inputs['tsp_max_percent'].to('dimensionless').magnitude
+        n_mc = int(inputs['n_mc_samples'].magnitude)
+        n_pat = int(inputs['n_patients'].magnitude)
+
+        # Estimate SD from the observed range using expected range of
+        # order statistics: for n observations, range ≈ 2 * d_n * SD
+        # where d_n ≈ sqrt(2 * ln(n)) for moderate n.
+        # For n=142: d_n ≈ sqrt(2*ln(142)) ≈ 3.15, so range ≈ 6.3 * SD
+        obs_range = max_frac - min_frac
+        d_n = np.sqrt(2.0 * np.log(n_pat))
+        sd_est = obs_range / (2.0 * d_n)
+
+        # Method of moments for beta(a, b):
+        #   mean = a/(a+b),  var = ab/((a+b)^2*(a+b+1))
+        # Approximate mean ≈ median (slight bias for skewed beta, acceptable)
+        mean_est = median_frac
+        var_est = sd_est ** 2
+
+        # Solve for a and b
+        # From mean: a = mean*(a+b) => a/b = mean/(1-mean)
+        # Let r = mean/(1-mean), so a = r*b
+        # Substituting into variance equation:
+        #   r*b^2 / ((r*b+b)^2*(r*b+b+1)) = var
+        #   r / ((r+1)^2 * ((r+1)*b + 1)) = var
+        #   (r+1)*b + 1 = r / (var * (r+1)^2)
+        #   b = (r / (var * (r+1)^2) - 1) / (r+1)
+        r = mean_est / (1.0 - mean_est)
+        b_param = (r / (var_est * (r + 1.0) ** 2) - 1.0) / (r + 1.0)
+        a_param = r * b_param
+
+        # Safety: ensure valid beta parameters
+        a_param = max(a_param, 1.01)
+        b_param = max(b_param, 1.01)
+
+        rng = np.random.default_rng(42)
+        samples = rng.beta(a_param, b_param, n_mc)
+
+        median_obs = float(np.median(samples))
+        ci95_lower = float(np.percentile(samples, 2.5))
+        ci95_upper = float(np.percentile(samples, 97.5))
+
+        return {
+            'median_obs': median_obs * ureg.dimensionless,
+            'ci95_lower': ci95_lower * ureg.dimensionless,
+            'ci95_upper': ci95_upper * ureg.dimensionless,
+        }
+
+primary_data_source:
+  source_tag: Bengtsson2026_TSP
+  title: |
+    Digital quantification of stroma percentage enhances prognostic stratification in pancreatic cancer
+  first_author: Bengtsson
+  year: 2026
+  doi: 10.1016/j.sopen.2026.01.002
+
+secondary_data_sources:
+- source_tag: PDAC_Reference_CellDiameters
+  title: |
+    Curated reference values for cell diameters (cancer 17 µm, T cell 7 µm, macrophage 20 µm) used to compute cell volumes
+  first_author: ReferenceDB
+  year: 2024
+  doi_or_url:
+
+calibration_target_id: stromal_fraction
+
+cancer_type: PDAC
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c6ef12afbb4c79cec37790cabe3b5
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+source_relevance:

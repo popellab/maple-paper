@@ -1,0 +1,173 @@
+empirical_data:
+  assumptions:
+  - description: Assumed coefficient of variation for Foxp3+ regulatory T cell density in PDAC tumor tissue used to construct
+      a lognormal distribution around the reported central value.
+    name: assumed_cv_treg_density
+    rationale: The study reports only a single average Foxp3+ T cell density (48.5 cells/mm^2) without any dispersion measure.
+      Published immune cell densities in solid tumors commonly show coefficients of variation on the order of 50–200%. We
+      therefore assume CV=1.0 (100%) as a conservative, order-of-magnitude representation of biological variability when deriving
+      uncertainty for this calibration target.
+    units: dimensionless
+    value: 1.0
+  ci95:
+  - - 9.49
+    - 247.99
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import math\n\n    # Reported central tendency for Foxp3+\
+    \ T cell density (treated as median)\n    median_val = inputs['treg_density_median']  # Pint Quantity, cell/mm^2\n\n \
+    \   # Assumed coefficient of variation (dimensionless Quantity)\n    cv = inputs['assumed_cv_treg_density']\n\n    # For\
+    \ a lognormal distribution with median m and CV, we can compute sigma in log-space as:\n    # CV^2 = exp(sigma^2) - 1\
+    \  =>  sigma = sqrt(log(1 + CV^2))\n    sigma = math.sqrt(math.log(1.0 + cv.magnitude**2))\n\n    # The median in linear\
+    \ space is simply m\n    m = median_val.magnitude\n\n    # 95% CI bounds for a lognormal with given median and sigma\n\
+    \    # Using standard normal quantiles z = ±1.96\n    z = 1.96\n    lower_mag = m * math.exp(-z * sigma)\n    upper_mag\
+    \ = m * math.exp(z * sigma)\n\n    lower = lower_mag * median_val.units\n    upper = upper_mag * median_val.units\n\n\
+    \    return {\n        'median_obs': median_val,\n        'ci95_lower': lower,\n        'ci95_upper': upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Reported average Foxp3+ T cell density in PDAC tumor areas from 10 random fields; used as central tendency
+      (approximated as median) for calibration.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: treg_density_median
+    source_ref: Kiryu2021_Foxp3_Treg_PDAC
+    source_type: text
+    units: cell / millimeter**2
+    value: 48.5
+    value_location: Results section, paragraph beginning 'There is increasing evidence suggesting that Foxp3+ Tregs inhibit
+      antitumor immune responses' under 'Associations of Foxp3 density in the PDAC TME with OS and DFS times'.
+    value_snippet: Therefore, to understand how immunosuppressive cells such as Tregs in the TME of PDAC are associated with
+      clinical benefits, Foxp3+ T cell density was assessed by immunohistochemical staining. The average of Foxp3+ T cell
+      numbers from 10 random tumor areas was 48.5 /mm^{2}.
+  - conversion_formula: null
+    description: Assumed coefficient of variation (CV = 1.0) for Foxp3+ regulatory T cell density in PDAC tumor tissue, representing
+      typical ~100% relative variability for immune cell densities when variance is not reported.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: inferred_estimate
+    name: assumed_cv_treg_density
+    source_ref: Kiryu2021_Foxp3_Treg_PDAC
+    source_type: text
+    units: dimensionless
+    value: 1.0
+    value_location: Variance of Foxp3+ T cell density was not reported in the paper; CV assumed based on typical immune cell
+      density variability.
+    value_snippet: The variability (standard deviation or standard error) of Foxp3+ T cell density was not reported; for calibration
+      we assume a coefficient of variation of 1.0 (100%) as typical for tissue immune cell densities.
+  median:
+  - 48.5
+  sample_size: 85
+  sample_size_rationale: n=85 consecutive PDAC patients who underwent R0 resection between January 2005 and March 2019 and
+    had Foxp3+ T cell density assessed on resected tumor tissue.
+  units: cell / millimeter**2
+experimental_context:
+  assay_type: Single-plex chromogenic immunohistochemistry for Foxp3 on 4-micrometer sections.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage: null
+  system: clinical.resection
+  tissue_source: Formalin-fixed, paraffin-embedded primary PDAC tumor tissue from R0 surgical resections.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Patients underwent R0 surgical resection for PDAC with no neoadjuvant systemic therapy reported; 80% later
+      received chemotherapy only after recurrence, so tumors at the time of resection are treated as treatment-naive for systemic
+      therapy.
+    status: off_treatment
+key_assumptions:
+- The reported "average" Foxp3+ T cell density of 48.5 cells/mm^2 is treated as the central tendency (approximated as the
+  median) of the population distribution for calibration, assuming that mean and median are similar for this cohort-level
+  summary.
+- Foxp3+ cells identified by single-marker IHC are interpreted as regulatory T cells (Tregs), acknowledging that transient
+  Foxp3 expression in activated conventional CD4+ T cells may introduce some contamination but is standard for Treg quantification
+  in FFPE tissues.
+- Tumor cross-sectional area for mapping model outputs to IHC-derived densities is approximated as cancer cell count (V_T.C1)
+  times average PDAC cancer-cell cross-sectional area from the reference database, effectively neglecting stromal and acellular
+  components and assuming cancer cells dominate the tumor cross-sectional geometry.
+- Patients are treated as systemically treatment-naive at the time of tissue sampling because the study does not report any
+  neoadjuvant chemotherapy or radiotherapy; chemotherapy was administered to 80% of patients only upon recurrence after surgery.
+- Because the study does not report variance (SD/SEM) for Foxp3+ T cell density, a coefficient of variation of 1.0 (100%)
+  is assumed to construct a lognormal uncertainty distribution, consistent with typical variability observed for immune cell
+  densities in solid tumors.
+key_study_limitations:
+- Single-center retrospective cohort from a Japanese institution (n=85), which may limit generalizability to broader PDAC
+  populations and different treatment settings.
+- Foxp3+ T cell density was measured on 10 random high-power fields per tumor, which may not fully capture spatial heterogeneity
+  of Treg infiltration within the entire tumor mass.
+- The paper reports only a single average Foxp3+ T cell density (48.5 cells/mm^2) without SD, SEM, or IQR, requiring an assumed
+  coefficient of variation for uncertainty quantification.
+- Single-marker Foxp3 IHC cannot fully distinguish suppressive Tregs from transiently Foxp3-expressing effector CD4+ T cells,
+  potentially biasing the estimated Treg density.
+- Some patients had AJCC stage III disease, and detailed information on any neoadjuvant therapy is not provided; while the
+  cohort is described as R0-resected, unreported preoperative treatments could modestly alter the immune infiltrate in a subset
+  of patients.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    # Compute Foxp3+ regulatory T cell density in the\
+    \ primary tumor compartment\n    # as Treg cell count divided by tumor cross-sectional area.\n    # Tumor area is approximated\
+    \ as cancer cell count times average PDAC cancer-cell cross-sectional area.\n\n    treg = species_dict['V_T.Treg']   \
+    \        # cells\n    cancer_cells = species_dict['V_T.C1']     # cells\n\n    area_per_cancer_cell = constants['area_per_cancer_cell']\
+    \  # mm^2/cell\n\n    # Tumor cross-sectional area in mm^2\n    tumor_area = cancer_cells * area_per_cancer_cell  # (cell)\
+    \ * (mm^2/cell) = mm^2\n\n    # Treg density in cells/mm^2\n    density = (treg / tumor_area).to('cell / millimeter**2')\n\
+    \    return density"
+  constants:
+  - biological_basis: PDAC cancer-cell cross-sectional area taken directly from the curated reference value 'pdac_cancer_cell_cross_section',
+      which is derived from an average PDAC cancer cell diameter of approximately 17 micrometers assuming a circular cross-section
+      (area = pi * r^2).
+    name: area_per_cancer_cell
+    reference_db_name: pdac_cancer_cell_cross_section
+    reference_db_names: null
+    source_tag: null
+    source_type: reference_db
+    units: millimeter**2 / cell
+    value: 0.000227
+  inputs: []
+  mapping_rationale: The paper quantifies Foxp3+ regulatory T cell density as the number of Foxp3+ cells per mm^2 of tumor
+    area in formalin-fixed, paraffin-embedded PDAC resection specimens, counted over 10 random tumor fields at 400x magnification.
+    In the QSP model, V_T.Treg represents the total number of Treg cells in the tumor compartment and V_T.C1 represents the
+    total number of cancer cells. Approximating tumor cross-sectional area as cancer cell count times average PDAC cancer-cell
+    cross-sectional area (from the reference database) allows us to compute a model-predicted Treg density (cells/mm^2) that
+    is directly comparable to the IHC-derived density reported in the study.
+  species:
+  - V_T.Treg
+  - V_T.C1
+  support: positive
+  units: cell / millimeter**2
+primary_data_source:
+  doi: 10.1186/s12885-021-08911-4
+  first_author: Kiryu
+  source_tag: Kiryu2021_Foxp3_Treg_PDAC
+  title: Prognostic value of immune factors in the tumor microenvironment of patients with pancreatic ductal adenocarcinoma
+  year: 2021
+scenario:
+  description: Untreated primary PDAC tumor at the time of R0 surgical resection, before any adjuvant or recurrence-directed
+    systemic therapy.
+  interventions:
+  - intervention_description: No systemic anti-cancer therapy prior to surgery; patients underwent standard R0 pancreatic
+      resection as initial treatment, and tumor tissue obtained at surgery was used for Foxp3+ T cell immunohistochemistry.
+secondary_data_sources:
+- doi_or_url: null
+  first_author: QSPCoreTeam
+  source_tag: ReferenceDB_PDAC_Geometry
+  title: Curated reference values for PDAC tumor geometry and cellular composition (including pdac_cancer_cell_cross_section).
+  year: 2024
+source_relevance: null
+study_interpretation: Kiryu et al. (BMC Cancer 2021) analyzed immune-cell infiltrates in the tumor microenvironment of 85
+  patients with pancreatic ductal adenocarcinoma who underwent R0 surgical resection. Formalin-fixed, paraffin-embedded primary
+  tumor specimens were sectioned at 4 micrometers and stained by immunohistochemistry for CD3, CD4, CD8, PD-1, and Foxp3.
+  For Foxp3+ regulatory T cells, the authors counted immunolabeled cells in 10 random tumor areas at 400x magnification and
+  expressed results as cell counts per mm^2 of tumor area. They report that the average Foxp3+ T cell density across these
+  tumor fields was 48.5 cells/mm^2 and used the median cell counts/mm^2 to dichotomize patients into high- and low-density
+  groups for survival analysis. All patients had resectable PDAC treated with upfront R0 resection, and 80% received chemotherapy
+  only after recurrence, so the measured Foxp3+ densities represent untreated baseline tumors at the time of surgery.

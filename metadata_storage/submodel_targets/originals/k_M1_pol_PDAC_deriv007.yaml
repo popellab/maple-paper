@@ -1,0 +1,207 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: The M2/M1 ratio is positive and likely approximately log-normally distributed across tumors. We encode measurement
+        and biological variability via an assumed coefficient of variation.
+    name: m2_m1_ratio_measurement
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size):\n    mean_ratio = inputs['tumor_m2_m1_ratio_mean']\n \
+      \   cv = inputs['tumor_m2_m1_ratio_cv']\n    return {\n        'value': mean_ratio,\n        'sd': cv,\n        'sd_uncertain':\
+      \ False,\n        'n': int(sample_size),\n    }"
+    sample_size: 20
+    sample_size_rationale: Twenty uveal melanoma specimens were analyzed for M2/M1 tumor-associated macrophage ratios.
+    units: dimensionless
+    uses_inputs:
+    - tumor_m2_m1_ratio_mean
+    - tumor_m2_m1_ratio_cv
+  forward_model:
+    data_rationale: Herwig et al. quantified the ratio of M2 (CD68+CD163+) to M1 (CD68+CD163-) tumor-associated macrophages
+      in human uveal melanomas and reported that aggressive class 2 tumors have an M2/M1 ratio of approximately 2. This provides
+      an in vivo steady-state measure of how strongly macrophages are biased toward the M2 phenotype in an aggressive solid
+      tumor microenvironment without exogenous pharmacologic manipulation.
+    drive_denominator: '1.0'
+    drive_numerator: '1.0'
+    independent_variable: null
+    rate_denominator: k_M1_pol
+    rate_numerator: k_M2_pol
+    state_variables: null
+    submodel_rationale: In the full QSP PDAC model, M1 and M2 macrophages interconvert via polarization reactions governed
+      by k_M1_pol (M2->M1) and k_M2_pol (M1->M2), while sharing similar recruitment and death processes. Under quasi-steady-state
+      conditions where recruitment and loss affect both phenotypes similarly, the M2/M1 density ratio is approximately proportional
+      to k_M2_pol/k_M1_pol. The steady_state_ratio submodel captures this mechanistic dependence by setting the numerator
+      rate to k_M2_pol (driving M2) and the denominator rate to k_M1_pol (driving M1), with drive factors set to 1.0 to represent
+      an averaged cytokine milieu.
+    type: steady_state_ratio
+    unit_conversion_factor: '1.0'
+  identifiability_notes: This target constrains primarily the ratio k_M2_pol/k_M1_pol via the observed steady-state M2/M1
+    macrophage ratio. Without additional dynamic data (e.g., time courses or fate-mapping), the absolute magnitudes of k_M1_pol
+    and k_M2_pol remain only weakly identified and will be dominated by their priors and by other calibration targets that
+    involve macrophage turnover timescales. The assumption that recruitment and death rates cancel in the ratio is critical;
+    deviations from this (e.g., differential survival of M1 vs M2) would bias the inferred polarization-rate ratio. Cross-indication
+    use of uveal melanoma data for a PDAC model introduces substantial translation uncertainty, so posterior inferences for
+    k_M1_pol should be interpreted as order-of-magnitude guidance rather than precise estimates.
+  parameters:
+  - name: k_M1_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -1.2
+      rationale: Centered at ~0.3 1/day (half-life ~2.3 days) as a plausible in vivo macrophage polarization timescale, with
+        a wide (1 log10) uncertainty to accommodate cross-indication translation from uveal melanoma to PDAC.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+  - name: k_M2_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -1.2
+      rationale: Same weakly-informative prior as k_M1_pol; the steady-state M2/M1 ratio data primarily constrain the ratio
+        k_M2_pol/k_M1_pol, not their absolute magnitudes.
+      sigma: 1.0
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Immunohistochemistry with dual CD68/CD163 labeling and manual counting in high-power fields
+    name: tumor-associated macrophages
+    phenotype: CD68+CD163- (M1) and CD68+CD163+ (M2) macrophages within uveal melanoma tissue
+  culture_conditions: null
+  indication: uveal melanoma
+  species: human
+  system: in_vivo_tumor
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 20
+  name: tumor_m2_m1_ratio_mean
+  role: target
+  source_access: open_access
+  source_location: Abstract and Results
+  source_ref: Herwig2013
+  uncertainty: null
+  units: dimensionless
+  value: 2.0
+  value_snippet: Our results showed a correlation between the ratio of M2/M1 macrophages and the molecular profile with a
+    ratio of approximately 1 corresponding to molecular class 1 and a ratio of approximately 2 corresponding to molecular
+    class 2 (p = 0.01).
+- extraction_method: manual
+  input_type: assumed_value
+  n: 20
+  name: tumor_m2_m1_ratio_cv
+  role: auxiliary
+  source_access: open_access
+  source_location: Not explicitly reported; CV assumed for approximate ratios
+  source_ref: Herwig2013
+  uncertainty: null
+  units: dimensionless
+  value: 0.25
+  value_snippet: The ratio of M2/M1 macrophages was higher in tumors with extraocular extension (p = 0.01). We therefore treat
+    the reported approximate ratios as having about 25% relative uncertainty.
+key_assumptions:
+- MHC and chemokine landscapes that shape macrophage polarization in uveal melanoma and PDAC are similar enough that the order-of-magnitude
+  M2/M1 bias carries over between indications.
+- Recruitment and death rates of M1 and M2 tumor-associated macrophages are comparable in the tumor compartment, so that the
+  observed M2/M1 density ratio primarily reflects polarization dynamics rather than differential survival.
+- CD68+CD163- and CD68+CD163+ macrophages in uveal melanoma correspond functionally to M1-like and M2-like TAMs, respectively,
+  analogous to the Mac_M1 and Mac_M2 populations in the PDAC QSP model.
+- Aggressive class 2 uveal melanomas are used as a proxy for advanced PDAC with respect to the degree of M2 bias; less aggressive
+  class 1 tumors (M2/M1~1) are more analogous to earlier-stage or less immunosuppressive disease.
+- A coefficient of variation of 25% reasonably captures measurement and inter-tumor variability in the reported approximate
+  ratios ("approximately 1" and "approximately 2") in the absence of explicit SD/SEM values.
+key_study_limitations:
+- 'Indication mismatch: uveal melanoma arises in the immune-privileged eye and lacks the dense desmoplastic stroma characteristic
+  of PDAC, so macrophage trafficking and polarization cues may differ substantially.'
+- The study reports approximate M2/M1 ratios ("~1" and "~2") without full quantitative distributions, requiring an assumed
+  coefficient of variation to represent uncertainty.
+- Only static, cross-sectional measurements are available; no time-course data or fate-mapping are provided, so polarization
+  rates are inferred under a steady-state assumption rather than from dynamic kinetics.
+- M1 and M2 definitions are based on CD68/CD163 markers, which only approximate functional polarization states and may not
+  align perfectly with the Mac_M1/Mac_M2 compartments in the QSP model.
+- Sample size is modest (n=20 tumors), and the cohort is specific to uveal melanoma with class 1/2 gene-expression profiling,
+  which may not reflect broader solid-tumor biology.
+primary_data_source:
+  authors:
+  - Herwig MC
+  - Bergstrom C
+  - Wells JR
+  - Holler T
+  - Grossniklaus HE
+  doi: 10.1016/j.exer.2012.11.012
+  source_tag: Herwig2013
+  title: M2/M1 ratio of tumor associated macrophages and PPAR-gamma expression in uveal melanomas with class 1 and class 2
+    molecular profiles
+  year: 2013
+secondary_data_sources:
+- authors:
+  - Kim JY
+  - Cho DW
+  - Choi JY
+  - Jeong S
+  - Kang M
+  - Kim WJ
+  - Hong IS
+  - Song H
+  - Chang H
+  - Yang SR
+  - Lee SJ
+  - Park M
+  - Hong SH
+  contribution: Provides in vivo time-course data on M1 (F4/80+CD80+) and M2 (F4/80+CD206+) macrophage frequencies during
+    bleomycin-induced pulmonary fibrosis, supporting the assumption that macrophage polarization between M1 and M2 phenotypes
+    occurs on a timescale of days.
+  doi: 10.1186/s13578-024-01320-7
+  source_quality: primary_animal_in_vivo
+  source_tag: Kim2024_CXCL11
+  title: CXCL11 reprograms M2-biased macrophage polarization to alleviate pulmonary fibrosis in mice
+  url: null
+  year: 2024
+- authors:
+  - Yang T
+  - Han Y
+  - Chen J
+  - Liang X
+  - Sun L
+  contribution: Demonstrates that orthotopic Panc02 PDAC tumors in C57BL/6 mice exhibit a high M2/M1 TAM ratio that can be
+    reduced toward an M1-biased state by genetic or pharmacologic perturbations, qualitatively supporting the use of an M2/M1
+    ratio >1 as representative of an immunosuppressive PDAC-like microenvironment.
+  doi: 10.3390/biomedicines11112874
+  source_quality: primary_animal_in_vivo
+  source_tag: Yang2023_miR506
+  title: MiR-506 Promotes Antitumor Immune Response in Pancreatic Cancer by Reprogramming Tumor-Associated Macrophages toward
+    an M1 Phenotype
+  url: null
+  year: 2023
+source_relevance:
+  estimated_translation_uncertainty_fold: 20.0
+  indication_match: proxy
+  indication_match_justification: The primary data come from human uveal melanoma, an aggressive solid tumor with abundant
+    tumor-associated macrophages, whereas the QSP model targets pancreatic ductal adenocarcinoma (PDAC). Both tumors exhibit
+    immunosuppressive microenvironments with M2-skewed TAM populations, but anatomical site, stromal composition, and local
+    cytokine milieus differ substantially. We therefore treat the uveal melanoma M2/M1 ratio as a mechanistic proxy for the
+    degree of M2 bias in a highly malignant solid tumor, not as a PDAC-specific quantitative measurement.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: low
+  tme_compatibility_notes: Uveal melanomas arise in an immune-privileged ocular environment with relatively limited desmoplasia,
+    whereas PDAC is characterized by a dense fibrotic stroma, high interstitial pressure, and profound T cell exclusion. These
+    differences likely alter macrophage recruitment, survival, and polarization cues, so the absolute M2/M1 ratio and underlying
+    polarization rates in uveal melanoma may differ by an order of magnitude or more from those in PDAC.
+  validation_warnings: null
+study_interpretation: Herwig et al. used CD68/CD163 dual immunolabeling to distinguish M1-like (CD68+CD163-) and M2-like (CD68+CD163+)
+  tumor-associated macrophages in uveal melanomas and reported that tumors with a high-risk (class 2) gene-expression profile
+  had an approximate M2/M1 ratio of 2, compared to ~1 in low-risk (class 1) tumors. This indicates that progression to a more
+  aggressive phenotype is associated with a two-fold enrichment of M2-like TAMs relative to M1-like TAMs in vivo, in the absence
+  of exogenous pharmacologic manipulation. In the QSP PDAC model, the steady-state balance between M1 and M2 macrophages in
+  tumor tissue is governed primarily by the opposing polarization rates k_M1_pol (M2->M1) and k_M2_pol (M1->M2), with recruitment
+  and death processes affecting both phenotypes similarly. Interpreting the observed M2/M1 ratio of ~2 in aggressive tumors
+  as reflecting a similar net M2 bias in advanced PDAC, we map this ratio onto the dimensionless quantity k_M2_pol/k_M1_pol
+  using the steady_state_ratio submodel. This provides an in vivo constraint on the relative strength of M1-to-M2 vs M2-to-M1
+  polarization in a highly malignant tumor microenvironment.
+target_id: k_M1_pol_tam_ratio_herwig2013

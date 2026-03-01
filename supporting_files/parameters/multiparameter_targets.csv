@@ -1,8 +1,0 @@
-target_id,parameters,manual_value,notes,cancer_type
-macrophage_dynamics,"k_Mac_rec,k_M1_pol",,Total TAM density and M1/M2 ratio from steady-state macrophage balance,PDAC
-t_cell_infiltration,"q_CD8_T_in,q_Treg_T_in",,Intratumoral CD8/Treg ratio from paired T cell density measurements,PDAC
-il2_expansion,"N_IL2_CD4,N_IL2_CD8",,Comparative CD4 vs CD8 division destiny under IL-2 stimulation,PDAC
-ccl2_myeloid_axis,"k_CCL2_sec,k_MDSC_rec,k_Mac_rec",,CCL2 concentration driving MDSC and macrophage recruitment,PDAC
-psc_fibroblast_dynamics,"k_psc_activation,k_apsc_death,k_qpsc_death,k_psc_const",,PSC population dynamics with activation state distribution,PDAC
-ecm_desmoplasia,"k_ECM_apsc_sec,k_ECM_qpsc_sec,k_ECM_deg",,ECM/collagen density from secretion-degradation balance,PDAC
-tumor_growth,"k_C1_growth,initial_tumour_diameter",,Tumor volume trajectory from longitudinal imaging,PDAC

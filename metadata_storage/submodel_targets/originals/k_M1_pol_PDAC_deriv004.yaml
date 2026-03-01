@@ -1,0 +1,284 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: The M1:M2 ratio is positive and derived from counts with multiplicative biological variability; a lognormal
+        likelihood with CV estimated from reported ranges is appropriate.
+    name: m1_m2_ratio_pdac_gu2023
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    import numpy as np\n\n    cd86_med = inputs['cd86_primary_median_gu2023']\n\
+      \    cd86_min = inputs['cd86_primary_min_gu2023']\n    cd86_max = inputs['cd86_primary_max_gu2023']\n    cd163_med =\
+      \ inputs['cd163_primary_median_gu2023']\n    cd163_min = inputs['cd163_primary_min_gu2023']\n    cd163_max = inputs['cd163_primary_max_gu2023']\n\
+      \    range_factor = inputs['range_to_sd_factor_gu2023'].magnitude\n    n = int(inputs['n_primary_pdac_gu2023'].magnitude)\n\
+      \n    # Approximate SD from reported range using assumed factor (range approx factor * SD)\n    sd_cd86 = (cd86_max.magnitude\
+      \ - cd86_min.magnitude) / range_factor\n    sd_cd163 = (cd163_max.magnitude - cd163_min.magnitude) / range_factor\n\n\
+      \    # Coefficients of variation for CD86 and CD163 counts\n    cv_cd86 = sd_cd86 / cd86_med.magnitude\n    cv_cd163\
+      \ = sd_cd163 / cd163_med.magnitude\n\n    # Observed M1:M2 ratio from medians (CD86+/CD163+)\n    ratio_value = cd86_med.magnitude\
+      \ / cd163_med.magnitude\n\n    # Propagate uncertainty for ratio R = X/Y: CV_R^2 approx CV_X^2 + CV_Y^2\n    cv_ratio\
+      \ = float(np.sqrt(cv_cd86**2 + cv_cd163**2))\n\n    return {\n        'value': ratio_value * ureg('dimensionless'),\n\
+      \        'sd': cv_ratio,\n        'sd_uncertain': True,\n        'n': n,\n    }"
+    sample_size: 42
+    sample_size_rationale: Number of primary PDAC tumors (n=42) in which CD86+ and CD163+ macrophage counts were quantified.
+    units: dimensionless
+    uses_inputs:
+    - cd86_primary_median_gu2023
+    - cd86_primary_min_gu2023
+    - cd86_primary_max_gu2023
+    - cd163_primary_median_gu2023
+    - cd163_primary_min_gu2023
+    - cd163_primary_max_gu2023
+    - n_primary_pdac_gu2023
+    - range_to_sd_factor_gu2023
+  forward_model:
+    data_rationale: Gu et al. 2023 report median numbers of CD86+ (M1) and CD163+ (M2) macrophages per high-power field in
+      primary resected PDAC, which provide an endogenous pathological-state M1:M2 ratio without exogenous pharmacological
+      stimulation.
+    drive_denominator: '1.0'
+    drive_numerator: '1.0'
+    independent_variable: null
+    rate_denominator: k_M2_pol
+    rate_numerator: k_M1_pol
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, M1 and M2 macrophages interconvert via polarization reactions V_T.Mac_M2
+      -> V_T.Mac_M1 with rate k_M1_pol and V_T.Mac_M1 -> V_T.Mac_M2 with rate k_M2_pol, modulated by IL12/IFNg and IL10/TGFbeta/IL6.
+      At quasi-steady state in the tumor microenvironment, the ratio of M1 to M2 macrophages is governed primarily by the
+      ratio of effective polarization rates, after factoring in cytokine-dependent drive. The steady_state_ratio submodel
+      captures this by mapping the measured CD86+/CD163+ ratio to k_M1_pol/k_M2_pol under pathological-state cytokine conditions.
+    type: steady_state_ratio
+    unit_conversion_factor: '1.0'
+  identifiability_notes: This target constrains the steady-state M1:M2 macrophage ratio in primary resected PDAC via CD86+/CD163+
+    counts. In the steady_state_ratio submodel, the observable depends only on the ratio k_M1_pol/k_M2_pol (after factoring
+    fixed drive terms), so this dataset primarily informs the relative polarization bias toward M1 vs M2 rather than the absolute
+    magnitude of either rate. k_M1_pol and k_M2_pol will therefore be strongly correlated in posterior samples when using
+    this target alone; absolute scales must be anchored by additional targets (e.g., pharmacological polarization experiments,
+    total TAM densities, or dynamic responses). The approximated uncertainty from reported ranges is relatively large, so
+    this target acts as a soft anchor on the endogenous pathological-state M1:M2 balance rather than a precise constraint.
+  parameters:
+  - name: k_M1_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -2.0
+      rationale: Wide prior for endogenous M2-to-M1 polarization centered around 0.14 1/day, spanning approximately 10^-3
+        to 10^1 1/day to accommodate pharmacological and pathological-state data.
+      sigma: 1.5
+      upper: null
+    units: 1/day
+  - name: k_M2_pol
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -1.0
+      rationale: Wide prior for M1-to-M2 polarization centered around 0.37 1/day, spanning approximately 10^-2 to 10^1 1/day;
+        needed because the M1:M2 ratio constrains only the ratio k_M1_pol/k_M2_pol.
+      sigma: 1.5
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: In situ identification by immunohistochemistry on formalin-fixed paraffin-embedded resected PDAC specimens
+    name: tumor-associated macrophages
+    phenotype: CD86+ (M1-like) and CD163+ (M2-like) macrophages infiltrating primary PDAC tumor nests and stroma
+  culture_conditions: null
+  indication: pancreatic ductal adenocarcinoma
+  species: human
+  system: human_clinical_tissue
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd86_primary_median_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, section 3.2 and Table 2 (primary tumor CD86+ cells)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 11.6
+  value_snippet: The mean number of infiltrated CD86+ M1 macrophages was 11.6 (2-31.2) in primary tumors and 8.4 (1.4-27.8)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd86_primary_min_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Table 2 (primary tumor CD86+ range lower bound)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 2.0
+  value_snippet: The mean number of infiltrated CD86+ M1 macrophages was 11.6 (2-31.2) in primary tumors and 8.4 (1.4-27.8)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd86_primary_max_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Table 2 (primary tumor CD86+ range upper bound)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 31.2
+  value_snippet: The mean number of infiltrated CD86+ M1 macrophages was 11.6 (2-31.2) in primary tumors and 8.4 (1.4-27.8)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd163_primary_median_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, section 3.2 and Table 3 (primary tumor CD163+ cells)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 27.1
+  value_snippet: The mean number of infiltrated CD163+ M2 macrophage was 27.1 (7.6-38.2) in primary tumors and 31 (8.4-45)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd163_primary_min_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Table 3 (primary tumor CD163+ range lower bound)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 7.6
+  value_snippet: The mean number of infiltrated CD163+ M2 macrophage was 27.1 (7.6-38.2) in primary tumors and 31 (8.4-45)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: cd163_primary_max_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, Table 3 (primary tumor CD163+ range upper bound)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: cell
+  value: 38.2
+  value_snippet: The mean number of infiltrated CD163+ M2 macrophage was 27.1 (7.6-38.2) in primary tumors and 31 (8.4-45)
+    in metastases.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 42
+  name: n_primary_pdac_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Results, section 3.1 (42 primary tumors of PDAC)
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: dimensionless
+  value: 42.0
+  value_snippet: Among the 42 primary tumors of PDAC, 22 cases were male and 20 were female.
+- extraction_method: manual
+  input_type: assumed_value
+  n: 1
+  name: range_to_sd_factor_gu2023
+  role: auxiliary
+  source_access: open_access
+  source_location: Not reported in paper; modeling assumption to convert observed ranges to approximate standard deviations.
+  source_ref: Gu2023_PDAC_M1M2
+  uncertainty: null
+  units: dimensionless
+  value: 4.0
+  value_snippet: null
+key_assumptions:
+- CD86+ cells in tumor nests and stroma are treated as M1-like macrophages and CD163+ cells as M2-like macrophages, neglecting
+  intermediate or mixed phenotypes.
+- The reported median numbers of CD86+ and CD163+ cells per high-power field are representative of the steady-state macrophage
+  composition in primary resectable PDAC at the time of surgery.
+- Spatial heterogeneity within tumors (different fields per slide) and between patients can be summarized by the reported
+  medians and ranges, and conversion of ranges to approximate standard deviations via an assumed range-to-SD factor is acceptable
+  for defining a lognormal likelihood.
+- The effective cytokine-dependent drive terms that modulate polarization (IL12/IFNg vs IL10/TGFbeta/IL6) can be absorbed
+  into the steady_state_ratio model as fixed dimensionless factors (set to 1.0), so that the observed M1:M2 ratio primarily
+  informs the ratio k_M1_pol/k_M2_pol.
+- Other processes affecting macrophage numbers (recruitment from blood, proliferation, death, and egress) either affect M1
+  and M2 similarly or are constrained by separate targets, allowing this dataset to be interpreted primarily in terms of polarization
+  rates.
+key_study_limitations:
+- The study reports medians and ranges but not full distributions or standard deviations for CD86+ and CD163+ counts, requiring
+  approximate conversion from ranges to coefficients of variation and introducing additional uncertainty.
+- CD86 and CD163 are imperfectly specific for M1 and M2 phenotypes; some macrophages may co-express markers or fall outside
+  this binary classification, which could bias the inferred M1:M2 ratio.
+- Quantification is based on counts per high-power field in selected representative regions rather than whole-tumor volumetric
+  densities, potentially over- or under-representing hotspots of macrophage infiltration.
+- The cohort (n=42 primary tumors) is from a single center in China and may not fully capture global PDAC heterogeneity in
+  stromal composition, stage at surgery, or prior subclinical treatments.
+- The analysis is cross-sectional at the time of resection and does not capture temporal dynamics of macrophage polarization
+  or responses to therapy, so it constrains only the baseline pathological-state ratio, not dynamic rate changes.
+primary_data_source:
+  authors:
+  - Gu J
+  - Gao F
+  - Fan B
+  - Xu S
+  - Luo H
+  - Zhang J
+  - Jiang Q
+  - Wang C
+  - Tan G
+  - Qi W
+  - Du J
+  - Huang S
+  - Sun X
+  - Chen D
+  doi: 10.1155/2023/7971306
+  source_tag: Gu2023_PDAC_M1M2
+  title: Correlation between Macrophage Polarization and PD-L1-Related Tumor Microenvironmental Alteration and Metastasis
+    in Pancreatic Ductal Adenocarcinoma
+  year: 2023
+secondary_data_sources:
+- authors:
+  - Glavcic G
+  - Zovak M
+  - Sovic S
+  - Masic S
+  - Blazevic N
+  - Misir Z
+  - Bilic Z
+  - Glavcic M
+  - Radulovic P
+  contribution: Provides an independent clinical PDAC cohort showing that both CD86+ macrophage number and the CD86/CD163
+    ratio correlate with T and N stage and prognosis, supporting the relevance of the M1:M2 balance measured by Gu et al.
+    2023 as a meaningful endogenous pathological-state marker.
+  doi: 10.20471/acc.2024.63.03-04.29
+  source_quality: primary_human_clinical
+  source_tag: Glavcic2024_PDAC_CD86_CD163
+  title: Relationship of immunohistochemical expression of CD86/CD163 positive intratumoral macrophages with prognosis of
+    pancreatic ductal adenocarcinoma
+  url: null
+  year: 2024
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The study by Gu et al. 2023 quantifies CD86+ (M1-like) and CD163+ (M2-like) tumor-associated
+    macrophages directly in human primary pancreatic ductal adenocarcinoma specimens obtained at surgical resection, matching
+    the PDAC indication and clinical context of the QSPIO-PDAC model. The measured CD86+/CD163+ balance reflects the endogenous
+    pathological-state macrophage polarization in the PDAC tumor microenvironment without exogenous pharmacological stimulation,
+    which is precisely the quantity needed to anchor the basal M2-to-M1 polarization rate in the model.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: The specimens are treatment-naive primary PDAC tumors with typical features of the PDAC tumor microenvironment,
+    including desmoplasia, high stromal content, and abundant tumor-associated macrophages. Thus, the measured M1/M2 balance
+    is expected to be representative of the immunosuppressive, T cell-excluded PDAC microenvironment modeled in QSPIO-PDAC.
+  validation_warnings: null
+study_interpretation: Gu et al. 2023 performed immunohistochemistry for CD86 (M1 marker) and CD163 (M2 marker) on 42 primary
+  PDAC tumors and 50 metastatic lesions. For primary tumors, they reported median numbers and ranges of CD86+ and CD163+ macrophages
+  per high-power field. These data show that, at the time of surgical resection in untreated PDAC, CD163+ M2 macrophages are
+  more abundant than CD86+ M1 macrophages (median 27.1 vs. 11.6 cells per field), implying an M1:M2 ratio of approximately
+  0.43. This provides a direct, endogenous measurement of macrophage polarization bias in the PDAC tumor microenvironment,
+  which we map to the steady-state ratio governed by k_M1_pol and k_M2_pol in the QSPIO-PDAC model. The metastatic lesions
+  show a further shift toward M2 dominance, supporting the interpretation that the primary-tumor ratio represents an earlier
+  metastatic stage of the same pathological process.
+target_id: k_M1_pol_pdac_cd86_cd163_gu2023

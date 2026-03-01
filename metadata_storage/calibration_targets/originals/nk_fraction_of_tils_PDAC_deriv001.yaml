@@ -1,0 +1,148 @@
+empirical_data:
+  assumptions:
+  - description: Concentration parameter (alpha+beta) for a Beta distribution approximating between-patient variability in
+      NK fraction among TILs; alpha = mean * phi, beta = (1 - mean) * phi with mean = 3.5%.
+    name: nk_fraction_concentration
+    rationale: Figure 4b violin plots show NK cell fraction among TILs clustering around approximately 2–5% with relatively
+      few values above ~8%. Setting an effective sample size phi = 100 yields a Beta(3.5, 96.5) distribution with a 95% interval
+      of roughly 0.9–7.9%, matching this visual spread while keeping the mean fixed at the reported 3.5%. This treats the
+      reported 3.5% as the mean across the nine tumors.
+    units: dimensionless
+    value: 100.0
+  - description: Number of Monte Carlo samples drawn from the Beta distribution to estimate median and 95% confidence interval
+      for NK fraction among TILs.
+    name: n_mc_samples
+    rationale: 10,000 samples provide stable estimates of median and percentile-based confidence intervals with negligible
+      Monte Carlo error for a one-dimensional Beta distribution.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 0.008642703868143635
+    - 0.07917228686127573
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n\
+    \    # Reported mean NK percentage (3.5%) as Pint quantity with 'percent' units\n    mean_pct = inputs['nk_fraction_mean_pct']\n\
+    \    # Convert to fraction in [0, 1]\n    mean_frac = mean_pct.to('dimensionless')\n    # Beta concentration parameter\
+    \ (alpha + beta)\n    phi = inputs['nk_fraction_concentration']\n    n_samples = int(inputs['n_mc_samples'].magnitude)\n\
+    \    m = mean_frac.magnitude\n    phi_val = phi.magnitude\n    alpha = m * phi_val\n    beta_param = (1.0 - m) * phi_val\n\
+    \    # Draw Monte Carlo samples from Beta distribution and reattach units\n    samples = rng.beta(alpha, beta_param, size=n_samples)\
+    \ * mean_frac.units\n    median_obs = np.median(samples)\n    ci95_lower = np.percentile(samples, 2.5)\n    ci95_upper\
+    \ = np.percentile(samples, 97.5)\n    return {\n        'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n\
+    \        'ci95_upper': ci95_upper,\n    }\n"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean percentage of NK cells (CD3- CD56+) within tumor-infiltrating lymphocyte populations (TILs) in PDAC
+      tumors.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: nk_fraction_mean_pct
+    source_ref: Marcon2020_PDAC_TIL_NKFraction
+    source_type: text
+    units: percent
+    value: 3.5
+    value_location: Results, section 'NK cells are a minority population within PDAC tumors and show strong downregulation
+      of CD16'
+    value_snippet: The percentage of NK cells was markedly suppressed within TIL populations, representing only 3.5% of cells
+      compared to 17% within PBMC (p = .005) (Figure 4a and 4b).
+  median:
+  - 0.03220672256876708
+  sample_size: 9
+  sample_size_rationale: 'n=9 paired blood and tumor samples for NK TIL analysis stated in Results: ''using 9 paired samples
+    of blood (PBMC-NK) and tumor-infiltrating lymphocytes (TIL-NK)'' in Marcon et al., OncoImmunology 2020.'
+  units: dimensionless
+experimental_context:
+  assay_type: Flow cytometry of tumor-infiltrating lymphocytes isolated from fresh tumor tissue.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary PDAC tumors resected by pancreaticoduodenectomy (Whipple's procedure) with curative intent.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: null
+    status: off_treatment
+key_assumptions:
+- The reported '3.5% of cells' for NK cells within TIL populations is interpreted as the mean fraction of CD3- CD56+ NK cells
+  among all tumor-infiltrating lymphocytes in the nine tumors analyzed, and is treated as a single-group descriptive statistic
+  rather than a stratification threshold.
+- The cohort is assumed to be largely treatment-naive prior to surgery (no neoadjuvant therapy is described), so the NK fraction
+  is interpreted as reflecting the untreated PDAC tumor microenvironment at the time of resection.
+- Between-patient variability in NK fraction is approximated using a Beta distribution with concentration parameter 100 (alpha
+  = 3.5, beta = 96.5), chosen to reproduce the approximate spread of values visible in Figure 4b violin plots; this introduces
+  additional model-based uncertainty beyond the reported mean.
+- The experimental denominator for the reported percentage (all lymphocytes in the flow cytometry gate, likely including B
+  cells and other subsets) is approximated in the model by the sum of T cells and NK cells only, which may slightly overestimate
+  the NK fraction relative to the experimental value.
+key_study_limitations:
+- NK TIL data are available for only 9 patients from a single center, limiting generalizability and precision of the estimated
+  distribution for NK fraction among TILs.
+- Tumor-infiltrating lymphocytes were obtained by overnight migration out of small tumor fragments rather than immediate enzymatic
+  digestion, which may bias the relative recovery of different lymphocyte subsets.
+- The experimental denominator includes B cells and other lymphocyte subsets not explicitly modeled, leading to a small but
+  systematic denominator mismatch between experiment and model. The calibration therefore emphasizes the NK fraction among
+  modeled T and NK cells as an approximation of the reported NK fraction among all lymphocytes.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    nk = species_dict['V_T.NK']\n    cd8 = species_dict['V_T.CD8']\n\
+    \    cd8_exh = species_dict['V_T.CD8_exh']\n    th = species_dict['V_T.Th']\n    th_exh = species_dict['V_T.Th_exh']\n\
+    \    treg = species_dict['V_T.Treg']\n    total_lymph = nk + cd8 + cd8_exh + th + th_exh + treg\n    return (nk / total_lymph).to('dimensionless')\n"
+  constants: []
+  experimental_denominator: Total tumor-infiltrating lymphocytes in the flow cytometry lymphocyte gate from PDAC tumor digests
+    (CD45+ lymphocytes, including T cells, NK cells, B cells and other lymphocyte subsets).
+  inputs: []
+  mapping_rationale: The experimental measurement reports NK cells (CD3- CD56+) as a percentage of total tumor-infiltrating
+    lymphocytes isolated from resected PDAC tumors by flow cytometry. In the model, NK cells are represented by V_T.NK and
+    tumor-infiltrating T lymphocytes by V_T.CD8, V_T.CD8_exh, V_T.Th, V_T.Th_exh, and V_T.Treg. The observable computes the
+    fraction of NK cells among modeled tumor-infiltrating T and NK lymphocytes to approximate the experimental NK fraction
+    among all lymphocytes.
+  model_denominator_species:
+  - V_T.NK
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  species:
+  - V_T.NK
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: The experimental denominator likely includes B cells and other CD45+ lymphocyte subsets
+    that are not represented explicitly in the model; therefore, the model-based NK fraction among T and NK cells may be slightly
+    higher than the experimental NK fraction among all lymphocytes.
+primary_data_source:
+  doi: 10.1080/2162402X.2020.1845424
+  first_author: Marcon
+  source_tag: Marcon2020_PDAC_TIL_NKFraction
+  title: NK cells in pancreatic cancer demonstrate impaired cytotoxicity and a regulatory IL-10 phenotype
+  year: 2020
+scenario:
+  description: Baseline immune composition of resectable PDAC tumors at the time of surgical resection; tumor-infiltrating
+    lymphocytes were isolated from primary tumor tissue and analyzed by flow cytometry without prior systemic anticancer therapy.
+  interventions:
+  - intervention_description: Pancreaticoduodenectomy (Whipple's resection) with curative intent for localized PDAC; tumor
+      tissue from the primary lesion was collected at surgery for isolation of tumor-infiltrating lymphocytes.
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: Marcon et al. (OncoImmunology 2020) analyzed NK cells in blood and tumor tissue from patients with resectable
+  PDAC undergoing Whipple's resection. Tumor-infiltrating lymphocytes were isolated from primary tumor samples and stained
+  for CD3 and CD56 to identify NK cells (CD3- CD56+). They report that NK cells comprise only 3.5% of tumor-infiltrating lymphocytes,
+  indicating that NK cells are a minority subset within the PDAC tumor microenvironment. This calibration target maps that
+  NK fraction to the model as the fraction of NK cells (V_T.NK) among modeled tumor-infiltrating T and NK lymphocytes (V_T.CD8,
+  V_T.CD8_exh, V_T.Th, V_T.Th_exh, V_T.Treg, V_T.NK) at the time of tumor resection.

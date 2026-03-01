@@ -1,0 +1,144 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to approximate the sampling distribution of the Treg fraction.
+    name: n_mc_samples
+    rationale: 10,000 beta-distribution draws provide stable estimates of the median and 95% credible interval while keeping
+      computation inexpensive.
+    units: dimensionless
+    value: 10000.0
+  ci95:
+  - - 0.02092
+    - 0.17456
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n\
+    \n    mean = inputs['treg_fraction_mean']  # dimensionless fraction\n    sd = inputs['treg_fraction_sd']      # dimensionless\
+    \ fraction\n    n_mc = int(inputs['n_mc_samples'].magnitude)\n\n    m = mean.magnitude\n    s = sd.magnitude\n    var\
+    \ = s ** 2\n\n    # Convert mean and variance on [0,1] to beta distribution parameters\n    # mean = a / (a + b); var\
+    \ = a*b / ((a + b)**2 * (a + b + 1))\n    k = m * (1.0 - m) / var - 1.0\n    alpha = m * k\n    beta = (1.0 - m) * k\n\
+    \n    samples = rng.beta(alpha, beta, n_mc) * mean.units\n\n    median_obs = np.median(samples)\n    ci95_lower = np.percentile(samples,\
+    \ 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n\n    return {\n        'median_obs': median_obs,\n        'ci95_lower':\
+    \ ci95_lower,\n        'ci95_upper': ci95_upper,\n    }\n"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Estimated mean fraction of FoxP3+ regulatory T cells among all cells in post-treatment lymphoid aggregates
+      (LAs) in arm B (GVAX + nivolumab), read manually from Figure 2A (Treg bar, red squares).
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: manual
+    extraction_notes: Mean height of the Treg bar for arm B (GVAX+Nivo, red) in post-treatment LAs visually estimated from
+      the y-axis (% of all cells in ROI) and converted to a fraction (0.08).
+    figure_id: Figure 2A
+    input_type: direct_parameter
+    name: treg_fraction_mean
+    source_ref: Li2022_CancerCell
+    source_type: figure
+    units: dimensionless
+    value: 0.08
+    value_location: Figure 2A (Treg, LA, arm B)
+    value_snippet: Figure 2. Multiplex IHC of CD8+ or CD4+ T subtypes and their correlation with OS. (A and B) Summary of
+      the density of all immune cell subtypes analyzed as indicated in LA (A) and non-LA tumor areas (B) in arm A (n =9) versus
+      arm B (n=10) patients.
+  - conversion_formula: null
+    description: Estimated standard deviation of FoxP3+ regulatory T cell fraction among all cells in post-treatment LAs in
+      arm B (GVAX + nivolumab), read from the length of the error bar around the Treg mean in Figure 2A.
+    dispersion_type: sd
+    dispersion_type_rationale: Figure 2 caption explicitly states 'All data shown as the mean ± SD', so the error bars are
+      interpreted as standard deviations, not standard errors.
+    extraction_method: manual
+    extraction_notes: Standard deviation approximated visually from the size of the error bars for the Treg bar in arm B relative
+      to the y-axis grid, then converted from percentage to fraction (0.04).
+    figure_id: Figure 2A
+    input_type: direct_parameter
+    name: treg_fraction_sd
+    source_ref: Li2022_CancerCell
+    source_type: figure
+    units: dimensionless
+    value: 0.04
+    value_location: Figure 2A (Treg, LA, arm B)
+    value_snippet: All data shown as the mean ± SD; all comparisons by t test; *p < 0.05; **p < 0.01; ***p < 0.001; NS, not
+      significant; all others, not significant.
+  median:
+  - 0.07442
+  sample_size: 10
+  sample_size_rationale: Arm B (GVAX + nivolumab) post-treatment resection specimens with evaluable multiplex IHC in lymphoid
+    aggregates; Figure 2A caption states 'arm A (n =9) versus arm B (n=10) patients.'
+  units: dimensionless
+experimental_context:
+  assay_type: Multiplex immunohistochemistry (mIHC) with sequential staining and stripping in FFPE sections.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Resected primary pancreatic ductal adenocarcinoma after neoadjuvant GVAX ± nivolumab.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: Neoadjuvant GVAX vaccine plus nivolumab (arm B) prior to surgical resection.
+    status: on_treatment
+key_assumptions:
+- The visually estimated Treg mean (0.08) and SD (0.04) from Figure 2A reasonably approximate the true values; uncertainty
+  from manual figure reading is smaller than biological between-patient variability.
+- Percentages reported as 'density of immune cell subtypes' in Figure 2A represent fractions of all nucleated cells in the
+  mIHC regions of interest within intratumoral lymphoid aggregates, and these fractions are treated as dimensionless values
+  on [0,1].
+- The fraction of FoxP3+ Tregs among all T cells in the tumor compartment is adequately approximated for calibration purposes
+  by the fraction of FoxP3+ Tregs among all cells in LAs measured by mIHC, recognizing that non-T cells (tumor and stromal
+  cells) contribute to the denominator in the experimental measurement but are not explicitly modeled.
+- A beta distribution is an appropriate approximation for the sampling distribution of a bounded fraction (Treg proportion),
+  using parameters inferred from the mean and SD extracted from the figure.
+key_study_limitations:
+- Treg fractions and other immune cell densities are estimated from figure panels rather than numeric tables, introducing
+  additional measurement uncertainty beyond the reported SDs.
+- The mIHC regions of interest focus on intratumoral lymphoid aggregates and may not capture the full spatial heterogeneity
+  of Tregs across the entire primary tumor mass.
+- The clinical trial sample size is small (n=10 for arm B with evaluable LAs in Figure 2A), so estimates of between-patient
+  variability for Treg fractions are imprecise.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    treg = species_dict['V_T.Treg']\n    cd8 = species_dict['V_T.CD8']\n\
+    \    th = species_dict['V_T.Th']\n    cd8_exh = species_dict['V_T.CD8_exh']\n    th_exh = species_dict['V_T.Th_exh']\n\
+    \n    total_t = treg + cd8 + th + cd8_exh + th_exh\n    frac = (treg / total_t).to('dimensionless')\n    return frac\n"
+  constants: []
+  inputs: []
+  mapping_rationale: Multiplex IHC in Li et al. (Cancer Cell 2022) quantifies FoxP3+ CD4+ Tregs as a percentage of all cells
+    in regions of interest within intratumoral lymphoid aggregates (LAs) after neoadjuvant GVAX or GVAX + nivolumab. The model
+    tracks separate tumor-infiltrating T cell subsets (Tregs, CD4+ Th, CD8+ effectors, and their exhausted counterparts) in
+    the tumor compartment. We map the experimental measurement to the model as the fraction of Tregs among all tumor-infiltrating
+    T cells in the tumor compartment, i.e., V_T.Treg divided by the sum of V_T.Treg, V_T.Th, V_T.Th_exh, V_T.CD8, and V_T.CD8_exh.
+  species:
+  - V_T.Treg
+  - V_T.CD8
+  - V_T.Th
+  - V_T.CD8_exh
+  - V_T.Th_exh
+  support: unit_interval
+  units: dimensionless
+primary_data_source:
+  doi: 10.1016/j.ccell.2022.10.001
+  first_author: Li
+  source_tag: Li2022_CancerCell
+  title: Multi-omic analyses of changes in the tumor microenvironment of pancreatic adenocarcinoma following neoadjuvant treatment
+    with anti-PD-1 therapy
+  year: 2022
+scenario:
+  description: Resectable PDAC patients randomized to neoadjuvant GVAX alone (arm A) or GVAX plus nivolumab (arm B) followed
+    by surgical resection approximately 2 weeks after one treatment; multiplex IHC performed on post-treatment resection specimens
+    to quantify immune cell subsets in tumor lymphoid aggregates (LAs) and non-LA tumor areas.
+  interventions:
+  - intervention_description: '[Scrubbed due to ''secret'']'
+secondary_data_sources: []
+source_relevance: null
+study_interpretation: Li et al. (Cancer Cell 2022) performed multi-omic profiling of tumor specimens from a platform trial
+  in resectable PDAC in which patients received neoadjuvant GVAX alone (arm A) or GVAX plus nivolumab (arm B) followed by
+  surgical resection. Multiplex IHC was used to quantify CD4+ and CD8+ T cell subsets, including FoxP3+ regulatory T cells
+  (Tregs), in intratumoral tertiary lymphoid aggregate (LA) regions and non-LA tumor areas. Figure 2A reports post-treatment
+  densities (percentage of all cells in the region of interest) of multiple immune cell subtypes in LAs for arm A and arm
+  B. We extract the mean and standard deviation of the fraction of FoxP3+ Tregs among all cells in post-treatment LAs in arm
+  B as a proxy for the regulatory T cell fraction in the tumor after neoadjuvant GVAX + nivolumab.

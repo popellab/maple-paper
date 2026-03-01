@@ -1,0 +1,202 @@
+study_interpretation: |
+  Steube1999 demonstrates that human myelomonocytic leukemia cell lines constitutively secrete MCP-1 (CCL2) into culture supernatants at levels ranging from 440 to 1400 pg/ml per 10^6 cells over approximately 24 h, with much higher levels under strong pharmacologic stimulation. By converting this range into a per-cell, per-day molar secretion rate, we obtain an order-of-magnitude estimate for k_CCL2_sec, the tumor-cell CCL2 secretion rate used in the PDAC QSP model to drive monocyte and MDSC recruitment. Because the QSP model represents CCL2 production as a per-cancer-cell source term in a well-mixed tumor compartment, these in vitro measurements map naturally onto k_CCL2_sec when degradation is neglected over the 24 h assay window. The resulting distribution informs a biologically plausible scale and variability for CCL2 secretion in the absence of PDAC-specific quantitative secretion data.
+
+key_assumptions:
+- |
+  The reported range 440 to 1400 pg/ml MCP-1 per million cells refers to the amount accumulated in culture supernatant over approximately 24 h under unstimulated, near-physiologic conditions.
+- |
+  Each measurement is interpreted as mass of CCL2 secreted by 10^6 cells into 1 ml of medium, so 440 to 1400 pg/ml per 10^6 cells is equivalent to 440 to 1400 pg per 10^6 cells per day.
+- |
+  Extracellular degradation or uptake of CCL2 during the 24 h assay is negligible compared with secretion, so accumulated mass reflects the integral of the secretion rate.
+- |
+  The molar mass of human CCL2 (MCP-1) is approximated as 8.7 kDa for converting pg to nmol; isoform and post-translational modification differences are ignored.
+- |
+  The variability in secretion across the four leukemia cell lines is modeled as arising from a lognormal distribution whose 95 percent interval spans 440 to 1400 pg/ml per 10^6 cells.
+- |
+  Per-cell secretion rates in myelomonocytic leukemia lines are assumed to be within an order of magnitude of those in PDAC cancer cells and stromal cells under basal inflammatory stimulation, justifying their use as a proxy scale for k_CCL2_sec.
+
+key_study_limitations:
+- |
+  The study was performed in leukemia cell lines, not pancreatic ductal adenocarcinoma cells, so lineage-specific regulatory mechanisms of CCL2 expression are not captured.
+- |
+  Experiments were conducted in 2D monoculture with standard serum-containing medium, lacking the complex PDAC tumor microenvironment, including cancer-associated fibroblasts, extracellular matrix, hypoxia, and immune cell interactions that can strongly modulate CCL2 secretion.
+- |
+  The abstract reports only a range (440 to 1400 pg/ml per 10^6 cells) and a single upper bound for stimulated secretion (> 80 ng/ml), without full distributional statistics or detailed time-course information, so the temporal interpretation as 24 h and the lognormal fit introduce additional uncertainty.
+- |
+  The volume of culture medium per 10^6 cells is not explicitly stated and is assumed to be approximately 1 ml; deviations from this assumption would scale the inferred per-cell secretion rate.
+- |
+  Post-translational processing, binding to extracellular matrix components, and potential receptor-mediated uptake of CCL2 are not characterized in this assay but could affect effective chemokine availability in vivo.
+
+experimental_context:
+  species: human
+  system: in_vitro_immortalized
+  cell_lines:
+  - name: HL-60
+    species: human
+    tissue_origin: hematopoietic
+    cell_type: myelomonocytic leukemia cell line
+  - name: ML-2
+    species: human
+    tissue_origin: hematopoietic
+    cell_type: myelomonocytic leukemia cell line
+  - name: MONO-MAC-6
+    species: human
+    tissue_origin: hematopoietic
+    cell_type: myelomonocytic leukemia cell line
+  - name: MUTZ-3
+    species: human
+    tissue_origin: hematopoietic
+    cell_type: myelomonocytic leukemia cell line
+  cell_types:
+  culture_conditions:
+  indication: acute myelomonocytic leukemia
+
+primary_data_source:
+  doi: 10.1016/S0145-2126(99)00107-1
+  title: |
+    Constitutive protein expression of monocyte chemotactic protein-1 (MCP-1) by myelomonocytic cell lines and regulation of the secretion by anti- and proinflammatory stimuli
+  authors:
+  - Steube KG
+  - Meyer C
+  - Drexler HG
+  year: 1999
+  source_tag: Steube1999_MCP1
+
+secondary_data_sources:
+
+target_id: k_CCL2_sec_Steube1999_proxy
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c02a8ae2b3f2fcecc2d11101cd4f3
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
+
+inputs:
+- name: mcp1_constitutive_min_pg_per_ml_per_millioncells
+  value: 440.0
+  units: pg / milliliter
+  uncertainty:
+  n: 4
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Steube1999_MCP1
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    this chemokine is produced constitutively by the cell lines HL-60, ML-2, MONO-MAC-6 and MUTZ-3 ranging between 440 and 1400 pg/ml MCP-1 per million cells.
+- name: mcp1_constitutive_max_pg_per_ml_per_millioncells
+  value: 1400.0
+  units: pg / milliliter
+  uncertainty:
+  n: 4
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Steube1999_MCP1
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    this chemokine is produced constitutively by the cell lines HL-60, ML-2, MONO-MAC-6 and MUTZ-3 ranging between 440 and 1400 pg/ml MCP-1 per million cells.
+- name: mcp1_stimulated_max_ng_per_ml_per_millioncells_24h
+  value: 80.0
+  units: ng / milliliter
+  uncertainty:
+  n: 1
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: Steube1999_MCP1
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    The highest amount of MCP-1 (> 80 ng/ml within 24 h) was achieved by TPA stimulation of MUTZ-3 cells.
+
+calibration:
+  parameters:
+  - name: k_CCL2_sec
+    units: nanomole / cell / day
+    prior:
+      distribution: lognormal
+      mu: -23.13
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Centered on the log-transformed median CCL2 (MCP-1) secretion rate per cell per day derived from Steube1999 leukemia cell line data, with a wide sigma (1.0 in natural-log space) to capture cross-cell-type, cross-indication, and in vitro to in vivo translation uncertainty.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count: "1000000.0"
+    incubation_time: "1.0"
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume: "1.0"
+    unit_conversion_factor: "1000.0"
+    data_rationale: |
+      Steube1999 measured constitutive MCP-1 (CCL2) secretion by several human myelomonocytic leukemia cell lines using ELISA, reporting that culture supernatants contained 440 to 1400 pg/ml MCP-1 per 10^6 cells, and that the highest stimulated level exceeded 80 ng/ml within 24 h. These measurements correspond to mass of CCL2 secreted per cell over approximately 1 day in a well-mixed medium, which can be analytically converted into a per-cell, per-day secretion rate.
+    submodel_rationale: |
+      In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment V_T follow d(V_T.CCL2)/dt = k_CCL2_sec * C_total - k_CCL2_deg * V_T.CCL2. In an in vitro setting without appreciable extracellular degradation or clearance, the increase in CCL2 concentration over 24 h reflects the production term alone. The batch_accumulation model predicts pg/mL from k_CCL2_sec (nmol/cell/day) using: predicted = k * 1e6 cells * 1 day * MW * 1000 / 1 mL, where ucf=1000 converts nmol*g/mol to pg (1e-9 * 1e12 = 1e3).
+
+  error_model:
+  - name: k_CCL2_sec_from_LeukemiaCellLines
+    units: pg/milliliter
+    uses_inputs:
+    - mcp1_constitutive_min_pg_per_ml_per_millioncells
+    - mcp1_constitutive_max_pg_per_ml_per_millioncells
+    sample_size: 4
+    sample_size_rationale: |
+      Four human myelomonocytic leukemia cell lines (HL-60, ML-2, MONO-MAC-6, MUTZ-3) were assayed for constitutive MCP-1 secretion; the reported range 440 to 1400 pg/ml per 10^6 cells reflects variability across these lines.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation (point estimate + uncertainty) from literature data.
+
+          The reported range 440-1400 pg/mL is interpreted as a 95% CI for a
+          lognormal distribution. We compute:
+          - value: geometric mean as the point estimate
+          - sd: log-scale standard deviation for lognormal likelihood
+          """
+          import numpy as np
+
+          min_pg = inputs['mcp1_constitutive_min_pg_per_ml_per_millioncells']
+          max_pg = inputs['mcp1_constitutive_max_pg_per_ml_per_millioncells']
+
+          # Point estimate: geometric mean for lognormal data
+          observed_value = np.sqrt(min_pg * max_pg)
+
+          # Uncertainty: derive log-scale SD from the range (assumed 95% CI)
+          log_min = np.log(min_pg)
+          log_max = np.log(max_pg)
+          sigma = (log_max - log_min) / (2.0 * 1.96)
+
+          return {
+              'value': observed_value,
+              'sd': sigma,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from reported range
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Chemokine secretion rates are positive and typically span orders of magnitude across cell lines, making a lognormal likelihood appropriate. The variability across the four leukemia lines is treated as observational plus biological heterogeneity.
+
+  identifiability_notes: |
+    This submodel analytically converts an experimentally measured CCL2 (MCP-1) secretion range per 10^6 cells per 24 h into a per-cell, per-day secretion rate k_CCL2_sec. Given the direct proportionality between secreted mass and k_CCL2_sec under the assumption of negligible extracellular degradation over 24 h, k_CCL2_sec is structurally identifiable from these data alone within the context of the in vitro system. However, translation to the in vivo PDAC tumor microenvironment introduces substantial uncertainty due to differences in cell type (myelomonocytic leukemia vs pancreatic cancer cells), stromal and immune contributions to CCL2, and possible feedback regulation, so the inferred value should be treated as providing an order-of-magnitude constraint rather than a precise estimate.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The source study quantifies constitutive MCP-1 (CCL2) secretion by human myelomonocytic leukemia cell lines rather than pancreatic ductal adenocarcinoma (PDAC) cells. CCL2 is a broadly expressed chemokine whose per-cell secretion rates in leukocytes and tumor cells are expected to be of similar order of magnitude when activated by inflammatory cues, so these data can provide a mechanistic scale for chemokine secretion. However, differences in lineage (myeloid leukemia vs epithelial PDAC), oncogenic drivers, and microenvironmental stimuli mean that the absolute rate in PDAC tumor cells may differ by at least an order of magnitude, so the estimate is used as a proxy with inflated uncertainty.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  perturbation_relevance:
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    Measurements were obtained in 2D monocultures of leukemia cell lines without stromal cells, extracellular matrix, or the hypoxic, desmoplastic PDAC microenvironment. In PDAC tumors, CCL2 secretion arises from both carcinoma cells and stromal/immune cells and is modulated by complex cytokine networks and matrix interactions, so in vivo per-cell secretion rates could differ by more than an order of magnitude from in vitro leukemia values.
+  estimated_translation_uncertainty_fold: 20.0
+  validation_warnings:

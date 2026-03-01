@@ -1,0 +1,281 @@
+study_interpretation: |
+  Castro et al. 2012 demonstrate that transient enhancement of IL-2 receptor signaling during priming (via IL-2/anti-IL-2 complexes that target the high-affinity IL-2R) can amplify antigen-specific OT-I CD8+ effector-memory cell numbers by roughly 40- to 70-fold at 10 to 30 days post-priming relative to peptide/LPS alone. Within a division destiny framework where total expansion is approximated by 2^N, this fold increase implies an additional ~5-6 effective cell generations attributable to IL-2 signaling. Mapping this amplification factor to N_IL2_CD8 provides a mechanistically grounded estimate of the maximum number of extra CD8 T cell divisions that IL-2 can drive in the QSPIO-PDAC model.
+
+key_assumptions:
+- |
+  Fold increase in OT-I memory CD8+ T cells with IL-2/anti-IL-2 complexes versus peptide/LPS alone primarily reflects additional IL-2-driven divisions during the expansion phase, with survival differences absorbed into an effective division count.
+- |
+  The division destiny formalism applies so that expansion from additional IL-2-driven divisions can be approximated as fold_increase ≈ 2^N_IL2_CD8, ignoring moderate cell death during the expansion burst.
+- |
+  Murine OT-I CD8+ T cells responding to OVA/LPS plus IL-2 complexes have similar IL-2-driven division potential to human tumor-reactive CD8+ T cells in PDAC, after accounting for scaling via the prior.
+- |
+  The IL-2/Jes-6.1 complexes used in Castro et al. primarily modulate IL-2 signaling without fundamentally altering other aspects of T cell biology beyond what is already captured in the QSP model (e.g., no novel differentiation pathways are introduced).
+
+key_study_limitations:
+- |
+  The 40- to 70-fold increase is measured for antigen-specific OT-I memory CD8+ T cells in spleen at 10 and 30 days post-priming, not directly for early division numbers; survival and homing differences are folded into the effective expansion used here.
+- |
+  The in vivo priming context (OVA peptide plus LPS in otherwise healthy C57BL/6 mice) differs substantially from the PDAC tumor microenvironment, which is more immunosuppressive and spatially constrained; IL-2-driven division potential in PDAC patients may be lower.
+- |
+  IL-2/anti-IL-2 complexes prolong IL-2 signaling and may not quantitatively match pharmacokinetics of therapeutic IL-2 or endogenous IL-2 in cancer patients.
+- |
+  The analysis assumes that the dominant effect of enhanced IL-2R signaling is to add extra generations (increase division destiny) rather than exclusively improving survival or altering trafficking, which may not be fully accurate.
+- |
+  Data are from a single mouse strain and TCR-transgenic CD8+ T cells (OT-I), which may have higher and more synchronized responsiveness than polyclonal human CD8+ T cells.
+
+experimental_context:
+  species: mouse
+  system: in_vivo
+  cell_lines:
+  cell_types:
+  - name: CD8 T cell
+    phenotype: |
+      Naive OT-I CD8+ T cells adoptively transferred into C57BL/6 mice; antigen-experienced OT-I effector and effector-memory CD8+ T cells generated in vivo
+    isolation_method: |
+      Magnetic CD8+ T cell enrichment from OT-I/Rag1-/- donor mice followed by adoptive transfer into CD45.1 C57BL/6 recipients and peptide/LPS immunization with or without IL-2/anti-IL-2 complexes.
+  culture_conditions:
+  indication: |
+    non-tumor infectious disease model; used here as a mechanistic proxy for IL-2-driven CD8 expansion in PDAC immunotherapy modeling
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    OT-I CD8 T cell responses to OVA/LPS immunization provide mechanistic data on IL-2-driven T cell expansion. While not cancer-specific, the fundamental division destiny machinery is conserved across immune responses. The data quantify the additional divisions achievable with enhanced IL-2 signaling, which is directly relevant to immunotherapy modeling.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vivo
+  perturbation_type: pharmacological
+  perturbation_relevance: |
+    IL-2/anti-IL-2 complexes provide sustained high-affinity IL-2R signaling that may exceed physiological IL-2 levels. The inferred division amplification represents the maximal IL-2-driven expansion potential, which may be partially attenuated in the suppressive PDAC microenvironment.
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    Healthy mouse spleen and lymph nodes during acute immunization differ substantially from the immunosuppressive PDAC TME. T cell division potential may be reduced in PDAC due to hypoxia, nutrient competition, and suppressive cytokines.
+  estimated_translation_uncertainty_fold: 10.0
+
+primary_data_source:
+  doi: 10.4049/jimmunol.1202067
+  title: |
+    Transient enhanced IL-2R signaling early during priming rapidly amplifies development of functional CD8+ T effector-memory cells
+  authors:
+  - Castro I
+  - Dee MJ
+  - Malek TR
+  year: 2012
+  source_tag: Castro2012
+
+secondary_data_sources:
+- doi: 10.1126/science.1260044
+  url:
+  title: |
+    Antigen affinity, costimulation, and cytokine inputs sum linearly to amplify T cell expansion
+  authors:
+  - Marchingo JM
+  - Kan A
+  - Sutherland RM
+  - Duffy KR
+  - Wellard CJ
+  - Belz GT
+  - Lew AM
+  - Dowling MR
+  - Heinzel S
+  - Hodgkin PD
+  year: 2014
+  source_tag: Marchingo2014
+  contribution: |
+    Provides the division destiny framework showing that antigen, costimulation, and cytokine (including IL-2) signals add linearly to determine the total number of CD8 T cell divisions, justifying mapping IL-2-driven expansion to an effective number of generations.
+- doi: 10.3389/fimmu.2018.02461
+  url:
+  title: |
+    Regulatory T Cells Suppress Effector T Cell Proliferation by Limiting Division Destiny
+  authors:
+  - Dowling MR
+  - Kan A
+  - Heinzel S
+  - Marchingo JM
+  - Hodgkin PD
+  - Hawkins ED
+  year: 2018
+  source_tag: Dowling2018
+  contribution: |
+    Reinforces that IL-2 availability modulates T cell division destiny and that small changes in division destiny translate into large fold-changes in cell numbers, supporting the use of fold expansion to infer additional generations.
+
+target_id: N_IL2_CD8_division_generations_castro2012
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c00c3eaac0d2f2ad6caf84c048d37
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
+
+inputs:
+- name: fold_increase_memory_day10
+  value: 40.0
+  units: dimensionless
+  uncertainty:
+    sem: 15.0
+    sem_rationale: |
+      Estimated by digitizing Figure 2A error bars. IL2-IC and No IL2-IC groups both show
+      error bars within ~0.1 log units (~26% relative SEM). Propagating uncertainty for the
+      ratio: SEM ≈ 40 × sqrt(0.26² + 0.26²) ≈ 15.
+  n: 6
+  n_rationale: |
+    Figure legend states "three to nine mice/time point"; using n=6 as midpoint estimate.
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Castro2012
+  source_location: Results, IL2-IC promotes rapid development of functional T_EM cells, Figure 2A
+  extraction_method: manual
+  value_snippet: |
+    The overall effect of IL2-IC resulted in a 40- to 70-fold increase in the absolute number of OT-I memory cells by 10 and 30 days post-priming, respectively.
+- name: fold_increase_memory_day30
+  value: 70.0
+  units: dimensionless
+  uncertainty:
+    sem: 34.0
+    sem_rationale: |
+      Estimated by digitizing Figure 2A error bars. IL2-IC group shows small error bars
+      (~0.1 log units, ~26% relative SEM), but No IL2-IC group at day 30 shows larger
+      variability (~40% relative SEM based on error bars spanning 6e4 to 1.1e5 around 1e5).
+      Propagating: SEM ≈ 70 × sqrt(0.26² + 0.40²) ≈ 34.
+  n: 6
+  n_rationale: |
+    Figure legend states "three to nine mice/time point"; using n=6 as midpoint estimate.
+  input_type: proxy_measurement
+  role: auxiliary
+  source_ref: Castro2012
+  source_location: Results, IL2-IC promotes rapid development of functional T_EM cells, Figure 2A
+  extraction_method: manual
+  value_snippet: |
+    The overall effect of IL2-IC resulted in a 40- to 70-fold increase in the absolute number of OT-I memory cells by 10 and 30 days post-priming, respectively.
+- name: fold_increase_memory_day10_sem
+  value: 15.0
+  units: dimensionless
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Castro2012
+  source_location: Results, Figure 2A
+  extraction_method: manual
+  value_snippet: |
+    Data in (A) and (C) (mean ± SE) are representative of three to nine mice/time point from at least two experiments.
+  notes: |
+    Estimated by digitizing Figure 2A error bars. IL2-IC and No IL2-IC groups both show
+    error bars within ~0.1 log units (~26% relative SEM). Propagating uncertainty for the
+    ratio: SEM ≈ 40 × sqrt(0.26² + 0.26²) ≈ 15.
+- name: fold_increase_memory_day30_sem
+  value: 34.0
+  units: dimensionless
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Castro2012
+  source_location: Results, Figure 2A
+  extraction_method: manual
+  value_snippet: |
+    Data in (A) and (C) (mean ± SE) are representative of three to nine mice/time point from at least two experiments.
+  notes: |
+    Estimated by digitizing Figure 2A error bars. IL2-IC group shows small error bars
+    (~0.1 log units, ~26% relative SEM), but No IL2-IC group at day 30 shows larger
+    variability (~40% relative SEM based on error bars spanning 6e4 to 1.1e5 around 1e5).
+    Propagating: SEM ≈ 70 × sqrt(0.26² + 0.40²) ≈ 34.
+
+calibration:
+  parameters:
+  - name: N_IL2_CD8
+    units: dimensionless
+    prior:
+      distribution: normal
+      mu: 5.0
+      sigma: 2.0
+      lower: 0.0
+      upper: 15.0
+      rationale: |
+        Wide prior for maximum number of IL-2-driven CD8 T cell generations, centered around ~5 divisions with generous uncertainty to accommodate different experimental systems and potential species differences.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: N_IL2_CD8 = log2(fold_increase_IL2_memory)
+    code: |
+      def compute(params, inputs):
+          """Forward model: given N_IL2_CD8, predict fold increase."""
+          import numpy as np
+          N = params['N_IL2_CD8']
+          fold_increase = 2.0 ** N
+          return fold_increase
+    code_julia: |
+      function compute(params, inputs)
+          N = params["N_IL2_CD8"]
+          fold_increase = 2.0 ^ N
+          return fold_increase
+      end
+    data_rationale: |
+      Castro et al. 2012 quantified that transient high-affinity IL-2 receptor stimulation via IL-2/anti-IL-2 complexes led to a 40- to 70-fold increase in antigen-specific OT-I CD8 memory T cell numbers at 10 and 30 days post-priming compared with peptide/LPS alone. This fold-increase acts as a proxy for the cumulative IL-2-driven proliferation and survival advantage acquired during priming.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, N_IL2_CD8 represents the maximum number of CD8 T cell generations attributable to IL-2 signaling (division destiny style cap). Assuming that extra IL-2-driven divisions amplify T cell numbers approximately as 2^N in the expansion phase, the additional IL-2-specific generations can be estimated as N_IL2_CD8 = log2(fold_increase_due_to_IL2). Using fold expansion of OT-I memory CD8 T cells under IL-2/anti-IL-2 complex treatment thus provides a mechanistic proxy for this division cap.
+
+  error_model:
+  - name: N_IL2_CD8_from_day10_fold_increase
+    units: dimensionless
+    uses_inputs:
+    - fold_increase_memory_day10
+    - fold_increase_memory_day10_sem
+    sample_size: 6
+    sample_size_rationale: |
+      Castro et al. report data as mean ± SE from 3-9 mice per time point; using n=6 as midpoint.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation from day 10 fold expansion data.
+
+          The forward model predicts fold increase (2^N), so we compare against
+          the observed fold increase at day 10 with its estimated uncertainty.
+          """
+          observed_value = inputs['fold_increase_memory_day10']
+          sem = inputs['fold_increase_memory_day10_sem']
+
+          return {
+              'value': observed_value,
+              'sd': sem,
+              'sd_uncertain': True,  # estimated from figure digitization
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: normal
+      rationale: |
+        Normal likelihood on fold-increase. The forward model predicts 2^N_IL2_CD8,
+        which is compared against the observed 40-fold increase at day 10.
+
+  - name: N_IL2_CD8_from_day30_fold_increase
+    units: dimensionless
+    uses_inputs:
+    - fold_increase_memory_day30
+    - fold_increase_memory_day30_sem
+    sample_size: 6
+    sample_size_rationale: |
+      Castro et al. report data as mean ± SE from 3-9 mice per time point; using n=6 as midpoint.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation from day 30 fold expansion data.
+
+          The forward model predicts fold increase (2^N), so we compare against
+          the observed fold increase at day 30 with its estimated uncertainty.
+          """
+          observed_value = inputs['fold_increase_memory_day30']
+          sem = inputs['fold_increase_memory_day30_sem']
+
+          return {
+              'value': observed_value,
+              'sd': sem,
+              'sd_uncertain': True,  # estimated from figure digitization
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: normal
+      rationale: |
+        Normal likelihood on fold-increase. The forward model predicts 2^N_IL2_CD8,
+        which is compared against the observed 70-fold increase at day 30.
+
+  identifiability_notes: |
+    This submodel constrains N_IL2_CD8 through two independent observations of fold-increase in OT-I memory CD8 T cells (40x at day 10, 70x at day 30). While both observations constrain the same parameter, they provide somewhat redundant information since the forward model (2^N) predicts a single fold-increase value. The day 10 observation (40x ± 15) provides tighter constraint than day 30 (70x ± 34). The model cannot distinguish IL-2 effects on proliferation vs. survival. N_IL2_CD8 may be correlated in the full QSP model with other parameters controlling CD8 survival, contraction, and baseline division destiny from TCR and costimulation signals.

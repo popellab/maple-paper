@@ -1,0 +1,238 @@
+study_interpretation: |
+  De Simoni et al. performed tissue microarray-based immunohistochemistry on resected human PDAC specimens to characterize the tumor immune microenvironment, including tumor-associated macrophages (TAMs). They quantified iNOS+ (M1-like) and CD163+ (M2-like) macrophages in tumor and peri-tumoral regions versus normal pancreatic parenchyma, reporting that both markers are enriched in tumor tissue but that CD163+ macrophages greatly outnumber iNOS+ macrophages (92 vs 5 cells per high-power field on average in tumor/peri-tumoral regions). This implies an endogenous/pathological-state M1:M2 ratio of roughly 1:18 within the PDAC tumor microenvironment, consistent with a predominance of immunosuppressive M2-like TAMs. In the QSPIO-PDAC model, the balance between Mac_M1 and Mac_M2 is governed primarily by the opposing polarization rate constants k_M1_pol (M2->M1) and k_M2_pol (M1->M2), modulated by cytokine milieus. By mapping the observed iNOS+:CD163+ ratio onto the k_M1_pol/k_M2_pol ratio under pathological PDAC conditions, this study provides an endogenous anchor for the basal M2->M1 polarization rate, complementing existing pharmacologically stimulated polarization targets.
+
+key_assumptions:
+- |
+  iNOS+ tumor-associated macrophages are treated as a proxy for M1-like macrophages and CD163+ tumor-associated macrophages as a proxy for M2-like macrophages in the PDAC tumor microenvironment.
+- |
+  Counts of iNOS+ and CD163+ macrophages per high-power field in tumor and peri-tumoral regions reflect the relative abundance of Mac_M1 and Mac_M2 in the QSPIO-PDAC tumor compartment, despite potential spatial heterogeneity within tumors.
+- |
+  The average values reported (5 iNOS+ vs 92 CD163+ macrophages in tumor/peri-tumoral areas) can be interpreted as cohort-level means suitable for constraining a population-level M1:M2 ratio in the model.
+- |
+  Differences in recruitment rates, survival, and proliferation between M1 and M2 macrophages are either modest relative to polarization fluxes or are effectively absorbed into the effective polarization rate constants, so that the steady-state Mac_M1:Mac_M2 ratio is approximated by k_M1_pol/k_M2_pol.
+- |
+  A conservative 50% coefficient of variation on the M1:M2 ratio captures unreported dispersion in macrophage counts across patients and fields, as well as uncertainties arising from using marker-defined subsets (iNOS, CD163) rather than functional assays.
+
+key_study_limitations:
+- |
+  Single-center retrospective cohort with a relatively small sample size (38 patients), which may limit generalizability across PDAC populations.
+- |
+  Macrophage counts were derived from selected tissue microarray cores and high-power fields, which may not fully capture intra-tumoral spatial heterogeneity in M1/M2 distribution.
+- |
+  Only two markers (iNOS for M1-like and CD163 for M2-like TAMs) were used; some macrophages may co-express or lack these markers, leading to potential misclassification of intermediate phenotypes along the M1-M2 spectrum.
+- |
+  Absolute counts are reported without explicit standard deviations or standard errors for iNOS+ and CD163+ macrophages, requiring an assumed coefficient of variation for calibration.
+- |
+  The analysis combines intra-tumoral and peri-tumoral macrophages, whereas the QSP model tumor compartment may effectively represent predominantly intra-tumoral regions; this is mitigated by focusing on the ratio rather than absolute densities.
+
+experimental_context:
+  species: human
+  system: human_clinical_resected_tissue
+  cell_lines:
+  cell_types:
+  - name: tumor-associated macrophages
+    phenotype: |
+      M1-like iNOS+ and M2-like CD163+ macrophages infiltrating PDAC tumor and peri-tumoral regions
+    isolation_method: |
+      Immunohistochemical identification on formalin-fixed paraffin-embedded surgical specimens; counts averaged over multiple high-power fields per case.
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+primary_data_source:
+  doi: 10.3390/curroncol30060417
+  title: |
+    Role of Immune Microenvironment in Pancreatic Ductal Adenocarcinoma: Could It Be Considered a Predictor of Prognosis?
+  authors:
+  - De Simoni O
+  - Dal Santo L
+  - Scarpa M
+  - Munari G
+  - Spolverato YC
+  - Scapinello A
+  - Lonardi S
+  - Solda C
+  - Bergamo F
+  - Fantin A
+  - Bardini R
+  - Pilati P
+  - Fassan M
+  - Gruppo M
+  year: 2023
+  source_tag: DeSimoni2023_PDAC_TME
+
+secondary_data_sources:
+
+target_id: k_M1_pol_pdac_m1m2ratio_DeSimoni2023
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c46335914f0e52d831e8ee08b36da
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: inos_tumor_mean_per_hpf
+  value: 5.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: 'Results, section 3.2: "iNOS+ macrophages count was 5 vs. 2.5"'
+  extraction_method: manual
+  value_snippet: |
+    The number of both iNOS+ and CD163+ macrophages was significantly higher in the tumor and peri-tumoral compartment, compared to normal pancreatic parenchyma (iNOS+ macrophages count was 5 vs. 2.5, p = 0.009; CD163+ macrophages count was 92 vs. 66; p = 0.002; respectively).
+  source_access: open_access
+- name: inos_normal_mean_per_hpf
+  value: 2.5
+  units: cell
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: 'Results, section 3.2: "iNOS+ macrophages count was 5 vs. 2.5"'
+  extraction_method: manual
+  value_snippet: iNOS+ macrophages count was 5 vs. 2.5, p = 0.009;
+  source_access: open_access
+- name: cd163_tumor_mean_per_hpf
+  value: 92.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: 'Results, section 3.2: "CD163+ macrophages count was 92 vs. 66"'
+  extraction_method: manual
+  value_snippet: CD163+ macrophages count was 92 vs. 66; p = 0.002;
+  source_access: open_access
+- name: cd163_normal_mean_per_hpf
+  value: 66.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: 'Results, section 3.2: "CD163+ macrophages count was 92 vs. 66"'
+  extraction_method: manual
+  value_snippet: CD163+ macrophages count was 92 vs. 66; p = 0.002;
+  source_access: open_access
+- name: n_patients_pdac_tme_desimoni2023
+  value: 38.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: auxiliary
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: |
+    Results, section 3.1: "A total of 38 patients with a diagnosis of PDAC... were retrospectively included"
+  extraction_method: manual
+  value_snippet: |
+    A total of 38 patients with a diagnosis of PDAC having undergone curative surgery followed by adjuvant chemotherapy, were retrospectively included in the analysis.
+  source_access: open_access
+- name: m1_m2_ratio_assumed_cv
+  value: 0.5
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: DeSimoni2023_PDAC_TME
+  source_location: Assumption for variability in M1:M2 ratio (not directly reported)
+  extraction_method: manual
+  value_snippet: |
+    Continuous data were presented as the mean (SEM) ... No dispersion measures were reported specifically for iNOS+ or CD163+ macrophage counts; a conservative 50% coefficient of variation was assumed for the M1:M2 ratio.
+  source_access: open_access
+
+calibration:
+  parameters:
+  - name: k_M1_pol
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -2.3
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Wide lognormal prior centered at ~0.1/day, reflecting basal macrophage polarization timescales on the order of days and allowing >10-fold uncertainty due to limited direct kinetic data in human PDAC tissue.
+  - name: k_M2_pol
+    units: 1/day
+    prior:
+      distribution: lognormal
+      mu: -2.3
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Wide lognormal prior centered at ~0.1/day for reverse M1->M2 polarization, symmetric with k_M1_pol prior so that the DeSimoni2023 ratio measurement primarily constrains the ratio k_M1_pol/k_M2_pol rather than imposing a strong bias toward either direction.
+  forward_model:
+    data_rationale: |
+      De Simoni et al. quantified intra- and peri-tumoral tumor-associated macrophages in resected human PDAC by immunohistochemistry, reporting average counts of iNOS+ (M1-like) and CD163+ (M2-like) macrophages per high-power field in tumor versus normal pancreatic parenchyma. The ratio of M1 to M2 marker-positive macrophages in untreated PDAC provides a direct readout of endogenous/pathological-state macrophage polarization in the tumor microenvironment.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, M2 tumor macrophages (Mac_M2) polarize to M1 (Mac_M1) at rate k_M1_pol * Mac_M2 times an IL12/IFNg-dependent activation factor, while M1 polarize back to M2 at rate k_M2_pol * Mac_M1 times a TGFbeta/IL10/IL6-dependent factor. At quasi-steady state, and assuming comparable recruitment and loss rates for the two phenotypes, the Mac_M1:Mac_M2 abundance ratio scales with the net forward-to-reverse polarization propensity, approximated here as k_M1_pol/k_M2_pol with cytokine drive factors absorbed into the effective rates. The steady_state_ratio model therefore maps the polarization rate constants from the full QSP model to the observed M1:M2 macrophage ratio in untreated PDAC tissue.
+    independent_variable:
+    state_variables:
+    unit_conversion_factor: '1.0'
+    type: steady_state_ratio
+    rate_numerator: k_M1_pol
+    rate_denominator: k_M2_pol
+    drive_numerator: '1.0'
+    drive_denominator: '1.0'
+  error_model:
+  - name: m1_m2_ratio_pdac_desimoni2023
+    observable:
+    units: dimensionless
+    uses_inputs:
+    - inos_tumor_mean_per_hpf
+    - cd163_tumor_mean_per_hpf
+    - m1_m2_ratio_assumed_cv
+    evaluation_points:
+    sample_size: 38
+    sample_size_rationale: |
+      Number of resected PDAC patients (n = 38) included in De Simoni et al. for tumor microenvironment characterization.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          inos = inputs['inos_tumor_mean_per_hpf']
+          cd163 = inputs['cd163_tumor_mean_per_hpf']
+          # Compute endogenous/pathological-state M1:M2 ratio in PDAC tumor tissue
+          if cd163 <= 0:
+              ratio = 0.0
+          else:
+              ratio = inos / cd163
+          cv = inputs['m1_m2_ratio_assumed_cv']
+          return {
+              'value': ratio,
+              # For a lognormal likelihood, sd is the coefficient of variation (dimensionless)
+              'sd': cv,
+              'sd_uncertain': True,
+              'n': int(sample_size) if sample_size is not None else None,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        The M1:M2 macrophage ratio is a positive quantity that can vary over orders of magnitude between patients; a lognormal likelihood is appropriate for such ratios and is consistent with using a coefficient-of-variation style uncertainty.
+  identifiability_notes: |
+    This target constrains the steady-state ratio of M1-like to M2-like tumor-associated macrophages in untreated human PDAC, approximated as the ratio of iNOS+ to CD163+ macrophage counts (5 vs 92 cells per high-power field). Under the simplified steady_state_ratio submodel, the predicted ratio is k_M1_pol/k_M2_pol, so this dataset informs only the relative magnitude of forward (M2->M1) to reverse (M1->M2) polarization rates, not their absolute scale. Absolute identifiability of k_M1_pol and k_M2_pol therefore relies on integration with additional submodels (e.g., pharmacologically stimulated polarization kinetics and other steady-state ratio targets). The assumed 50% CV on the ratio further reflects uncertainty due to lack of reported dispersion measures and potential sampling heterogeneity within tumors.
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    The study by De Simoni et al. analyzes tumor-associated macrophages in resected human pancreatic ductal adenocarcinoma using iNOS (M1-like) and CD163 (M2-like) markers, quantifying their densities directly in PDAC tumor and peri-tumoral tissue. This exactly matches the indication and tissue context of the QSPIO-PDAC model, which represents macrophage polarization within the PDAC tumor microenvironment.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Macrophage densities and phenotypes were measured in situ in resected human PDAC tumors and peri-tumoral regions, capturing the desmoplastic, immunosuppressive microenvironment characteristic of PDAC. Although sampling is limited to selected cores and high-power fields, the overall TAM composition (iNOS+ vs CD163+) is representative of the PDAC tumor compartment modeled in QSPIO-PDAC.
+  estimated_translation_uncertainty_fold: 2.0
+  validation_warnings:

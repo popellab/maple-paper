@@ -1,0 +1,254 @@
+empirical_data:
+  assumptions:
+  - description: Prior coefficient of variation for stromal α-SMA-positive area fraction in tumor core when only a mean value
+      is reported.
+    name: alpha_sma_core_cv_prior
+    rationale: Drifka et al. 2016 provide point estimates (e.g., 0.572 in tumor core) but no dispersion. We assume a moderate
+      CV≈0.2, consistent with variability seen for other stromal marker quantifications in PDAC, to avoid an unrealistically
+      narrow calibration target.
+    units: dimensionless
+    value: 0.2
+  - description: Monte Carlo sample size for parametric bootstrap used to derive empirical median and 95% CI.
+    name: n_mc_samples_internal
+    rationale: 100000 samples provide stable percentile estimates (<1% Monte Carlo error on median) while keeping computation
+      inexpensive.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 0.34461198
+    - 0.78594315
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    mean_q = inputs['alpha_sma_core_mean']\n\
+    \    cv_q = inputs['alpha_sma_core_cv']\n    n_mc_q = inputs['n_mc_samples']\n    # Convert to dimensionless scalars\n\
+    \    m = mean_q.to('dimensionless').magnitude\n    cv = cv_q.to('dimensionless').magnitude\n    n_mc = int(n_mc_q.to('dimensionless').magnitude)\n\
+    \    # Compute Beta distribution parameters from mean and coefficient of variation\n    var = (cv * m)**2\n    phi = m\
+    \ * (1.0 - m) / var - 1.0\n    a = m * phi\n    b = (1.0 - m) * phi\n    rng = np.random.default_rng(42)\n    samples\
+    \ = rng.beta(a, b, n_mc) * ureg.dimensionless\n    median_obs = np.median(samples)\n    ci95_lower = np.percentile(samples,\
+    \ 2.5)\n    ci95_upper = np.percentile(samples, 97.5)\n    return {\n        'median_obs': median_obs,\n        'ci95_lower':\
+    \ ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean fraction of periductal tumor core stromal area positive for α-smooth muscle actin (α-SMA), defined as
+      DAB pixels/(DAB + hematoxylin pixels) in PDAC-associated stroma.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: alpha_sma_core_mean
+    source_ref: Drifka2016_PDACCollagenAlignment
+    source_type: text
+    units: dimensionless
+    value: 0.572
+    value_location: Results, section "Collagen alignment and CAF markers in the stroma neighboring PDAC cells"
+    value_snippet: Periductal α-SMA expression was significantly higher in low grade tumors (0.599) compared to high grade
+      tumors (0.499) (p = 0.008, Supplementary Figure S3B) and in the tumor core (0.572) compared to the tumor edge (0.503)
+      (p = 0.0004, Supplementary Figure S3C).
+  - conversion_formula: null
+    description: Assumed coefficient of variation (CV) for the fraction of stromal area positive for α-SMA in tumor core ROIs;
+      used to define a Beta distribution around the reported mean.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: inferred_estimate
+    name: alpha_sma_core_cv
+    source_ref: Drifka2016_PDACCollagenAlignment
+    source_type: text
+    units: dimensionless
+    value: 0.2
+    value_location: Not directly reported in the paper; introduced for calibration distribution construction.
+    value_snippet: For calibration we assumed a moderate coefficient of variation (CV ≈ 0.2) for the α-SMA-positive area fraction
+      because Drifka et al. report only point estimates (e.g., 0.572 in the tumor core) without dispersion metrics.
+  - conversion_formula: null
+    description: Number of PDAC tissue cores analyzed for stromal α-SMA and syndecan-1 expression, representing 114 patients.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: n_cores_alpha_sma
+    source_ref: Drifka2016_PDACCollagenAlignment
+    source_type: text
+    units: dimensionless
+    value: 356.0
+    value_location: Results, Collagen alignment and CAF markers in the stroma neighboring PDAC cells
+    value_snippet: A total of 356 confirmed PDAC tissues cores representative of 114 patients were analyzed.
+  - conversion_formula: null
+    description: Number of Monte Carlo samples used to derive the median and 95% CI for the α-SMA-positive area fraction from
+      the assumed Beta distribution.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: inferred_estimate
+    name: n_mc_samples
+    source_ref: Drifka2016_PDACCollagenAlignment
+    source_type: text
+    units: dimensionless
+    value: 100000.0
+    value_location: Not reported in the paper; modeling choice for calibration.
+    value_snippet: We used 100000 Monte Carlo samples when sampling from the assumed Beta distribution for the α-SMA-positive
+      area fraction to obtain stable estimates of the median and 95% confidence interval.
+  median:
+  - 0.5745295125656544
+  sample_size: 356
+  sample_size_rationale: 'n=356 PDAC tissue cores representing 114 resected PDAC patients; stated in Results: "A total of
+    356 confirmed PDAC tissues cores representative of 114 patients were analyzed." We treat each core-level α-SMA measurement
+    as an independent replicate for the stromal area fraction.'
+  units: dimensionless
+experimental_context:
+  assay_type: Immunohistochemistry for α-SMA with color deconvolution image analysis.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary PDAC tumors resected with curative intent (pancreatectomy) and arrayed as 1 mm cores on a tissue
+    microarray.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: no neoadjuvant chemotherapy or radiotherapy prior to resection
+    status: off_treatment
+key_assumptions:
+- α-SMA-positive stromal area in PDAC periductal regions primarily reflects activated CAF populations (myCAFs and iCAFs),
+  with negligible contribution from quiescent PSCs or apCAFs; we therefore map α-SMA positivity to V_T.iCAF + V_T.myCAF in
+  the model.
+- The PDAC cellularity fraction (0.25) from the reference database is assumed to apply to the Drifka et al. cohort, allowing
+  us to relate modeled cell counts to total tumor tissue area when computing an area fraction.
+- Total modeled cell counts in the tumor compartment (cancer cells, CAFs, T cells, macrophages, MDSCs, NK cells, and DCs)
+  are assumed to approximate the cellular component of the periductal ROIs used for image analysis, despite the presence of
+  additional unmodeled cell types (endothelial cells, pericytes, B cells, etc.).
+- Drifka et al. report only point estimates (e.g., 0.572 for tumor core stromal α-SMA fraction) without dispersion metrics,
+  so we approximate inter-sample variability by assuming a moderate coefficient of variation (CV ≈ 0.2) and modeling the distribution
+  as Beta-distributed on [0,1].
+- We treat the 356 PDAC tissue cores as independent replicates for estimating the distribution of stromal α-SMA positivity,
+  even though multiple cores originate from the same patient; this likely underestimates patient-level variability but is
+  acceptable for a first-pass calibration target.
+key_study_limitations:
+- Measurements are derived from a single-center retrospective tissue microarray with selected inclusion criteria (curative-intent
+  surgery, no neoadjuvant therapy, inclusion of long-term survivors), which may limit generalizability to all resectable PDAC.
+- Stromal α-SMA positivity is quantified on periductal regions of 1 mm tissue cores rather than whole-tumor sections; spatial
+  heterogeneity beyond core locations is not captured.
+- Multiple cores per patient are analyzed, but core-level measurements are not explicitly aggregated to per-patient statistics
+  for α-SMA; treating all 356 cores as independent replicates may underestimate between-patient variance.
+- Only central values (e.g., 0.572 in tumor core) are reported for α-SMA fractions; dispersion (SD/SEM/IQR) must be approximated,
+  making the uncertainty on this calibration target more assumption-driven than data-driven.
+- The experimental denominator includes all stromal and epithelial cells in the ROI, whereas the model denominator includes
+  only explicitly modeled cell types; unmodeled components (endothelial cells, B cells, etc.) introduce systematic but likely
+  modest bias in the mapping.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    iCAF = species_dict['V_T.iCAF']\n    myCAF = species_dict['V_T.myCAF']\n\
+    \    total_cells = (\n        species_dict['V_T.C1']\n        + species_dict['V_T.iCAF']\n        + species_dict['V_T.myCAF']\n\
+    \        + species_dict['V_T.apCAF']\n        + species_dict['V_T.qPSC']\n        + species_dict['V_T.CD8']\n        +\
+    \ species_dict['V_T.CD8_exh']\n        + species_dict['V_T.Th']\n        + species_dict['V_T.Th_exh']\n        + species_dict['V_T.Treg']\n\
+    \        + species_dict['V_T.Mac_M1']\n        + species_dict['V_T.Mac_M2']\n        + species_dict['V_T.MDSC']\n    \
+    \    + species_dict['V_T.NK']\n        + species_dict['V_T.cDC1']\n        + species_dict['V_T.cDC2']\n        + species_dict['V_T.mcDC1']\n\
+    \        + species_dict['V_T.mcDC2']\n    )\n    cellularity_frac = constants['pdac_cellularity_fraction']\n    frac_area\
+    \ = cellularity_frac * (iCAF + myCAF) / total_cells\n    return frac_area.to('dimensionless')"
+  constants:
+  - biological_basis: PDAC tumors are highly desmoplastic with approximately 25% cellular volume fraction and 75% acellular
+      stroma. The reference value pdac_cellularity_fraction summarizes this consensus and is used here to convert modeled
+      cell counts to total tumor tissue area.
+    name: pdac_cellularity_fraction
+    reference_db_name: pdac_cellularity_fraction
+    reference_db_names: null
+    source_tag: null
+    source_type: reference_db
+    units: dimensionless
+    value: 0.25
+  experimental_denominator: All cells within pathology-confirmed periductal tumor regions of interest (tumor epithelium plus
+    stromal and immune cells) in resected PDAC tissue cores, quantified as total tissue area (hematoxylin + DAB pixels).
+  inputs: []
+  mapping_rationale: Drifka et al. quantify stromal activation as the fraction of periductal tumor tissue area positive for
+    α-SMA (DAB pixels/(DAB+hematoxylin pixels)). In the model, α-SMA positivity arises from activated CAF populations (iCAF
+    and myCAF). We approximate the α-SMA-positive area fraction as the fraction of all modeled cells in the tumor compartment
+    that are iCAFs or myCAFs, scaled by the PDAC cellularity fraction to map cell counts to tissue area. This provides a dimensionless
+    fraction comparable to the reported percent positivity.
+  model_denominator_species:
+  - V_T.C1
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.apCAF
+  - V_T.qPSC
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.MDSC
+  - V_T.NK
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.mcDC1
+  - V_T.mcDC2
+  species:
+  - V_T.iCAF
+  - V_T.myCAF
+  - V_T.C1
+  - V_T.apCAF
+  - V_T.qPSC
+  - V_T.CD8
+  - V_T.CD8_exh
+  - V_T.Th
+  - V_T.Th_exh
+  - V_T.Treg
+  - V_T.Mac_M1
+  - V_T.Mac_M2
+  - V_T.MDSC
+  - V_T.NK
+  - V_T.cDC1
+  - V_T.cDC2
+  - V_T.mcDC1
+  - V_T.mcDC2
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: Endothelial cells, pericytes, B cells, and other stromal or inflammatory cell types not
+    explicitly represented as model species also contribute to the experimental tissue area. Neglecting these components will
+    tend to slightly overestimate the modeled α-SMA-positive area fraction, likely within a ~2-fold range.
+primary_data_source:
+  doi: 10.18632/oncotarget.12772
+  first_author: Drifka
+  source_tag: Drifka2016_PDACCollagenAlignment
+  title: Highly aligned stromal collagen is a negative prognostic factor following pancreatic ductal adenocarcinoma resection
+  year: 2016
+scenario:
+  description: Baseline primary PDAC tumors at time of surgical resection without prior neoadjuvant therapy; stromal α-SMA
+    positivity quantified on tissue microarray cores.
+  interventions:
+  - intervention_description: Curative-intent pancreatic resection (pancreaticoduodenectomy, distal pancreatectomy, or total
+      pancreatectomy) performed without prior neoadjuvant chemotherapy or radiotherapy; tumor tissue was fixed, embedded,
+      and sampled into 1 mm cores for tissue microarray construction, after which α-SMA immunohistochemistry and image analysis
+      were performed.
+secondary_data_sources:
+- doi_or_url: null
+  first_author: QSP_Reference
+  source_tag: PDAC_Reference_Values
+  title: Curated reference values for PDAC tumor geometry, cellularity, and immune composition
+  year: 2024
+source_relevance: null
+study_interpretation: Drifka et al. analyzed 114 human PDAC resection specimens (no neoadjuvant therapy) using a tissue microarray.
+  For each patient, multiple pathology-confirmed regions of interest in the tumor core and infiltrating edge were cored, and
+  adjacent sections were stained for collagen (via SHG imaging) and for α-SMA and syndecan-1 by immunohistochemistry. Stromal
+  α-SMA positivity was quantified by color deconvolution as DAB pixels divided by total (DAB + hematoxylin) pixels in each
+  stromal region. They report that periductal α-SMA expression in PDAC-associated stroma is substantially higher than in normal
+  stroma, with mean stromal α-SMA fractions of 0.572 in tumor core regions versus 0.503 at the tumor edge, and 0.599 versus
+  0.499 in low- versus high-grade tumors. This α-SMA-positive area fraction is interpreted as a quantitative measure of activated
+  myofibroblastic CAF density in the tumor microenvironment. The present calibration target uses the mean stromal α-SMA fraction
+  in tumor core regions (0.572) as a representative baseline for treatment-naive, resectable human PDAC, and maps it to the
+  model as the fraction of tumor-compartment cells that are activated CAFs (V_T.iCAF + V_T.myCAF) relative to all modeled
+  tumor and stromal/immune cells, scaled by the PDAC cellularity fraction.

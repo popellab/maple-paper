@@ -19,8 +19,8 @@ from typing import Optional
 
 import yaml
 
-from qsp_llm_workflows.core.calibration.submodel_target import SubmodelTarget
-from qsp_llm_workflows.core.calibration.validators import (
+from maple.core.calibration.submodel_target import SubmodelTarget
+from maple.core.calibration.validators import (
     fuzzy_find_snippet_in_text,
     get_paper_texts_from_doi,
 )

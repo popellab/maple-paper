@@ -1,0 +1,178 @@
+calibration:
+  identifiability_notes: '[Scrubbed due to ''secret'']'
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    mass = inputs['MDA_MB231_CCL2_mass_48h']\n\
+      \    time = inputs['MDA_MB231_time_interval_48h']\n    cells = inputs['MDA_MB231_cell_count']\n    mw = inputs['CCL2_molecular_weight']\n\
+      \    # Convert to base units\n    mass_g = mass.to('gram').magnitude\n    mw_g_per_mol = mw.to('gram/mole').magnitude\n\
+      \    moles = mass_g / mw_g_per_mol\n    time_days = time.to('day').magnitude\n    cell_number = cells.magnitude\n  \
+      \  k_mol_per_cell_per_day = moles / (cell_number * time_days)\n    k_nmol_per_cell_per_day = k_mol_per_cell_per_day\
+      \ * 1e9\n    samples = np.array([k_nmol_per_cell_per_day])\n    return {\n        'median': float(np.median(samples)),\n\
+      \        'ci95_lower': float(np.percentile(samples, 2.5)),\n        'ci95_upper': float(np.percentile(samples, 97.5)),\n\
+      \    }"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: '[Scrubbed due to ''secret'']'
+    name: k_CCL2_sec_observation
+    observable: null
+    sample_size: 3
+    sample_size_rationale: '[Scrubbed due to ''secret'']'
+    units: nanomole/cell/day
+    uses_inputs:
+    - MDA_MB231_CCL2_mass_48h
+    - MDA_MB231_time_interval_48h
+    - MDA_MB231_cell_count
+    - CCL2_molecular_weight
+  model:
+    data_rationale: '[Scrubbed due to ''secret'']'
+    formula: k_CCL2_sec = (MDA_MB231_CCL2_mass_48h / CCL2_molecular_weight / MDA_MB231_cell_count / MDA_MB231_time_interval_48h)
+    submodel_rationale: In the full QSP PDAC model, tumor CCL2 dynamics in the tumor compartment follow d(CCL2)/dt = k_CCL2_sec
+      * C_total - k_CCL2_deg * CCL2. Integrating this ODE over a short interval with approximately constant cell number and
+      ignoring degradation yields CCL2(t) - CCL2(0) ≈ k_CCL2_sec * C_total * t. The in vitro assay measures this cumulative
+      production per cell over a fixed time, so an algebraic conversion from cumulative mass to moles per cell per day is
+      a mechanistically consistent submodel for k_CCL2_sec.
+    type: direct_conversion
+  parameters:
+  - name: k_CCL2_sec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -20.7
+      rationale: '[Scrubbed due to ''secret'']'
+      sigma: 2.0
+      upper: null
+    units: nanomole/cell/day
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: adenocarcinoma epithelial cells
+    name: MDA-MB-231
+    species: human
+    tissue_origin: breast
+  cell_types: null
+  culture_conditions:
+    culture_type: 2d_monolayer
+    oxygen_level: normoxic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    substrate: tissue culture plastic
+  indication: breast cancer
+  species: human
+  system: in_vitro_immortalized
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: MDA_MB231_CCL2_mass_48h
+  role: target
+  source_location: Table 2 and accompanying text
+  source_ref: Yoshimura2023
+  uncertainty: null
+  units: nanogram
+  value: 30.0
+  value_snippet: '[Scrubbed due to ''secret'']'
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: MDA_MB231_time_interval_48h
+  role: auxiliary
+  source_location: Table 2 value "30 ng/10^6 cells/48 h"
+  source_ref: Yoshimura2023
+  uncertainty: null
+  units: hour
+  value: 48.0
+  value_snippet: 30 ng/10^6 cells/48 h
+- extraction_method: manual
+  input_type: experimental_condition
+  n: null
+  name: MDA_MB231_cell_count
+  role: initial_condition
+  source_location: Table 2 value "30 ng/10^6 cells/48 h"
+  source_ref: Yoshimura2023
+  uncertainty: null
+  units: cell
+  value: 1000000.0
+  value_snippet: 30 ng/10^6 cells/48 h
+- extraction_method: manual
+  input_type: assumed_value
+  n: null
+  name: CCL2_molecular_weight
+  role: fixed_parameter
+  source_location: DrugBank polypeptide entry for C-C motif chemokine 2 (P13500)
+  source_ref: DrugBank_CCL2
+  uncertainty: null
+  units: gram/mole
+  value: 11024.87
+  value_snippet: Molecular Weight 11024.87
+key_assumptions:
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- The molecular weight of human CCL2 relevant for ELISA calibration is approximately 11 kDa as reported in curated protein
+  databases, allowing reliable conversion from mass to moles.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+key_study_limitations:
+- '[Scrubbed due to ''secret'']'
+- The source tumor type is breast cancer, not PDAC, and CCL2 expression is known to vary across tumor types and even among
+  cell lines of the same type, introducing substantial translation uncertainty.
+- Reported values are approximate ("approximately 30 ng/10^6 cells/48 h") without explicit measures of dispersion (e.g., SD
+  or CI), limiting statistical characterization of measurement error.
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+primary_data_source:
+  authors:
+  - Teizo Yoshimura
+  - Chunning Li
+  - Yuze Wang
+  - Akihiro Matsukawa
+  doi: 10.1038/s41423-023-01013-0
+  source_tag: Yoshimura2023
+  title: The chemokine monocyte chemoattractant protein-1/CCL2 is a promoter of breast cancer metastasis
+  year: 2023
+secondary_data_sources:
+- authors:
+  - Paolo Monti
+  - Biagio Eugenio Leone
+  - Federica Marchesi
+  - Gianpaolo Balzano
+  - Alessandro Zerbi
+  - Francesca Scaltrini
+  - Claudio Pasquali
+  - Giliola Calori
+  - Francesca Pessi
+  - Cosimo Sperti
+  - Valerio Di Carlo
+  - Paola Allavena
+  - Lorenzo Piemonti
+  contribution: '[Scrubbed due to ''secret'']'
+  doi: null
+  source_quality: primary_human_clinical
+  source_tag: Monti2003
+  title: 'The CC chemokine MCP-1/CCL2 in pancreatic cancer progression: regulation of expression and potential mechanisms
+    of antimalignant activity'
+  url: https://pubmed.ncbi.nlm.nih.gov/14612545/
+  year: 2003
+- authors: []
+  contribution: '[Scrubbed due to ''secret'']'
+  doi: null
+  source_quality: textbook
+  source_tag: DrugBank_CCL2
+  title: DrugBank entry for C-C motif chemokine 2 (CCL2, UniProt P13500)
+  url: https://go.drugbank.com/polypeptides/P13500
+  year: 2024
+source_relevance:
+  estimated_translation_uncertainty_fold: 5.0
+  indication_match: proxy
+  indication_match_justification: '[Scrubbed due to ''secret'']'
+  perturbation_relevance: null
+  perturbation_type: physiological_baseline
+  source_quality: review_article
+  species_source: human
+  species_target: human
+  tme_compatibility: moderate
+  tme_compatibility_notes: '[Scrubbed due to ''secret'']'
+  validation_warnings: []
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_CCL2_sec_bcproxy_yoshimura2023

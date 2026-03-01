@@ -1,0 +1,240 @@
+study_interpretation: |
+  Fujita et al. quantified MCP-1/CCL2 secretion from primary human prostate stromal (PrSC) and epithelial (PrEC) cells under defined culture conditions and cytokine stimulation. The unstimulated PrSC condition provides a relatively clean measurement of chemokine accumulation in a known volume over a known time from a known number of stromal cells. By algebraically mapping this accumulation back to a per-cell secretion rate, we obtain an order-of-magnitude estimate of CCL2 production per stromal-like cell. In the PDAC QSP model, CCL2 production in the tumor compartment is represented as a constant per-cancer-cell rate k_CCL2_sec multiplied by the total number of tumor cells. Because PDAC cancer cells and associated fibroblasts (e.g., pancreatic stellate cells) are known sources of CCL2 in the tumor microenvironment, the PrSC secretion rate is used here as a mechanistic proxy for the aggregate per-cell CCL2 production driving local monocyte/MDSC recruitment in PDAC, with substantial cross-tissue and cross-cell-type uncertainty captured in the prior and likelihood.
+
+key_assumptions:
+- |
+  MCP-1/CCL2 secretion machinery is sufficiently conserved across human stromal and epithelial cells that per-cell secretion rates from benign prostate stromal cells (PrSC) are within an order of magnitude of those in PDAC tumor and stromal cells under basal inflammatory conditions.
+- |
+  The medium volume in 24-well plates was approximately 1 mL per well; deviations (e.g., 0.5-1.0 mL) primarily rescale the inferred k_CCL2_sec and are absorbed into the broad prior.
+- |
+  CCL2 degradation, adsorption to plastic, and receptor-mediated uptake over 48 h in conditioned medium are small compared with cumulative secretion, so MCP-1 accumulation is approximately linear in time and proportional to k_CCL2_sec.
+- |
+  All 1x10^5 seeded PrSC remain viable and secreting throughout the 48 h incubation, so the effective number of secreting cells is constant.
+- |
+  The unstimulated PrSC condition (1,888+/-631 pg/mL) is more representative of chronic, low-grade inflammation in tumor stroma than are the high-cytokine stimulation conditions (IL-1beta, IFN-gamma, IL-2), which likely correspond to acute activation and would overestimate baseline k_CCL2_sec.
+- |
+  In the full PDAC QSP model, total tumor CCL2 production is lumped into a single rate proportional to cancer cell number; contributions from stromal cells and other sources are effectively scaled with C_total, so a stromal-cell-derived secretion rate can be used as a surrogate for this lumped parameter.
+
+key_study_limitations:
+- |
+  The data are from benign human prostate stromal and epithelial cells in a BPH context, not from PDAC tumor cells or pancreatic stellate cells. Tissue- and disease-specific differences in CCL2 regulation may shift true PDAC secretion rates by more than an order of magnitude.
+- |
+  The experiment is performed in 2D monolayer culture with abundant nutrient and oxygen supply, which may not reflect the hypoxic, desmoplastic PDAC tumor microenvironment where cytokine secretion and stability can differ.
+- |
+  Medium volume in 24-well plates was not reported and is assumed to be 1 mL, introducing an unquantified scaling uncertainty in k_CCL2_sec.
+- |
+  Potential MCP-1 degradation or binding over the 48 h incubation was not characterized; ignoring this process may slightly underestimate the true secretion rate per cell.
+- |
+  Only a single time point (48 h) was measured for each condition, so any nonlinearity in secretion over time (e.g., due to cell proliferation or adaptation) cannot be resolved.
+- |
+  PrSC are stromal fibroblast-like cells; PDAC CCL2 production involves both cancer cells and activated pancreatic stellate cells. The mapping from a single cell type to the lumped tumor-cell-based parameter k_CCL2_sec is approximate.
+
+experimental_context:
+  species: human
+  system: in_vitro_primary_cells
+  cell_lines:
+  - name: PrSC
+    species: human
+    tissue_origin: prostate
+    cell_type: stromal fibroblast-like cells
+  - name: PrEC
+    species: human
+    tissue_origin: prostate
+    cell_type: epithelial cells
+  cell_types:
+  culture_conditions:
+    substrate: 24-well tissue culture plastic
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication: |
+    benign prostatic hyperplasia (BPH); used as a proxy for solid-tumor/stromal MCP-1/CCL2 secretion
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    Human prostate stromal cells from BPH tissue are used as a mechanistic proxy for CCL2 secretion by tumor-associated fibroblasts. While tissue origin differs from PDAC, CCL2 secretion machinery is conserved across stromal cell types. The broad prior uncertainty captures expected variability across tissue contexts.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_in_vitro
+  perturbation_type: physiological_baseline
+  tme_compatibility: low
+  tme_compatibility_notes: |
+    BPH stromal cells in 2D culture under normoxic, nutrient-rich conditions differ substantially from PDAC CAFs in the hypoxic, desmoplastic tumor microenvironment. CCL2 secretion rates may be higher in activated PDAC stroma due to inflammatory cytokine milieu.
+  estimated_translation_uncertainty_fold: 10.0
+
+primary_data_source:
+  doi: 10.1002/pros.21081
+  title: |
+    Monocyte chemotactic protein-1 (MCP-1/CCL2) is associated with prostatic growth dysregulation and benign prostatic hyperplasia
+  authors:
+  - Kazutoshi Fujita
+  - Charles M. Ewing
+  - Robert H. Getzenberg
+  - J. Kellogg Parsons
+  - William B. Isaacs
+  - Christian P. Pavlovich
+  year: 2009
+  source_tag: Fujita2010
+
+secondary_data_sources:
+- doi:
+  url: https://pmc.ncbi.nlm.nih.gov/articles/PMC4219241/
+  title: |
+    Prognostic and Predictive Blood-Based Biomarkers in Patients with Advanced Pancreatic Cancer: Results from CALGB80303 (Alliance)
+  authors:
+  year: 2014
+  source_tag: Kindler2014
+  contribution: |
+    Provides quantitative baseline plasma MCP-1 (CCL2) levels in advanced PDAC patients (median 522 pg/mL), supporting the relevance of CCL2 as a systemic and tumor-associated chemokine in PDAC but not directly used for rate calibration.
+
+target_id: k_CCL2_sec_Fujita2010_PrSC
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019bfe27b95a0ebc9517fc063476a293
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
+
+inputs:
+- name: CCL2_prsc_unstim_mean
+  value: 1888.0
+  units: pg/milliliter
+  uncertainty:
+    ci95:
+    sd: 631.0
+  n: 3
+  input_type: direct_measurement
+  role: target
+  source_ref: Fujita2010
+  source_location: Figure 4B, unstimulated PrSC bar; Results text
+  extraction_method: manual
+  value_snippet: PrSC secreted 1,888±631 pg/ml of MCP-1 without stimulation (Fig. 4B).
+- name: CCL2_prsc_unstim_sd
+  value: 631.0
+  units: pg/milliliter
+  uncertainty:
+  n: 3
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Fujita2010
+  source_location: Figure 4B, unstimulated PrSC bar; Results text
+  extraction_method: manual
+  value_snippet: PrSC secreted 1,888±631 pg/ml of MCP-1 without stimulation (Fig. 4B).
+- name: n_cells_prsc
+  value: 100000.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: fixed_parameter
+  source_ref: Fujita2010
+  source_location: Methods, Measurement of MCP-1 in Cell Culture Conditioned Media
+  extraction_method: manual
+  value_snippet: |
+    1×10^{5} of each cell type were seeded in 24-well plates and 24 hr later media were changed to media with or without cytokines.
+- name: incubation_time_hours
+  value: 48.0
+  units: hour
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: fixed_parameter
+  source_ref: Fujita2010
+  source_location: Methods, Measurement of MCP-1 in Cell Culture Conditioned Media
+  extraction_method: manual
+  value_snippet: |
+    After 48 hr of incubation, supernatants were collected, centrifuged at 1,000g for 10 min to remove cells and subjected to ELISA.
+- name: V_medium_ml
+  value: 1.0
+  units: milliliter
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: Fujita2010
+  source_location: Cell culture conditions for 24-well plates (not explicitly specified)
+  extraction_method: manual
+  value_snippet: |
+    Standard 24-well cell culture assays typically use ~1 mL medium per well; the exact volume was not reported in the paper.
+
+calibration:
+  parameters:
+  - name: k_CCL2_sec
+    units: nanomole/cell/day
+    prior:
+      distribution: lognormal
+      mu: -20.64
+      sigma: 2.5
+      lower:
+      upper:
+      rationale: |
+        PrSC (benign human prostate stromal cells) secreted 1,888±631 pg/mL MCP-1 over 48 h from 1×10^5 cells in a 24-well plate. Assuming 1 mL medium per well, negligible degradation, and MCP-1 molecular weight ≈8.7 kDa, this corresponds to an approximate secretion rate of 1.1×10^{-9} nmol/cell/day. A wide lognormal prior (σ=1.5) allows for uncertainty in medium volume, cross-tissue extrapolation from prostate stroma to PDAC tumor cells, and potential chemokine degradation.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: batch_accumulation
+    secretion_rate: k_CCL2_sec
+    cell_count:
+      input_ref: n_cells_prsc
+    incubation_time:
+      input_ref: incubation_time_hours
+    molecular_weight:
+      reference_ref: ccl2_molecular_weight_mature
+    medium_volume:
+      input_ref: V_medium_ml
+    unit_conversion_factor: "41.6667"
+    data_rationale: |
+      Fujita et al. reported a single 48 h time point measurement of MCP-1 (CCL2) concentration in conditioned medium from a known number of human prostate stromal cells (PrSC). Because only an end-point concentration is available and secretion can be approximated as linear with time, the per-cell secretion rate can be computed analytically from the measured concentration, assuming negligible degradation and a known medium volume.
+    submodel_rationale: |
+      In the full PDAC QSP model, tumor CCL2 dynamics are given by d(CCL2)/dt = k_CCL2_sec*C_total - k_CCL2_deg*CCL2. In the PrSC experiment, CCL2 accumulates in a fixed medium volume V over time t from N_cells secreting at rate k_CCL2_sec. Neglecting degradation, the final concentration C_meas satisfies C_meas*V = k_CCL2_sec*N_cells*t (up to unit conversions). The unit_conversion_factor of 41.6667 (= 1000/24) converts nmol to pg (factor 1000) and hours to days (factor 1/24) simultaneously.
+
+  error_model:
+  - name: derived_k_CCL2_sec_from_PrSC
+    units: pg/milliliter
+    uses_inputs:
+    - CCL2_prsc_unstim_mean
+    - CCL2_prsc_unstim_sd
+    sample_size: 3
+    sample_size_rationale: Same replicate number as the underlying ELISA measurement (assumed n=3).
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation (point estimate + uncertainty) from PrSC secretion data.
+
+          The paper reports CCL2 concentration = 1888 ± 631 pg/mL (mean ± SD, n=3).
+          For lognormal likelihood, we need:
+          - value: the observed concentration
+          - sd: log-scale SD (dimensionless)
+
+          The CV = 631/1888 ≈ 0.33, so σ_log = sqrt(ln(1 + CV²)) ≈ 0.32
+          """
+          import numpy as np
+
+          conc_mean = inputs['CCL2_prsc_unstim_mean']  # pg/mL
+          conc_sd = inputs['CCL2_prsc_unstim_sd']  # pg/mL
+
+          # Point estimate: use arithmetic mean as observed value
+          observed_value = conc_mean
+
+          # Convert to log-scale SD for lognormal likelihood
+          # σ_log = sqrt(ln(1 + CV²)) where CV = SD/mean
+          cv = conc_sd / conc_mean
+          sigma_log = np.sqrt(np.log(1 + cv**2))
+
+          return {
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from reported mean±SD
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        The measured CCL2 concentration is positive and the forward model predicts concentration from the secretion rate parameter. A lognormal likelihood respects positivity and is appropriate for biological concentration data with multiplicative error structure.
+
+  identifiability_notes: |
+    Because the algebraic relationship C_meas·V = k_CCL2_sec·N_cells·t (ignoring degradation) directly links the measured concentration to k_CCL2_sec, the parameter is structurally identifiable given known N_cells, t, medium volume, and molecular weight. However, uncertainty in the true medium volume, possible chemokine degradation, and biological differences between benign prostate stroma and PDAC tumor/stromal cells mean that the experimental data constrain only the order of magnitude of k_CCL2_sec. This is reflected in the wide lognormal prior and the stochastic propagation of measurement uncertainty in the distribution_code.

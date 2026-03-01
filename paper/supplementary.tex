@@ -4,19 +4,22 @@
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{float}
 \usepackage{hyperref}
+\usepackage[numbers]{natbib}
 \usepackage[dvipsnames]{xcolor}
-\usepackage{minted}
 
-% Minted settings
-\setminted{fontsize=\footnotesize, breaklines, frame=single, framesep=2mm}
-\setminted[yaml]{style=friendly}
-\setminted[python]{style=friendly}
-\setminted[julia]{style=friendly}
-
-\title{Supplementary Materials:\\LLM-Assisted Extraction of QSP Calibration Targets}
-\author{Joel Eliason}
+\title{Supplementary Materials:\\Structured Schemas for LLM-Expert Collaboration in QSP Model Calibration}
+\author{Joel Eliason and Aleksander S. Popel}
 \date{}
+
+% Auto-generated statistics
+\input{generated/ct_stats}
+\input{generated/extraction_stats}
+\input{generated/codegen_stats}
+\input{generated/yaml_stats}
+\input{generated/inference_stats}
 
 \begin{document}
 
@@ -26,7 +29,7 @@
 \newpage
 
 %=============================================================================
-\section{S1: Complete SubmodelTarget Example}
+\section{Complete SubmodelTarget Example}
 \label{sec:complete-example}
 %=============================================================================
 
@@ -38,7 +41,7 @@ This target constrains the proliferation rate parameter \texttt{k\_apsc\_prolif}
 
 \subsection{Complete YAML Specification}
 
-\begin{minted}{yaml}
+\begin{verbatim}
 # Schema: SubmodelTarget
 # Target: Activated PSC proliferation rate
 
@@ -246,7 +249,7 @@ secondary_data_sources:
     source_tag: Apte1999_PSC_Cytokines
     contribution: |
       Provides context on PSC activation and cytokine response protocols.
-\end{minted}
+\end{verbatim}
 
 \subsection{Schema Structure Summary}
 
@@ -273,35 +276,50 @@ The SubmodelTarget schema has the following top-level structure:
 \end{itemize}
 
 %=============================================================================
-\section{S2: Supported Model Types}
+\section{Supported Model Types}
 \label{sec:model-types}
 %=============================================================================
 
-The schema supports the following built-in model types:
+The SubmodelTarget schema supports 15 built-in forward model types, organized into four categories.
 
 \begin{table}[htbp]
 \centering
-\caption{Built-in model types with their ODE formulations.}
+\caption{Built-in forward model types organized by category.}
 \label{tab:model-types}
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \toprule
-Model Type & ODE & Parameters \\
+Category & Model Type & Formulation & Key Fields \\
 \midrule
-\texttt{exponential\_growth} & $dy/dt = k \cdot y$ & \texttt{rate\_constant} \\
-\texttt{first\_order\_decay} & $dy/dt = -k \cdot y$ & \texttt{rate\_constant} \\
-\texttt{logistic} & $dy/dt = k \cdot y \cdot (1 - y/K)$ & \texttt{rate\_constant}, \texttt{carrying\_capacity} \\
-\texttt{saturation} & $dy/dt = k \cdot (1 - y)$ & \texttt{rate\_constant} \\
-\texttt{two\_state} & $dA/dt = -k \cdot A$, $dB/dt = k \cdot A$ & \texttt{forward\_rate} \\
-\texttt{michaelis\_menten} & $dy/dt = -V_{max} \cdot y / (K_m + y)$ & \texttt{vmax}, \texttt{km} \\
-\texttt{direct\_conversion} & (analytical formula) & \texttt{formula} \\
-\texttt{direct\_fit} & (curve fitting) & \texttt{curve} \\
-\texttt{custom} & (user-provided) & \texttt{code}, \texttt{code\_julia} \\
+\multirow{6}{*}{ODE templates}
+& \texttt{exponential\_growth} & $dy/dt = k \cdot y$ & \texttt{rate\_constant} \\
+& \texttt{first\_order\_decay} & $dy/dt = -k \cdot y$ & \texttt{rate\_constant} \\
+& \texttt{logistic} & $dy/dt = k \cdot y(1 - y/K)$ & \texttt{rate\_constant}, \texttt{carrying\_capacity} \\
+& \texttt{saturation} & $dy/dt = k(1 - y)$ & \texttt{rate\_constant} \\
+& \texttt{two\_state} & $dA/dt = -kA$, $dB/dt = kA$ & \texttt{forward\_rate} \\
+& \texttt{michaelis\_menten} & $dy/dt = -V_{\max} y/(K_m + y)$ & \texttt{vmax}, \texttt{km} \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{Structured\\steady-state}}
+& \texttt{steady\_state\_density} & $\text{rate} = \text{density} \times \text{loss}$ & \texttt{target\_rate}, \texttt{observed\_density}, \texttt{loss\_rate} \\
+& \texttt{steady\_state\_fraction} & $\text{rate} = f \times \rho_{\text{parent}} \times \text{loss}$ & \texttt{target\_rate}, \texttt{observed\_fraction}, \texttt{parent\_density} \\
+& \texttt{steady\_state\_concentration} & $\text{sec} = C \times k_{\text{cl}} \times V$ & \texttt{target\_rate}, \texttt{observed\_concentration}, \texttt{clearance\_rate} \\
+& \texttt{steady\_state\_ratio} & $r = k_1 / k_2$ & \texttt{target\_rate}, \texttt{observed\_ratio}, \texttt{opposing\_rate} \\
+& \texttt{steady\_state\_proliferation} & $f = k_p / (k_p + k_d)$ & \texttt{target\_rate}, \texttt{observed\_fraction}, \texttt{death\_rate} \\
+\midrule
+Accumulation
+& \texttt{batch\_accumulation} & $C = (\text{sec} \times n \times t) / V$ & \texttt{target\_rate}, \texttt{cell\_count}, \texttt{incubation\_time} \\
+\midrule
+\multirow{3}{*}{\shortstack[l]{Generic/\\fallback}}
+& \texttt{algebraic} & (closed-form formula) & \texttt{code}, \texttt{code\_julia} \\
+& \texttt{direct\_fit} & (curve fitting) & \texttt{curve} \\
+& \texttt{custom} & (user-provided ODE) & \texttt{code}, \texttt{code\_julia} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+Each structured steady-state and accumulation model declares its fields as typed roles: a field can reference a calibration parameter (to be estimated), an extracted input (from the inputs layer), a curated reference value from a shared database, or a numeric literal. This role-based design allows the same template to serve different estimation scenarios depending on which field is treated as the unknown.
+
 %=============================================================================
-\section{S3: Validation Checks}
+\section{Validation Checks}
 \label{sec:validators}
 %=============================================================================
 
@@ -326,7 +344,7 @@ The validation framework includes ten automated checks implemented as Pydantic \
 
 The DOI validator queries the CrossRef API to verify that every cited DOI resolves to a valid publication. This catches fabricated citations before they enter the calibration pipeline. The validator also performs fuzzy matching on title and year to detect metadata inconsistencies.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 def resolve_doi(doi: str) -> Optional[dict]:
     """Resolve DOI and get metadata from CrossRef."""
     doi_clean = doi.replace("https://doi.org/", "").strip()
@@ -364,7 +382,7 @@ def validate_doi_resolution_and_metadata(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("DOI validation errors:\n  - " + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If an LLM fabricates a citation with DOI \texttt{10.1234/fake.2023.12345}, the CrossRef query returns a 404 error and validation fails with:
 \begin{verbatim}
@@ -376,7 +394,7 @@ Verify at https://doi.org/10.1234/fake.2023.12345
 
 The value-in-snippet validator checks that each extracted numeric value appears in its associated source text. This catches hallucinations where an LLM extracts a plausible but incorrect value. The validator handles multiple numeric formats including scientific notation, percentages, and Unicode superscripts.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 def check_value_in_text(text: str, value: float) -> bool:
     """Check if numeric value appears in text."""
     text_norm = text.lower().replace(",", "")
@@ -420,7 +438,7 @@ def validate_input_values_in_snippets(self) -> "SubmodelTarget":
         raise ValueError("Value-snippet mismatches (possible hallucination):\n  - "
                         + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If an input claims \texttt{value: 4.37} but the snippet reads ``Cell proliferation was 3.21-fold of control'', validation fails with:
 \begin{verbatim}
@@ -435,7 +453,7 @@ This validator is particularly effective because LLMs that hallucinate values ra
 
 The unit validator parses all unit strings using Pint, a Python library for physical quantities. Malformed or unrecognized units trigger validation failure.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 @model_validator(mode="after")
 def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     """Validate that all unit strings are valid Pint units."""
@@ -457,7 +475,7 @@ def validate_units_are_valid_pint(self) -> "SubmodelTarget":
     if errors:
         raise ValueError("Invalid Pint units:\n  - " + "\n  - ".join(errors))
     return self
-\end{minted}
+\end{verbatim}
 
 \textbf{Example failure}: If a parameter specifies \texttt{units: cells/mL/day} (invalid compound unit), validation fails with:
 \begin{verbatim}
@@ -479,13 +497,13 @@ Four validators check that all cross-references within the schema are consistent
 These validators catch internal inconsistencies where an LLM generates references to entities that don't exist elsewhere in the document.
 
 %=============================================================================
-\section{S4: Generated Julia Code Structure}
+\section{Generated Julia Code Structure}
 \label{sec:julia-code}
 %=============================================================================
 
 The translator generates Julia scripts with the following structure:
 
-\begin{minted}{julia}
+\begin{verbatim}
 using DifferentialEquations
 using Turing
 using Distributions
@@ -522,22 +540,22 @@ end
 # Run inference
 model = proliferation_model()
 chain = sample(model, NUTS(), MCMCThreads(), 1000, 4)
-\end{minted}
+\end{verbatim}
 
 For joint inference over multiple targets, the translator identifies shared parameters by name and generates a single model with one prior per unique parameter.
 
 %=============================================================================
-\section{S5: Pydantic Model Definitions}
+\section{Pydantic Model Definitions}
 \label{sec:pydantic-models}
 %=============================================================================
 
-This section provides the key Pydantic model definitions that implement the SubmodelTarget schema. The full implementation is available in the repository at \texttt{src/qsp\_llm\_workflows/core/calibration/submodel\_target.py}.
+This section provides the key Pydantic model definitions that implement both calibration target schemas. The full implementations are available in the repository at \texttt{src/qsp\_llm\_workflows/core/calibration/}.
 
 \subsection{Top-Level Model}
 
 The \texttt{SubmodelTarget} class is the entry point for validation. When a YAML file is loaded, Pydantic recursively validates all nested models.
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class SubmodelTarget(BaseModel):
     """
     Submodel-based calibration target for QSP parameter inference.
@@ -584,13 +602,13 @@ class SubmodelTarget(BaseModel):
 
     # Validators (10 total) defined via Pydantic decorators
     # See Section S3 for implementation details
-\end{minted}
+\end{verbatim}
 
 \subsection{Input Model}
 
 Each input captures a single value extracted from literature with full provenance:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class InputType(str, Enum):
     """Type of input extracted from literature."""
     DIRECT_MEASUREMENT = "direct_measurement"   # Value reported directly
@@ -621,13 +639,13 @@ class Input(BaseModel):
         default=None,
         description="Exact text from paper containing the value (for validation)"
     )
-\end{minted}
+\end{verbatim}
 
 \subsection{Model Type Discriminated Union}
 
 The schema uses Pydantic's discriminated union pattern to support multiple model types, each with type-specific required fields:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class BaseModelSpec(BaseModel):
     """Base class for all model specifications."""
     data_rationale: str = Field(
@@ -672,7 +690,7 @@ Model = Annotated[
     ],
     Field(discriminator="type"),
 ]
-\end{minted}
+\end{verbatim}
 
 The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \texttt{type} field in the YAML to determine which model class to instantiate. This ensures that an \texttt{exponential\_growth} model is validated against \texttt{ExponentialGrowthModel} (which requires \texttt{rate\_constant}) while a \texttt{two\_state} model is validated against \texttt{TwoStateModel} (which requires \texttt{forward\_rate}).
 
@@ -680,7 +698,7 @@ The \texttt{discriminator="type"} annotation tells Pydantic to inspect the \text
 
 Priors are specified with distribution type and parameters:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 class PriorDistribution(str, Enum):
     """Supported prior distribution types."""
     LOGNORMAL = "lognormal"    # For positive parameters (rates, densities)
@@ -709,15 +727,15 @@ class Prior(BaseModel):
             if self.lower >= self.upper:
                 raise ValueError("uniform lower must be < upper")
         return self
-\end{minted}
+\end{verbatim}
 
 \subsection{Loading and Validating YAML Files}
 
 To load and validate a calibration target:
 
-\begin{minted}[fontsize=\scriptsize]{python}
+\begin{verbatim}
 import yaml
-from qsp_llm_workflows.core.calibration import SubmodelTarget
+from maple.core.calibration import SubmodelTarget
 
 # Load YAML file
 with open("psc_proliferation_PDAC_deriv001.yaml") as f:
@@ -730,7 +748,7 @@ target = SubmodelTarget(**data)
 print(f"Target: {target.target_id}")
 print(f"Parameters: {[p.name for p in target.calibration.parameters]}")
 print(f"Model type: {target.calibration.model.type}")
-\end{minted}
+\end{verbatim}
 
 If validation fails, Pydantic raises a \texttt{ValidationError} with detailed error messages:
 
@@ -741,5 +759,560 @@ calibration.measurements.0.uses_inputs.0
 primary_data_source.doi
   DOI '10.1234/fake' failed to resolve [...]
 \end{verbatim}
+
+\subsection{CalibrationTarget Model}
+
+The \texttt{CalibrationTarget} schema represents clinical and in vivo endpoints for full-model calibration. Where SubmodelTarget isolates a single mechanism, CalibrationTarget operates on the full model state.
+
+\begin{verbatim}
+class CalibrationTarget(BaseModel):
+    """
+    Calibration target for full-model Bayesian inference.
+
+    Represents a clinical or in vivo measurement that constrains
+    model behavior at the system level.
+    """
+    # Observable: how to compute the measurement from model species
+    observable: Observable = Field(
+        description="Maps full model species to measured quantity"
+    )
+
+    # Empirical data: literature-derived distribution
+    empirical_data: CalibrationTargetEstimates = Field(
+        description="Observed values derived from literature via Monte Carlo"
+    )
+
+    # Clinical/experimental context
+    experimental_context: ExperimentalContext = Field(
+        description="Species, system, indication, treatment, staging"
+    )
+    scenario: Optional[Scenario] = Field(
+        default=None,
+        description="Treatment scenario for intervention studies"
+    )
+
+    # Interpretation and provenance (shared with SubmodelTarget)
+    study_interpretation: str
+    key_assumptions: List[str]
+    key_study_limitations: Optional[List[str]] = None
+    primary_data_source: PrimaryDataSource
+    secondary_data_sources: Optional[List[SecondaryDataSource]] = None
+    source_relevance: Optional[SourceRelevanceAssessment] = None
+
+    # 30+ validators (see Section S3)
+\end{verbatim}
+
+\subsection{Observable}
+
+The \texttt{Observable} specifies how to compute the experimental measurement from full model species. Unlike SubmodelTarget's forward model (which defines isolated dynamics), the observable operates on the solved full-model state.
+
+\begin{verbatim}
+class Observable(BaseModel):
+    """
+    Full-model observable for CalibrationTarget.
+
+    The code field contains a Python function that computes the
+    measured quantity from model species at each time point.
+    """
+    code: str = Field(
+        description="Python: compute_observable(time, species_dict, "
+                    "constants, ureg) -> Quantity array"
+    )
+    units: str = Field(description="Units of the observable output")
+    species: List[str] = Field(
+        description="Model species accessed (e.g., ['V_T.CD8', 'V_T.C1'])"
+    )
+    constants: Optional[List[ObservableConstant]] = Field(
+        default=None,
+        description="Named constants with provenance"
+    )
+    inputs: Optional[List[SubmodelInput]] = Field(
+        default=None,
+        description="Literature values used in the observable"
+    )
+    support: SupportType = Field(
+        description="Mathematical domain: positive, non_negative, "
+                    "unit_interval, real"
+    )
+    mapping_rationale: str = Field(
+        description="How the literature measurement maps to model species"
+    )
+    # Denominator audit fields for density/fraction observables
+    experimental_denominator: Optional[str] = None
+    model_denominator_species: Optional[List[str]] = None
+\end{verbatim}
+
+Each \texttt{ObservableConstant} requires a \texttt{biological\_basis} explanation and must trace to either the curated reference database or a specific literature source.
+
+\subsection{CalibrationTargetEstimates}
+
+The empirical data block derives summary statistics from literature inputs via Monte Carlo simulation.
+
+\begin{verbatim}
+class CalibrationTargetEstimates(BaseModel):
+    """
+    Empirical data block: literature values -> distribution for likelihood.
+    """
+    median: List[float] = Field(
+        description="Point estimates (length 1 for scalar, "
+                    "or matching index_values for vector)"
+    )
+    ci95: List[List[float]] = Field(
+        description="95% credible intervals [[lo, hi], ...]"
+    )
+    units: str
+    sample_size: Union[int, List[int]]
+    sample_size_rationale: str
+
+    # For vector-valued data (time courses, dose responses)
+    index_values: Optional[List[float]] = None
+    index_unit: Optional[str] = None
+    index_type: Optional[IndexType] = None
+
+    # Inputs and assumptions
+    inputs: List[EstimateInput] = Field(
+        description="Literature values with provenance"
+    )
+    assumptions: Optional[List[ModelingAssumption]] = None
+
+    # Monte Carlo code
+    distribution_code: str = Field(
+        description="Python: derive_distribution(inputs, ureg) -> "
+                    "{'median': [...], 'ci95': [...], 'units': str}"
+    )
+\end{verbatim}
+
+\subsection{Scenario and Intervention}
+
+For studies involving treatment, the \texttt{Scenario} captures the clinical context.
+
+\begin{verbatim}
+class Intervention(BaseModel):
+    """A single treatment intervention."""
+    agent: str = Field(description="Drug or treatment name")
+    dose: Optional[str] = None
+    route: Optional[str] = None
+    schedule: Optional[str] = None
+
+class Scenario(BaseModel):
+    """Treatment scenario for intervention studies."""
+    interventions: List[Intervention]
+    treatment_line: Optional[str] = None
+    prior_treatments: Optional[List[str]] = None
+    description: str = Field(
+        description="Narrative description of the clinical scenario"
+    )
+\end{verbatim}
+
+%=============================================================================
+\section{SubmodelTarget Schema Details}
+\label{sec:submodel-field-reference}
+%=============================================================================
+
+This section provides detailed field descriptions and representative YAML examples for each layer of the SubmodelTarget schema. These examples are referenced from the Methods section; the complete schema is defined in Section~\ref{sec:pydantic-models}.
+
+\subsection{Input Fields}
+
+Each input captures a single value extracted from literature with full provenance. The key fields are:
+
+\begin{itemize}
+    \item \texttt{name}: Unique identifier referenced elsewhere in the schema
+    \item \texttt{value} and \texttt{units}: The extracted numeric value with units
+    \item \texttt{uncertainty}: Standard deviation or 95\% confidence interval, when reported
+    \item \texttt{n}: Sample size, for propagating uncertainty through the likelihood
+    \item \texttt{input\_type}: Classification as \texttt{direct\_measurement}, \texttt{proxy\_measurement}, \texttt{inferred\_estimate}, or \texttt{assumed\_value}
+    \item \texttt{role}: How the input is used: \texttt{target} (likelihood term), \texttt{auxiliary} (supporting), \texttt{initial\_condition}, or \texttt{fixed\_parameter}
+    \item \texttt{source\_ref}: Reference to a literature source with DOI
+    \item \texttt{value\_snippet}: Quoted text from the source containing the value
+\end{itemize}
+
+Code block~\ref{lst:input} shows a representative input.
+
+\begin{figure}[H]
+\begin{verbatim}
+inputs:
+  - name: pdgf_fold_mean
+    value: 4.37
+    units: dimensionless
+    uncertainty:
+      sd: 0.49
+    n: 3
+    input_type: direct_measurement
+    role: target
+    source_ref: Schneider2001
+    source_location: Abstract
+    value_snippet: "Cell proliferation (4.37 +/- 0.49-
+                    and 2.96 +/- 0.39-fold of control)."
+\end{verbatim}
+\caption{An input capturing a proliferation measurement with provenance.}
+\label{lst:input}
+\end{figure}
+
+\subsection{Parameter and Prior Specification}
+
+Each parameter includes a prior distribution with documented rationale. The schema supports four distribution families: LogNormal (positive parameters with multiplicative uncertainty), Normal (unconstrained), Uniform (bounded with no preference), and HalfNormal (positive with mode at zero).
+
+Code block~\ref{lst:param} shows a parameter specification.
+
+\begin{figure}[H]
+\begin{verbatim}
+calibration:
+  parameters:
+    - name: k_apsc_prolif
+      units: 1/day
+      prior:
+        distribution: lognormal
+        mu: 0.0      # log(1.0)
+        sigma: 1.0
+        rationale: |
+          Wide prior centered at 1/day. A 4-fold increase
+          in 1 day implies k ~ ln(4) ~ 1.4/day.
+\end{verbatim}
+\caption{A parameter with lognormal prior and documented rationale.}
+\label{lst:param}
+\end{figure}
+
+\subsection{Forward Model Specification}
+
+The forward model captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice.
+
+Code block~\ref{lst:model} shows a forward model using the exponential growth template.
+
+\begin{figure}[H]
+\begin{verbatim}
+calibration:
+  forward_model:
+    type: exponential_growth
+    rate_constant: k_apsc_prolif
+    independent_variable:
+      name: time
+      units: day
+      span: [0.0, 1.0]
+    state_variables:
+      - name: aPSC_rel
+        units: dimensionless
+        initial_condition:
+          value: 1.0
+          rationale: Normalized to control baseline.
+    data_rationale: |
+      BrdU assay measures proliferation over ~24h with
+      constant PDGF stimulus. Exponential growth fits.
+    submodel_rationale: |
+      At saturating PDGF, the full model reduces to
+      dN/dt = k_apsc_prolif * N.
+\end{verbatim}
+\caption{Forward model specification with state variable and time span.}
+\label{lst:model}
+\end{figure}
+
+\subsection{Error Model Specification}
+
+The error model specifies the statistical relationship between predictions and observed data. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
+
+Code block~\ref{lst:error-model} shows a complete error model entry.
+
+\begin{figure}[H]
+\begin{verbatim}
+  error_model:
+    - name: viability_48h
+      units: dimensionless
+      uses_inputs: [viability_mean, viability_sem]
+      evaluation_points: [2.0]  # days
+      sample_size: 3
+      observable:
+        type: identity
+        state_variables: [aPSC_norm]
+      observation_code: |
+        def derive_observation(inputs, sample_size):
+            mean = inputs['viability_mean']
+            sem = inputs['viability_sem']
+            sd = sem * np.sqrt(sample_size)  # SEM to SD
+            return {'value': mean, 'sd': sd}
+      likelihood:
+        distribution: normal
+        rationale: |
+          Viability near 1 with small SD; normal adequate.
+\end{verbatim}
+\caption{Error model specification linking forward model predictions to observed data.}
+\label{lst:error-model}
+\end{figure}
+
+%=============================================================================
+\section{Complete CalibrationTarget Example}
+\label{sec:calibration-target-example}
+%=============================================================================
+
+This section presents a complete CalibrationTarget for baseline CD8+ T cell density in PDAC, demonstrating how full-model observables, reference database constants, and Monte Carlo distribution derivation work together.
+
+\subsection{Overview}
+
+This target constrains baseline intratumoral CD8+ T cell density using immunohistochemistry data from Jansen et al. (2021), who measured CD8 density across 599 pancreatic cancers using tissue microarrays. The observable computes CD8+ density from full model species (effector and exhausted CD8+ T cells) and reference database constants (cancer cell geometry). The distribution code combines two patient subgroups via a mixture of lognormals.
+
+\subsection{Observable}
+
+The observable maps full model species to the experimental measurement:
+
+\begin{verbatim}
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants, ureg):
+        import numpy as np
+        cd8_eff = species_dict['V_T.CD8']
+        cd8_exh = species_dict['V_T.CD8_exh']
+        C1 = species_dict['V_T.C1']
+        cross_section = constants['pdac_cancer_cell_cross_section']
+        cellularity = constants['pdac_cellularity_fraction']
+
+        total_cd8 = cd8_eff + cd8_exh
+        tumor_area = C1 * cross_section / cellularity
+        density = total_cd8 / tumor_area
+        return density * ureg('cell / millimeter**2')
+  units: cell / millimeter**2
+  species: [V_T.CD8, V_T.CD8_exh, V_T.C1]
+  constants:
+    - name: pdac_cancer_cell_cross_section
+      value: 0.000227
+      units: millimeter**2 / cell
+      biological_basis: |
+        Mean cross-sectional area of PDAC cancer cells from
+        histomorphometric measurements. Derived from mean cell
+        diameter of 17 micrometers.
+      source_type: reference_db
+      reference_db_name: pdac_cancer_cell_cross_section
+    - name: pdac_cellularity_fraction
+      value: 0.15
+      units: dimensionless
+      biological_basis: |
+        Fraction of tumor volume occupied by cancer cells in PDAC.
+        PDAC tumors are characteristically desmoplastic with low
+        cellularity (10-20%).
+      source_type: reference_db
+      reference_db_name: pdac_cellularity_fraction
+  support: positive
+  mapping_rationale: |
+    IHC measures CD8+ cells per mm^2 of tissue section. The model
+    tracks CD8+ T cells as counts in the tumor compartment (V_T).
+    To convert model cell counts to density, we divide by tumor
+    area estimated from cancer cell count, cross-section, and
+    cellularity fraction.
+  experimental_denominator: "mm^2 of tumor tissue section area"
+  model_denominator_species: [V_T.C1]
+\end{verbatim}
+
+\subsection{Empirical Data}
+
+The distribution code combines two patient subgroups (DOG1-negative and DOG1-positive) via mixture-of-lognormals Monte Carlo:
+
+\begin{verbatim}
+empirical_data:
+  median: [138.8]
+  ci95: [[20.3, 965.2]]
+  units: cell / millimeter**2
+  sample_size: 444
+  sample_size_rationale: |
+    Total of 444 patients: 368 DOG1-negative + 76 DOG1-positive.
+  inputs:
+    - name: mean_cd8_stroma_neg
+      value: 227.7
+      units: cell / millimeter**2
+      source_ref: Jansen2021
+      source_location: "Table 4"
+      value_snippet: "CD8 ... 227.7 +/- 15.0"
+    - name: sem_cd8_stroma_neg
+      value: 15.0
+      units: cell / millimeter**2
+      source_ref: Jansen2021
+      source_location: "Table 4"
+      value_snippet: "CD8 ... 227.7 +/- 15.0"
+    - name: n_stroma_neg
+      value: 368
+      units: dimensionless
+      source_ref: Jansen2021
+      source_location: "Table 1"
+      value_snippet: "DOG1 negative 368 (61.4%)"
+    - name: mean_cd8_stroma_pos
+      value: 220.1
+      units: cell / millimeter**2
+      source_ref: Jansen2021
+      source_location: "Table 4"
+      value_snippet: "CD8 ... 220.1 +/- 33.0"
+    - name: sem_cd8_stroma_pos
+      value: 33.0
+      units: cell / millimeter**2
+      source_ref: Jansen2021
+      source_location: "Table 4"
+      value_snippet: "CD8 ... 220.1 +/- 33.0"
+    - name: n_stroma_pos
+      value: 76
+      units: dimensionless
+      source_ref: Jansen2021
+      source_location: "Table 1"
+      value_snippet: "DOG1 positive 76 (12.7%)"
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+        rng = np.random.default_rng(42)
+        n_mc = 100000
+
+        # Subgroup 1: DOG1-negative
+        mean1 = inputs['mean_cd8_stroma_neg'].magnitude
+        sem1 = inputs['sem_cd8_stroma_neg'].magnitude
+        n1 = int(inputs['n_stroma_neg'].magnitude)
+        sd1 = sem1 * np.sqrt(n1)
+
+        # Subgroup 2: DOG1-positive
+        mean2 = inputs['mean_cd8_stroma_pos'].magnitude
+        sem2 = inputs['sem_cd8_stroma_pos'].magnitude
+        n2 = int(inputs['n_stroma_pos'].magnitude)
+        sd2 = sem2 * np.sqrt(n2)
+
+        # Convert to lognormal parameters
+        def to_lognormal(m, s):
+            var = s**2
+            mu = np.log(m**2 / np.sqrt(m**2 + var))
+            sigma = np.sqrt(np.log(1 + var / m**2))
+            return mu, sigma
+
+        mu1, sig1 = to_lognormal(mean1, sd1)
+        mu2, sig2 = to_lognormal(mean2, sd2)
+
+        # Mixture sampling
+        w1 = n1 / (n1 + n2)
+        mask = rng.random(n_mc) < w1
+        samples = np.where(
+            mask,
+            rng.lognormal(mu1, sig1, n_mc),
+            rng.lognormal(mu2, sig2, n_mc)
+        )
+
+        return {
+            'median': [float(np.median(samples))],
+            'ci95': [[float(np.percentile(samples, 2.5)),
+                      float(np.percentile(samples, 97.5))]],
+            'units': 'cell / millimeter**2'
+        }
+\end{verbatim}
+
+\subsection{Source and Context}
+
+\begin{verbatim}
+primary_data_source:
+  doi: "10.7717/peerj.11397"
+  title: ""; expression of immune cell markers in the tumor
+          microenvironment and association with survival"
+  authors: [Jansen, van Doorn,"; et al"]
+  year: 2021
+  source_tag: Jansen2021
+
+experimental_context:
+  species: human
+  system: clinical_resection
+  indication: PDAC
+  treatment_status: treatment_naive
+  stage: resectable
+
+study_interpretation: |
+  Jansen et al. measured CD8+ T cell density across 599 pancreatic
+  cancers using tissue microarrays and digital image analysis. We
+  combine two subgroups (DOG1-positive and DOG1-negative) as a
+  mixture of lognormals to capture the full population distribution.
+
+key_assumptions:
+  - "CD8 IHC detects both effector and exhausted T cells equally"
+  - "Reported +/- values are SEM (confirmed by sqrt(n) test)"
+  - "DOG1 expression does not significantly affect CD8 density"
+
+key_study_limitations:
+  - "TMA cores (0.6mm) may not represent whole-slide heterogeneity"
+  - "Mixed pathologic stages without neoadjuvant therapy reporting"
+  - "2D histology section vs. 3D model compartment"
+\end{verbatim}
+
+%=============================================================================
+\section{SubmodelTarget Source Characteristics}
+\label{sec:source-characteristics}
+%=============================================================================
+
+This section provides detailed breakdowns of source quality, species translation, and indication match for the \nTargets{} SubmodelTarget extractions.
+
+\subsection{Source Quality}
+
+Source quality categorizes the type of experimental evidence. \emph{Human clinical} denotes data from human patient samples or clinical measurements. \emph{Human in vitro} denotes experiments using human-derived cell lines or primary human cells in culture. \emph{Animal in vivo} denotes measurements from animal models (e.g., mouse xenografts). \emph{Animal in vitro} denotes experiments using animal-derived cells in culture (e.g., murine splenocyte assays, rat stellate cell cultures).
+
+\input{generated/source_quality_table}
+
+\subsection{Species Translation}
+
+Species translation describes the mapping from the experimental organism to the model target species (human). Targets labeled human$\rightarrow$human required no cross-species translation. Mixed-species entries (e.g., human and rat$\rightarrow$human) indicate that the extraction combined data from multiple species, such as a human clinical measurement anchored by rat-derived kinetic parameters.
+
+\input{generated/species_table}
+
+\subsection{Indication Match}
+
+Indication match describes how closely the experimental disease context matches the PDAC model target. \emph{Exact}: data from PDAC patients or PDAC-derived models. \emph{Proxy}: data from a different indication used as a mechanistic proxy (e.g., other cancer types, chronic pancreatitis, fibrosis models with similar stromal biology). \emph{Related}: data from the same organ or disease class but not a direct match.
+
+\input{generated/indication_table}
+
+%=============================================================================
+\section{CalibrationTarget Detailed Metrics}
+\label{sec:ct-detailed-metrics}
+%=============================================================================
+
+This section provides detailed metrics for the \ctTotal{} CalibrationTargets applied to the PDAC QSP model.
+
+\subsection{Observable Categories}
+
+\input{generated/ct_observable_table}
+
+\subsection{Observable Complexity}
+
+\input{generated/ct_complexity_table}
+
+The most complex observables (\ctSpeciesMax{} species) are neoadjuvant immunotherapy targets computing immune subset percentages of all nucleated cells, requiring all modeled immune, stromal, and tumor populations in the denominator. The highest-constant observables (\ctConstantsMax{} constants) require geometric and cellularity reference parameters for converting between model cell counts and histologic measurements. Across all targets, observables reference \ctUniqueSpecies{} unique model species spanning immune cells (CD8$^+$ effector and exhausted, Treg, Th, NK), myeloid cells (M1/M2 macrophages, MDSC, cDC1/cDC2), stromal cells (myCAF, iCAF, apCAF, quiescent PSC), tumor cells, ECM, and microenvironment variables (VEGF, lactate, pO2, glucose, HIF).
+
+\subsection{Extraction Model Attribution}
+
+\input{generated/ct_extraction_model_table}
+
+Of the \ctAIGenerated{} AI-generated targets, \ctHumanVerified{} (\ctHumanVerifiedPct{}) are tagged as human-verified, indicating that a domain expert reviewed the complete target after initial extraction. \ctFigureDigitized{} targets (\ctFigureDigitizedPct{}) include data digitized from figures, where per-patient data points were manually extracted and the CalibrationTarget structure was assembled by the LLM from those data points.
+
+\subsection{Primary Data Sources}
+
+The \ctTotal{} targets drew from \ctUniqueDOIs{} unique primary sources (by DOI), with publication years spanning \ctYearMin{}--\ctYearMax{}. Two sources contributed the majority of targets: a neoadjuvant immunotherapy trial (Li et al., Cancer Cell, 2022) provided data for all \ctTreatment{} GVAX/nivolumab targets, and a large-scale immunohistochemistry study (Liudahl et al., Cancer Discovery, 2021) provided data for 11 baseline targets covering immune cell densities, fractions, and ratios.
+
+\section{Inference Results}
+\label{sec:inference-results}
+
+All \nYAMLTargets{} SubmodelTargets were translated to a joint Julia inference script using Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. The plurality of targets (\mtAlgebraicPct{}) use closed-form algebraic forward models; the remainder use structured model types including steady-state, batch accumulation, and first-order decay models (Table~\ref{tab:model-type-dist}).
+
+\input{generated/model_type_table}
+
+The generated script is self-contained, requiring only DifferentialEquations.jl, Turing.jl, and Distributions.jl \citep{JSSv098i16}. Each target contributes a simulate function, observed data constants, and a likelihood term. In this application, most targets constrain individual parameters through algebraic or structured forward models (steady-state, batch accumulation, first-order decay), with \nSharedParams{} parameters shared across multiple targets. The framework supports arbitrarily complex scenarios: multiple derivations constraining the same parameter, single targets constraining multiple parameters, and forward models involving ODEs that cannot be analytically inverted.
+
+\subsection{Convergence Diagnostics}
+
+We ran \nChains{} chains of \nSamples{} samples each using the NUTS sampler. All parameters achieved $\hat{R} < 1.01$ and effective sample sizes above 3000 (Table~\ref{tab:convergence}). Sampling took about 42 seconds on an M-series MacBook Air.
+
+\input{generated/convergence_table}
+
+\subsection{Posterior Distributions}
+
+Figure~\ref{fig:posteriors} shows posterior estimates for all \nUniqueParams{} parameters. Table~\ref{tab:posteriors} reports medians and 90\% credible intervals.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{generated/figures/posterior_marginals.pdf}
+\caption{Posterior distributions from joint Bayesian inference. Gray shading shows the prior distribution; blue histogram and line show the posterior. Red lines indicate median (solid) and 90\% credible interval bounds (dashed).}
+\label{fig:posteriors}
+\end{figure}
+
+\input{generated/posterior_table}
+
+Most posteriors are narrower than their priors, indicating that the data constrained the parameters. The tumor growth rate \texttt{k\_C1\_growth} (\KConeGrowthMed{} day$^{-1}$, 90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}) implies a doubling time of about 130 days, consistent with clinical PDAC observations. The activated PSC death rate \texttt{k\_apsc\_death} (\KApscDeathMed{} day$^{-1}$) implies a half-life of about 10 days.
+
+The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall within the 7--8 generation range expected from CFSE proliferation tracking, where dye dilution limits counting. The CD8+ estimate (\NIltwoCdeightMed{}) is somewhat lower, possibly reflecting differences in experimental conditions between the source studies.
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
 
 \end{document}

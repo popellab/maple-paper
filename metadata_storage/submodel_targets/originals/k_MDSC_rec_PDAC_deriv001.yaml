@@ -1,0 +1,215 @@
+calibration:
+  identifiability_notes: This target provides an informative but assumption-heavy constraint on k_MDSC_rec. The inferred value
+    depends linearly on the assumed tumor cell density and inversely on the assumed MDSC half-life; both are only approximately
+    known. Because the submodel uses a steady-state algebraic relationship with a single measurement of MDSC fraction, k_MDSC_rec
+    is fully correlated with k_MDSC_death and with cell density. In the full QSP model, independent calibration of MDSC death
+    kinetics and tumor cellularity is needed to disentangle these effects. This submodel should therefore be interpreted as
+    defining a prior scale and uncertainty for k_MDSC_rec rather than as a tight posterior estimate.
+  independent_variable: null
+  measurements:
+  - distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    # B16_MDSC_fraction_control is\
+      \ reported as mean +/- SD in percent\n    mean_perc = inputs['B16_MDSC_fraction_control'].magnitude\n    sd_perc = inputs['B16_MDSC_fraction_control_sd'].magnitude\n\
+      \    # Approximate measurement distribution as lognormal derived from mean and SD\n    # Convert mean and SD of a lognormal\
+      \ to mu and sigma in log-space\n    variance = sd_perc**2\n    mu_log = np.log((mean_perc**2) / np.sqrt(variance + mean_perc**2))\n\
+      \    sigma_log = np.sqrt(np.log(1.0 + variance / (mean_perc**2)))\n    n_samples = 10000\n    perc_samples = np.random.lognormal(mu_log,\
+      \ sigma_log, n_samples)\n    frac_samples = perc_samples / 100.0\n    # Tumor cell density and half-life are treated\
+      \ as fixed for this conversion\n    cell_density = inputs['tumor_cell_density'].magnitude  # cells per mL\n    half_life\
+      \ = inputs['MDSC_half_life'].magnitude        # days\n    k_death = np.log(2.0) / half_life                     # 1/day\n\
+      \    k_rec_samples = frac_samples * cell_density * k_death # cell/(mL*day)\n    return {\n        'median': float(np.median(k_rec_samples)),\n\
+      \        'ci95_lower': float(np.percentile(k_rec_samples, 2.5)),\n        'ci95_upper': float(np.percentile(k_rec_samples,\
+      \ 97.5)),\n    }"
+    evaluation_points:
+    - 0.0
+    likelihood:
+      distribution: lognormal
+      rationale: Recruitment rate is positive and expected to span orders of magnitude; lognormal likelihood matches the multiplicative
+        uncertainty structure introduced by converting from percentage, density, and half-life.
+    name: derived_k_MDSC_rec
+    observable: null
+    sample_size: null
+    sample_size_rationale: Effective sample size taken as the number of tumors in the control B16 group (n = 10-15); used
+      here only qualitatively since the model is an algebraic conversion.
+    units: cell/(milliliter*day)
+    uses_inputs:
+    - B16_MDSC_fraction_control
+    - B16_MDSC_fraction_control_sd
+    - tumor_cell_density
+    - MDSC_half_life
+  model:
+    data_rationale: Hong2015 reports that in subcutaneous B16 melanoma tumors resected two weeks after injection, CD11b+/Gr1+
+      MDSCs comprise 8.1% +/-2.4 of all viable tumor cells. We interpret this as an approximately steady-state intratumoral
+      MDSC fraction after prolonged recruitment and turnover. A review on MDSCs (Baghbani2021) reports that M-MDSC and G-MDSC
+      in blood and tumor have a lifespan of about one to two days, which we approximate with a fixed half-life of 1.5 days.
+      Combining a steady-state assumption with a typical solid-tumor cell density of about 10^9 cells per milliliter (log
+      cell kill model) allows analytical derivation of the recruitment rate constant.
+    formula: k_MDSC_rec = ln(2) / MDSC_half_life * (B16_MDSC_fraction_control/100.0) * tumor_cell_density
+    submodel_rationale: In the full QSP PDAC model, intratumoral MDSCs obey d(MDSC)/dt = k_MDSC_rec * V_T * (CCL2/(CCL2 +
+      CCL2_50)) * (1 + H_IL6_MDSC) - k_MDSC_death*MDSC - clearance. For a reference tumor with effectively constant volume
+      and saturating CCL2 and negligible IL6 enhancement (so CCL2 term and (1+H_IL6_MDSC) approximate 1) and weak additional
+      clearance, the steady-state MDSC density M_ss satisfies k_MDSC_rec * V_T ≈ k_MDSC_death * M_ss. Setting V_T = 1 milliliter
+      (density per unit volume) and using k_MDSC_death = ln(2)/MDSC_half_life and M_ss = (B16_MDSC_fraction_control/100) *
+      tumor_cell_density gives an analytical relationship k_MDSC_rec = (ln(2)/MDSC_half_life) * (B16_MDSC_fraction_control/100)
+      * tumor_cell_density. This directly matches the mechanistic source term of the full model under clearly stated simplifying
+      assumptions.
+    type: direct_conversion
+  parameters:
+  - name: k_MDSC_rec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 17.44
+      rationale: Centered on approximate estimate from B16 tumor MDSC fraction at day 14 (Hong2015) combined with 1-2 day
+        MDSC half-life (Baghbani2021). Wide sigma allows order-of-magnitude uncertainty due to assumptions on tumor cell density
+        and steady state.
+      sigma: 1.0
+      upper: null
+    units: cell/(milliliter*day)
+  state_variables: null
+experimental_context:
+  cell_lines:
+  - cell_type: melanoma
+    name: B16 melanoma
+    species: mouse
+    tissue_origin: skin
+  - cell_type: carcinoma
+    name: LLC (Lewis Lung Carcinoma)
+    species: mouse
+    tissue_origin: lung
+  cell_types:
+  - isolation_method: flow cytometry gating on CD11b and Gr1 from tumor single-cell suspensions
+    name: CD11b+Gr1+ myeloid-derived suppressor cells
+    phenotype: tumor-infiltrating MDSC-like myeloid cells
+  culture_conditions: null
+  indication: solid_tumors_non_PDAC
+  species: mouse
+  system: in_vivo_syngeneic_tumor_model
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 10
+  name: B16_MDSC_fraction_control
+  role: target
+  source_location: Figure 1B, B16 tumors, control mice
+  source_ref: Hong2015
+  uncertainty:
+    ci95: null
+    sd: 2.4
+  units: percent
+  value: 8.1
+  value_snippet: Quantification of CD11b+/Gr1+ cells (n = 10 to 15 in each group) as percentage of total viable cells (B16,
+    control 8.1% +/-2.4; pdgfb ret/ret 12.4% +/-3.7, P = .003; LLC, control 14.1% +/-4.1; pdgfb ret/ret 17.1% +/-4.9, P =
+    .04).
+- extraction_method: manual
+  input_type: assumed_value
+  n: null
+  name: B16_MDSC_fraction_control_sd
+  role: auxiliary
+  source_location: Figure 1B, B16 tumors, control mice
+  source_ref: Hong2015
+  uncertainty: null
+  units: percent
+  value: 2.4
+  value_snippet: Quantification of CD11b+/Gr1+ cells (n = 10 to 15 in each group) as percentage of total viable cells (B16,
+    control 8.1% +/-2.4; pdgfb ret/ret 12.4% +/-3.7, P = .003; LLC, control 14.1% +/-4.1; pdgfb ret/ret 17.1% +/-4.9, P =
+    .04).
+- extraction_method: manual
+  input_type: assumed_value
+  n: null
+  name: tumor_cell_density
+  role: fixed_parameter
+  source_location: Text, section on log cell kill and detection limit
+  source_ref: LogCellKillWiki
+  uncertainty: null
+  units: cell/milliliter
+  value: 1000000000.0
+  value_snippet: Die Diagnosegrenze liegt bei etwa 10^9 Zellen, was einer Tumormasse von ungefahr 1 Gramm entspricht.
+- extraction_method: manual
+  input_type: inferred_estimate
+  n: null
+  name: MDSC_half_life
+  role: fixed_parameter
+  source_location: Main text, section on MDSC lifespan
+  source_ref: Baghbani2021
+  uncertainty: null
+  units: day
+  value: 1.5
+  value_snippet: M-MDSC and G-MDSC in the blood flow or in the tumor microenvironment have a limited lifespan of just about
+    one to two days.
+key_assumptions:
+- The 8.1% +/-2.4 CD11b+/Gr1+ fraction in control B16 tumors at two weeks reflects a steady-state balance between MDSC recruitment
+  and death, with net growth approximately zero on this timescale.
+- Tumor cellularity is approximated as 10^9 cells per milliliter, based on the common log cell kill assumption that a 1 gram
+  tumor contains about 10^9 cells, and assuming tissue density near 1 g/mL.
+- Chemotactic drivers in the B16 model (including IL-6 and other cytokines) produce effectively saturating recruitment, such
+  that the CCL2-dependent factor and IL-6 enhancement term in the full model can be treated as approximately 1 in this reference
+  condition.
+- Additional clearance of MDSCs through dead-cell clearance pathways in the full model is neglected relative to simple first-order
+  death, so that k_MDSC_rec * V_T ≈ k_MDSC_death * M_ss.
+- MDSC half-life of 1.5 days is taken as a representative value within the 1-2 day range reported for M-MDSC and G-MDSC in
+  tumors and blood, and is assumed similar in melanoma and PDAC contexts.
+- Mouse B16 and LLC tumor models are used as surrogates for PDAC with respect to MDSC recruitment dynamics, assuming that
+  chemokine-driven myeloid trafficking scales similarly across solid tumors after accounting for tumor cellularity.
+key_study_limitations:
+- Primary data are from melanoma and lung carcinoma models, not PDAC; PDAC has a denser desmoplastic stroma that may alter
+  absolute recruitment rates.
+- Only a single time point (two weeks after inoculation) is used, so dynamic information about approach to steady state is
+  unavailable; the steady-state assumption may be imperfect.
+- Tumor cell density is not measured in Hong2015 and is approximated from generic log cell kill arguments; true cellularity
+  may vary by at least an order of magnitude across tumors and models.
+- The contribution of CCL2 specifically is not isolated in the pericyte-deficient model, and IL-6 is a dominant modulator;
+  thus, the calibrated k_MDSC_rec should be interpreted as an effective baseline recruitment rate under saturating chemoattractant
+  rather than a CCL2-specific parameter.
+- The MDSC lifespan estimate is based on a review summarizing multiple tumor types and compartments (blood and tumor) rather
+  than a direct measurement in this exact model, introducing additional uncertainty.
+- MDSCs are identified as CD11b+/Gr1+ cells without subset separation (M-MDSC vs PMN-MDSC), whereas the QSP model may represent
+  MDSCs as a composite population.
+primary_data_source:
+  authors:
+  - Hong JW
+  - Tobin NP
+  - Rundqvist H
+  - Li T
+  - Lavergne M
+  - Garcia-Ibanez Y
+  - Qin H
+  - Paulsson J
+  - Zeitelhofer M
+  - Adzemovic MZ
+  - Nilsson I
+  - Roswall P
+  - Hartman J
+  - Johnson RS
+  - Ostman A
+  - Bergh J
+  - Poljakovic M
+  - Genove G
+  doi: 10.1093/jnci/djv209
+  source_tag: Hong2015
+  title: Role of Tumor Pericytes in the Recruitment of Myeloid-Derived Suppressor Cells
+  year: 2015
+secondary_data_sources:
+- authors:
+  - Baghbani H
+  contribution: Provides an estimate of MDSC lifespan in blood and tumor microenvironment (approximately one to two days),
+    used to set the MDSC half-life in the submodel.
+  doi: 10.1016/j.humimm.2021.04.009
+  source_tag: Baghbani2021
+  title: The impact of microRNAs on myeloid-derived suppressor cells in cancer
+  url: null
+  year: 2021
+- authors: []
+  contribution: Provides the commonly used approximation that a 1 gram tumor contains about 10^9 cells, used here to approximate
+    total tumor cell density per milliliter.
+  doi: null
+  source_tag: LogCellKillWiki
+  title: Log Cell Kill (German Wikipedia article)
+  url: https://de.wikipedia.org/wiki/Log_Cell_Kill
+  year: 2019
+study_interpretation: Hong2015 demonstrates that in established subcutaneous B16 and LLC tumors, approximately 8-17 percent
+  of viable cells are CD11b+/Gr1+ myeloid-derived suppressor cells, and that this fraction is modulated by pericyte coverage
+  and IL-6-driven hypoxia. Assuming that by two weeks after inoculation the intratumoral MDSC population has reached a quasi-steady
+  state where recruitment balances death, and using literature estimates that MDSCs in the tumor microenvironment have a lifespan
+  of about one to two days, we can back-calculate the implied MDSC recruitment rate into tumor tissue. This provides a physiologically
+  grounded scale for k_MDSC_rec in the QSP PDAC model, capturing chemokine-driven influx into the tumor microenvironment under
+  conditions of high myeloid inflammation.
+target_id: k_MDSC_rec_recruitment_pericyte_MDSC_Hong2015

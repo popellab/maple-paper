@@ -1,0 +1,201 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples drawn from the beta distribution for the PD-1+ CD4+ fraction to estimate median
+      and 95% CI.
+    name: n_mc_samples
+    rationale: 100,000 samples provide stable estimates of median and quantiles for the beta distribution while remaining
+      computationally inexpensive.
+    units: dimensionless
+    value: 100000.0
+  ci95:
+  - - 0.36783151096214367
+    - 0.9788846598876484
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n    rng = np.random.default_rng(42)\n\
+    \    mean_frac = inputs['mean_frac_pd1_cd4_tumor']\n    sem_frac = inputs['sem_frac_pd1_cd4_tumor']\n    n_patients =\
+    \ inputs['n_patients_pd1_flow']\n    # Convert SEM to SD using n\n    sd_frac = sem_frac * np.sqrt(n_patients.magnitude)\n\
+    \    mean_mag = mean_frac.magnitude\n    sd_mag = sd_frac.magnitude\n    var_mag = sd_mag ** 2\n    # Fit a beta distribution\
+    \ matching mean and variance on [0, 1]\n    mean_var_ratio = mean_mag * (1.0 - mean_mag) / var_mag\n    alpha = mean_mag\
+    \ * (mean_var_ratio - 1.0)\n    beta_param = (1.0 - mean_mag) * (mean_var_ratio - 1.0)\n    samples_np = rng.beta(alpha,\
+    \ beta_param, 100000)\n    samples = samples_np * ureg.dimensionless\n    return {\n        'median_obs': np.median(samples),\n\
+    \        'ci95_lower': np.percentile(samples, 2.5),\n        'ci95_upper': np.percentile(samples, 97.5),\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean fraction of PD-1+ cells among intratumoral CD4+ T cells in primary resected PDAC tumors, measured by
+      flow cytometry and displayed for the tumor CD4+ gate in Figure 5C.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: manual
+    extraction_notes: Mean fraction visually estimated from the tumor CD4+ group in the right-hand summary graph; the y-axis
+      reports the percentage of PD-1+ cells among CD4+ T cells.
+    figure_id: Figure 5C
+    input_type: direct_parameter
+    name: mean_frac_pd1_cd4_tumor
+    source_ref: Shibuya2014_PDA_TcellInfilrate
+    source_type: figure
+    units: dimensionless
+    value: 0.75
+    value_location: Figure 5C (tumor CD4+ panel)
+    value_snippet: C) Plot showed expression of PD-1 by both CD4+ and CD8+ unstimulated T cells (p = 0.003 and 0.02, respectively).
+  - conversion_formula: null
+    description: Standard error of the mean for the fraction of PD-1+ cells among intratumoral CD4+ T cells, taken from the
+      length of the error bar for the tumor CD4+ group in Figure 5C.
+    dispersion_type: se
+    dispersion_type_rationale: The Statistical Analysis section states that values in graphs represent mean ± SEM; therefore
+      the error bars in Figure 5C correspond to SEM, not SD.
+    extraction_method: manual
+    extraction_notes: SEM visually estimated from the length of the error bar relative to the y-axis scale for the tumor CD4+
+      group; the Statistical Analysis section specifies that graphs show mean ± SEM.
+    figure_id: Figure 5C
+    input_type: direct_parameter
+    name: sem_frac_pd1_cd4_tumor
+    source_ref: Shibuya2014_PDA_TcellInfilrate
+    source_type: figure
+    units: dimensionless
+    value: 0.05
+    value_location: Figure 5C (tumor CD4+ panel, error bars)
+    value_snippet: Values in graphs represent mean ± SEM.
+  - conversion_formula: null
+    description: Approximate number of PDAC patients whose tumors were analyzed for PD-1 expression on CD4+ and CD8+ T cells
+      by flow cytometry in Figure 5C.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: manual
+    extraction_notes: Estimated by counting individual symbols representing patients in the tumor CD4+ group; sample size
+      is not explicitly tabulated elsewhere in the manuscript.
+    figure_id: Figure 5C
+    input_type: inferred_estimate
+    name: n_patients_pd1_flow
+    source_ref: Shibuya2014_PDA_TcellInfilrate
+    source_type: figure
+    units: dimensionless
+    value: 11.0
+    value_location: Figure 5C (number of individual data points in tumor CD4+ group)
+    value_snippet: C) Plot showed expression of PD-1 by both CD4+ and CD8+ unstimulated T cells (p = 0.003 and 0.02, respectively).
+  median:
+  - 0.7799650369683406
+  sample_size: 11
+  sample_size_rationale: Sample size for PD-1 expression analysis was estimated by visually counting individual data points
+    in Figure 5C (tumor CD4+ group); the flow cytometry subset appears to include 11 tumors, but n is not explicitly tabulated
+    in the manuscript.
+  units: dimensionless
+experimental_context:
+  assay_type: Multiparameter flow cytometry on enzymatically digested tumor specimens.
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: high
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary pancreatic ductal adenocarcinoma tumor tissue obtained at pancreatic resection.
+  treatment:
+    history:
+    - treatment_naive
+    - prior_chemotherapy
+    - prior_radiation
+    specifier: Approximately half of patients received neoadjuvant gemcitabine/docetaxel/capecitabine (GTX) chemotherapy plus
+      chemoradiotherapy before resection; the remainder underwent upfront surgery without neoadjuvant therapy.
+    status: off_treatment
+key_assumptions:
+- The PD-1+ fraction among bulk CD4+ tumor-infiltrating T cells (which includes FOXP3+ Tregs) is used as a proxy for the PD-1+
+  fraction among conventional CD4+FOXP3− helper T cells; this assumes that Tregs constitute a minority of total CD4+ T cells
+  and that their inclusion has a modest effect on the overall PD-1+ fraction.
+- Mean and SEM for the intratumoral PD-1+ CD4+ fraction were manually extracted from Figure 5C by visual estimation of the
+  group mean and error bar relative to the y-axis scale; exact numeric values are not tabulated, so the central value and
+  SEM should be considered approximate.
+- The flow cytometry subset includes both treatment-naive patients and patients who received multimodal neoadjuvant GTX chemotherapy
+  plus chemoradiotherapy before resection; we assume that the combined PD-1+ CD4+ fraction at resection is a reasonable approximation
+  to the exhausted Th fraction in untreated resectable PDAC, but acknowledge that prior therapy may modestly alter the immune
+  infiltrate.
+- A beta distribution is assumed for the PD-1+ CD4+ fraction on [0,1], parameterized to match the extracted mean and variance;
+  this ignores any skewness or multimodality beyond that captured by the beta family.
+key_study_limitations:
+- PD-1 expression on CD4+ T cells was quantified in a relatively small flow cytometry subset (approximately 11 patients),
+  which may limit the precision and generalizability of the estimated PD-1+ fraction.
+- The cohort combines patients who underwent upfront surgery with those treated with neoadjuvant chemotherapy and chemoradiotherapy;
+  neoadjuvant treatment has been shown to alter Treg and myeloid cell numbers and may also influence PD-1 expression levels,
+  introducing heterogeneity relative to strictly treatment-naive tumors.
+- The PD-1 flow cytometry panel gated on CD4+ T cells but did not explicitly resolve PD-1 expression separately on FOXP3+
+  Tregs versus FOXP3− conventional Th cells; thus the experimental PD-1+ CD4+ fraction includes regulatory T cells that are
+  represented as a separate model species (V_T.Treg).
+- Tumor samples were obtained from resectable primary PDAC; the immune infiltrate and PD-1 expression profile in unresectable,
+  metastatic, or recurrent PDAC may differ from this surgical cohort.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    import numpy as np\n    th = species_dict['V_T.Th']\n\
+    \    th_exh = species_dict['V_T.Th_exh']\n    total_th = th + th_exh\n    # Avoid division by zero at time points with\
+    \ no conventional Th cells\n    frac_vals = np.where(total_th.magnitude > 0.0,\n                         (th_exh / total_th).magnitude,\n\
+    \                         0.0)\n    return frac_vals * ureg.dimensionless"
+  constants: []
+  experimental_denominator: CD4+FOXP3+ conventional T helper (Th) cells in the tumor (all PD-1− and PD-1+ subsets).
+  inputs: []
+  mapping_rationale: Shibuya et al. measured the fraction of CD4+ T cells expressing PD-1 in single-cell suspensions of resected
+    primary PDAC tumors using multiparameter flow cytometry. In the QSP model, exhausted/dysfunctional conventional CD4+ helper
+    T cells are represented by V_T.Th_exh, and all conventional CD4+FOXP3+ helper T cells are V_T.Th + V_T.Th_exh. The observable
+    therefore computes the fraction of exhausted Th cells among all conventional Th cells, which is used as a proxy for the
+    experimentally measured PD-1+ fraction among CD4+ T cells.
+  model_denominator_species:
+  - V_T.Th
+  - V_T.Th_exh
+  species:
+  - V_T.Th
+  - V_T.Th_exh
+  support: unit_interval
+  units: dimensionless
+  unmodeled_denominator_components: The experimental PD-1 measurement gated on total CD4+ T cells and did not explicitly exclude
+    FOXP3+ regulatory T cells; thus the experimental denominator includes PD-1+ Tregs, whereas the model denominator includes
+    only conventional CD4+FOXP3+ helper T cells. This may slightly overestimate the exhausted Th fraction relative to the
+    experimental PD-1+ CD4+Foxp3− subset.
+primary_data_source:
+  doi: 10.1371/journal.pone.0096565
+  first_author: Shibuya
+  source_tag: Shibuya2014_PDA_TcellInfilrate
+  title: Pancreatic Ductal Adenocarcinoma Contains an Effector and Regulatory Immune Cell Infiltrate that Is Altered by Multimodal
+    Neoadjuvant Treatment
+  year: 2014
+scenario:
+  description: Baseline immune composition of primary PDAC tumors at the time of surgical resection. A subset of patients
+    received neoadjuvant GTX chemotherapy (gemcitabine 750 mg/m^2 IV, docetaxel 30 mg/m^2 IV, capecitabine 750 mg/m^2 PO for
+    three cycles) followed by chemoradiotherapy (300 centigray over 10 fractions with concurrent oxaliplatin 60 mg/m^2 IV
+    and capecitabine 650 mg/m^2 PO) before resection; the remaining patients underwent upfront surgery without neoadjuvant
+    therapy. All tumors were sampled at resection for flow cytometric analysis of tumor-infiltrating lymphocytes, including
+    PD-1 expression on CD4+ and CD8+ T cells.
+  interventions:
+  - intervention_description: 'Neoadjuvant cohort: three cycles of gemcitabine 750 mg/m^2 IV, docetaxel 30 mg/m^2 IV and capecitabine
+      750 mg/m^2 orally (GTX regimen), followed within 14 days by chemoradiotherapy consisting of 300 centigray per fraction
+      over 10 fractions (intensity-modulated radiotherapy) with concurrent oxaliplatin 60 mg/m^2 IV and capecitabine 650 mg/m^2
+      orally, then surgical resection of primary PDAC approximately 2 to 6 weeks later.'
+  - intervention_description: 'Upfront-surgery cohort: no neoadjuvant systemic therapy; primary PDAC tumor resected surgically,
+      with blood and tumor collected at the time of resection for immune profiling.'
+secondary_data_sources: []
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The study population consists entirely of patients with histologically confirmed pancreatic
+    ductal adenocarcinoma undergoing resection of primary tumors, which matches the target PDAC indication for the QSP model.
+    Measurements are taken directly from human tumor tissue in vivo, making this an exact-match indication for calibrating
+    PDAC tumor-immune parameters.
+  perturbation_relevance: Immune measurements are made in primary PDAC tumors at the time of surgical resection. Approximately
+    half of the patients received neoadjuvant chemotherapy and chemoradiotherapy, which may modestly modulate the immune infiltrate
+    relative to untreated disease but still reflects the pathological tumor state.
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: Primary resected PDAC tumors in this cohort exhibit the dense desmoplastic and immunosuppressive
+    microenvironment characteristic of PDAC, including abundant Tregs and myeloid cells, making them highly representative
+    of the target tumor microenvironment.
+  validation_warnings: null
+study_interpretation: This calibration target quantifies the fraction of tumor-infiltrating CD4+ T cells that express the
+  inhibitory receptor PD-1 in primary resected human PDAC. Shibuya et al. used multiparameter flow cytometry on fresh tumor
+  digests from resected PDAC specimens to compare immune cell phenotypes in tumor versus matched peripheral blood, including
+  PD-1 expression on CD4+ and CD8+ T cells. The high fraction of PD-1+ CD4+ T cells in tumors reflects a dysfunctional/exhausted
+  helper T cell compartment in the PDAC tumor microenvironment. In the QSP model, this is mapped to the fraction of exhausted
+  conventional Th cells (V_T.Th_exh) among all conventional CD4+FOXP3+ Th cells (V_T.Th + V_T.Th_exh) at the time of tumor
+  resection.

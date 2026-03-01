@@ -1,0 +1,206 @@
+empirical_data:
+  assumptions:
+  - description: Number of Monte Carlo samples used to approximate the distribution of the tumor-to-normal glucose ratio from
+      the reported group-level means and SDs for PA and PP glucose concentrations.
+    name: n_mc_samples
+    rationale: A sample size of 200,000 draws provides stable estimates of the median and 95% CI for the ratio distribution
+      with Monte Carlo error well below 1% for the summary statistics used in calibration.
+    units: dimensionless
+    value: 200000.0
+  ci95:
+  - - 0.16733131080721594
+    - 5.048594066755652
+  distribution_code: "def derive_distribution(inputs, ureg):\n    import numpy as np\n\n    # Literature-derived mean and\
+    \ SD for glucose concentration (nmol/mg)\n    mean_pp = inputs['pp_glc_mean']\n    sd_pp = inputs['pp_glc_sd']\n    mean_pa\
+    \ = inputs['pa_glc_mean']\n    sd_pa = inputs['pa_glc_sd']\n\n    # Number of Monte Carlo samples (modeling assumption)\n\
+    \    n_samples = 200000\n    rng = np.random.default_rng(123)\n\n    # Convert mean/SD of a positive, right-skewed variable\
+    \ into lognormal\n    # parameters for PP (normal pancreas) and PA (tumor)\n    mu_pp = np.log(mean_pp.magnitude ** 2\
+    \ / np.sqrt(mean_pp.magnitude ** 2 + sd_pp.magnitude ** 2))\n    sigma_pp = np.sqrt(np.log(1.0 + (sd_pp.magnitude ** 2)\
+    \ / (mean_pp.magnitude ** 2)))\n\n    mu_pa = np.log(mean_pa.magnitude ** 2 / np.sqrt(mean_pa.magnitude ** 2 + sd_pa.magnitude\
+    \ ** 2))\n    sigma_pa = np.sqrt(np.log(1.0 + (sd_pa.magnitude ** 2) / (mean_pa.magnitude ** 2)))\n\n    # Sample lognormal\
+    \ distributions for PP and PA glucose (nmol/mg)\n    samples_pp = rng.lognormal(mu_pp, sigma_pp, n_samples) * mean_pp.units\n\
+    \    samples_pa = rng.lognormal(mu_pa, sigma_pa, n_samples) * mean_pa.units\n\n    # Compute tumor-to-normal glucose ratio;\
+    \ units cancel to dimensionless\n    ratio_samples = samples_pa / samples_pp\n\n    median_obs = np.median(ratio_samples)\n\
+    \    ci95_lower = np.percentile(ratio_samples, 2.5)\n    ci95_upper = np.percentile(ratio_samples, 97.5)\n\n    return\
+    \ {\n        'median_obs': median_obs,\n        'ci95_lower': ci95_lower,\n        'ci95_upper': ci95_upper,\n    }"
+  index_type: null
+  index_unit: null
+  index_values: null
+  inputs:
+  - conversion_formula: null
+    description: Mean glucose concentration in normal pancreatic parenchyma (PP) without neoadjuvant chemotherapy, quantified
+      by HR-MAS 1H NMR and expressed in nmol/mg tissue.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: pp_glc_mean
+    source_ref: Battini2017_PDAC_Metabolomics
+    source_type: table
+    units: nanomole/milligram
+    value: 1.2247
+    value_location: Table 2, row 'Glucose', PP (no neoadjuvant chemotherapy) mean (nmol/mg).
+    value_snippet: Table 2. Comparison between PP and PA (both without neoadjuvant chemotherapy) ... Glucose  PP  1.2247 ±
+      0.6158  0.7937  PA  1.3141 ± 1.1020.
+  - conversion_formula: null
+    description: Standard deviation of glucose concentration in normal pancreatic parenchyma (PP) without neoadjuvant chemotherapy.
+    dispersion_type: sd
+    dispersion_type_rationale: 'The Results section states: ''Continuous variables are expressed as mean ± standard deviation
+      (SD).'' in the paragraph describing Tables 2–5, so the ± values reported for glucose in Table 2 are SD, not SEM.'
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: pp_glc_sd
+    source_ref: Battini2017_PDAC_Metabolomics
+    source_type: table
+    units: nanomole/milligram
+    value: 0.6158
+    value_location: Table 2, row 'Glucose', PP (no neoadjuvant chemotherapy) mean ± SD (nmol/mg), with SD given after the
+      ± symbol.
+    value_snippet: Table 2. Comparison between PP and PA (both without neoadjuvant chemotherapy) ... Glucose  PP  1.2247 ±
+      0.6158  0.7937  PA  1.3141 ± 1.1020. Continuous variables are expressed as mean ± standard deviation (SD).
+  - conversion_formula: null
+    description: Mean glucose concentration in pancreatic adenocarcinoma (PA) tumor tissue without neoadjuvant chemotherapy,
+      quantified by HR-MAS 1H NMR and expressed in nmol/mg tissue.
+    dispersion_type: null
+    dispersion_type_rationale: null
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: pa_glc_mean
+    source_ref: Battini2017_PDAC_Metabolomics
+    source_type: table
+    units: nanomole/milligram
+    value: 1.3141
+    value_location: Table 2, row 'Glucose', PA (no neoadjuvant chemotherapy) mean (nmol/mg).
+    value_snippet: Table 2. Comparison between PP and PA (both without neoadjuvant chemotherapy) ... Glucose  PP  1.2247 ±
+      0.6158  0.7937  PA  1.3141 ± 1.1020.
+  - conversion_formula: null
+    description: Standard deviation of glucose concentration in pancreatic adenocarcinoma (PA) tumor tissue without neoadjuvant
+      chemotherapy.
+    dispersion_type: sd
+    dispersion_type_rationale: 'The Results section states: ''Continuous variables are expressed as mean ± standard deviation
+      (SD).'' in the paragraph describing Tables 2–5, so the ± values reported for glucose in Table 2 are SD, not SEM.'
+    extraction_method: null
+    extraction_notes: null
+    figure_id: null
+    input_type: direct_parameter
+    name: pa_glc_sd
+    source_ref: Battini2017_PDAC_Metabolomics
+    source_type: table
+    units: nanomole/milligram
+    value: 1.102
+    value_location: Table 2, row 'Glucose', PA (no neoadjuvant chemotherapy) mean ± SD (nmol/mg), with SD given after the
+      ± symbol.
+    value_snippet: Table 2. Comparison between PP and PA (both without neoadjuvant chemotherapy) ... Glucose  PP  1.2247 ±
+      0.6158  0.7937  PA  1.3141 ± 1.1020. Continuous variables are expressed as mean ± standard deviation (SD).
+  median:
+  - 0.9241658818588104
+  sample_size: 44
+  sample_size_rationale: 'Battini et al. analyzed 53 chemo-naive pancreatic tissue samples by HR-MAS 1H NMR: 44 pancreatic
+    adenocarcinoma (PA) tumors and 9 pancreatic parenchyma (PP) samples without neoadjuvant chemotherapy. The calibration
+    target is the distribution of tumor-to-normal glucose ratios across the 44 chemo-naive PA samples, using the 9 PP samples
+    to estimate the reference normal pancreas glucose concentration.'
+  units: dimensionless
+experimental_context:
+  assay_type: High-resolution magic angle spinning (HR-MAS) 1H NMR spectroscopy of intact tissue samples normalized by wet
+    weight (nmol/mg).
+  cell_lines: null
+  culture_conditions: null
+  indication: PDAC
+  mouse_subspecifier: null
+  species: human
+  stage:
+    burden: moderate
+    extent: resectable
+  system: clinical.resection
+  tissue_source: Primary pancreatic adenocarcinoma tumors (head of pancreas) and adjacent normal pancreatic parenchyma obtained
+    at surgical resection from chemo-naive patients.
+  treatment:
+    history:
+    - treatment_naive
+    specifier: No neoadjuvant chemotherapy prior to pancreatic resection; tissue samples categorized as 'without neoadjuvant
+      chemotherapy' in Battini 2017.
+    status: off_treatment
+key_assumptions:
+- Glucose concentrations in both PP and PA (nmol/mg tissue) are modeled as lognormal distributions rather than normal, reflecting
+  that metabolite concentrations are strictly positive and often right-skewed; this avoids negative sampled values and better
+  matches biochemical variability.
+- The ± values reported in Table 2 are interpreted as standard deviations (SD), not standard errors, based on the explicit
+  statement 'Continuous variables are expressed as mean ± standard deviation (SD).' in the Results section.
+- Within-patient pairing between PA and PP glucose measurements is not available; the tumor-to-normal glucose ratio distribution
+  is therefore approximated by independently sampling from the group-level lognormal distributions for PA (n = 44) and PP
+  (n = 9).
+- The algebraic variable `glc` in the metabolism module is treated as a dimensionless tumor glucose level scaled to a normal
+  reference, so it can be directly matched to the empirical tumor-to-normal ratio without additional unit conversions.
+- The chemo-naive subgroup (PA and PP without neoadjuvant chemotherapy) is assumed to best match the model context of treatment-naive,
+  resectable PDAC, whereas patients who received neoadjuvant chemotherapy are excluded from this calibration target.
+key_study_limitations:
+- Normal pancreatic parenchyma (PP) samples without neoadjuvant chemotherapy were available for only 9 patients, which limits
+  the precision of the estimated normal glucose distribution and may underrepresent inter-patient variability.
+- The tumor and normal tissue samples, while often collected from the same surgical specimen, are not reported as paired data
+  with individual-level glucose values, so correlation between tumor and normal metabolism within patients cannot be captured
+  explicitly.
+- HR-MAS NMR quantification depends on sample handling, normalization by tissue weight, and calibration against an external
+  lactate standard; systematic scaling errors in nmol/mg may affect both PP and PA measurements, though these should partially
+  cancel in the ratio.
+- The analyzed tissue pieces may not fully capture intra-tumoral heterogeneity or spatial gradients in glucose associated
+  with hypoxia and perfusion differences within PDAC tumors.
+- The QSP model does not explicitly include systemic glucose homeostasis or a separate normal pancreas compartment, so mapping
+  ex vivo tissue metabolite levels onto the single-compartment tumor glucose variable `glc` omits potential contributions
+  from endocrine regulation and regional metabolic differences.
+observable:
+  aggregation: null
+  code: "def compute_observable(time, species_dict, constants, ureg):\n    \"\"\"Tumor glucose level as a dimensionless ratio.\n\
+    \n    In the metabolism module, the algebraic variable `glc` represents\n    tumor glucose level scaled to a normal reference.\
+    \ Because `glc` is\n    already defined as a dimensionless quantity (relative to normal\n    pancreas glucose), it can\
+    \ be compared directly to the empirical\n    tumor-to-normal glucose ratio distribution derived from Battini\n    et al.\
+    \ 2017.\n    \"\"\"\n    glc_tumor = species_dict['glc']\n    return glc_tumor.to('dimensionless')\n"
+  constants: []
+  experimental_denominator: null
+  inputs: []
+  mapping_rationale: Battini et al. measured absolute glucose concentrations in nmol/mg tissue for chemo-naive pancreatic
+    adenocarcinoma (PA) tumors and normal pancreatic parenchyma (PP) using HR-MAS 1H NMR. From these data we derive a distribution
+    for the tumor-to-normal glucose ratio. In the QSP model, the algebraic variable `glc` is implemented as a dimensionless
+    tumor glucose level scaled to a normal reference (glc_normal). Therefore, `glc` can be used directly as the observable
+    corresponding to the literature-derived tumor-to-normal glucose ratio without additional conversion factors.
+  model_denominator_species: null
+  species:
+  - glc
+  support: positive_unbounded
+  units: dimensionless
+  unmodeled_denominator_components: null
+primary_data_source:
+  doi: 10.1186/s12916-017-0810-z
+  first_author: Battini
+  source_tag: Battini2017_PDAC_Metabolomics
+  title: 'Metabolomics approaches in pancreatic adenocarcinoma: tumor metabolism profiling predicts clinical outcome of patients'
+  year: 2017
+scenario:
+  description: Chemo-naive patients with resectable pancreatic ductal adenocarcinoma underwent pancreaticoduodenectomy (cephalic
+    duodeno-pancreatectomy). During surgery, tissue samples of the primary tumor (PA) and, when available, adjacent normal
+    pancreatic parenchyma (PP) were collected, snap frozen, and analyzed ex vivo by HR-MAS 1H NMR to quantify metabolite concentrations
+    including glucose and lactate in nmol/mg tissue.
+  interventions:
+  - intervention_description: Surgical resection of primary pancreatic adenocarcinoma in patients without prior neoadjuvant
+      chemotherapy, with intraoperative collection of tumor tissue and matched normal pancreatic parenchyma for ex vivo HR-MAS
+      1H NMR metabolomics.
+secondary_data_sources:
+- doi_or_url: https://example.org/reference_values_pdac_stroma_cellularity
+  first_author: QSP_Reference_DB
+  source_tag: RefDB_PDAC_Stroma_Cellularity
+  title: Curated reference values for PDAC tumor stromal fraction and cellularity
+  year: 2024
+source_relevance: null
+study_interpretation: Battini et al. used HR-MAS 1H NMR spectroscopy on resected pancreatic tissues to quantify absolute metabolite
+  concentrations (nmol/mg) in pancreatic adenocarcinoma (PA) tumors and normal pancreatic parenchyma (PP). For the subgroup
+  without neoadjuvant chemotherapy (treatment-naive at surgery), Table 2 reports mean ± SD glucose concentrations for PP (n
+  = 9) and PA (n = 44). These measurements reflect steady-state tissue metabolism in resectable PDAC at the time of surgery.
+  For QSP calibration, we construct a dimensionless tumor-to-normal glucose ratio by modeling PP and PA glucose as lognormal
+  distributions fit to the reported means and SDs, then sampling their ratio. The resulting median and 95% CI constrain the
+  relative tumor glucose level, informing the parameter k_glc_tumor that controls tumor glucose utilization in the metabolism
+  module.

@@ -1,33 +1,110 @@
 # MAPLE Paper
 
-Manuscript and supporting materials for "MAPLE: Model-Aware Parameter Literature Extraction for QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
+Manuscript and supporting materials for "Structured Schemas for LLM-Modeler Collaboration in QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
 
-MAPLE is a framework for LLM-assisted calibration of quantitative systems pharmacology (QSP) models. It combines model-aware literature search (using LLM web search guided by mechanistic context) with validated extraction and automatic code generation for Bayesian inference.
+MAPLE is a framework for LLM-assisted calibration of quantitative systems pharmacology (QSP) models. It combines model-aware literature search (using LLM web search guided by mechanistic context) with structured extraction, automated validation, and code generation for Bayesian inference.
 
 ## Repository Structure
 
 ```
-qsp-llm-workflows-paper/
-├── paper/                    # Manuscript
-│   ├── main.tex             # Main manuscript
-│   ├── supplementary.tex    # Supplementary materials (S1-S5)
-│   ├── cpt_article_outline.md # Article outline
-│   └── references.bib       # Bibliography
+maple-paper/
+├── paper/                        # Manuscript
+│   ├── main.tex                  # Main manuscript
+│   ├── supplementary.tex         # Supplementary materials (S1-S5)
+│   ├── references.bib            # Bibliography
+│   └── generated/                # Auto-generated tables, figures, and LaTeX macros
 │
-├── examples/                 # PDAC calibration targets (YAML)
-│   ├── psc_*.yaml           # Pancreatic stellate cell targets
-│   ├── ecm_*.yaml           # ECM secretion targets
-│   ├── tcell_*.yaml         # T cell killing targets
-│   ├── tgfb_*.yaml          # TGF-beta secretion targets
-│   └── treg_*.yaml          # Treg suppression targets
+├── batch_extraction/             # Extraction provenance
+│   ├── run_extraction.sh         # Batch extraction invocation script
+│   ├── extraction_targets.csv    # 19 PDAC parameters targeted for extraction
+│   ├── model_context.txt         # Model description passed to LLM
+│   ├── model_definitions.json    # ODE species/parameter definitions
+│   ├── species_units.json        # Unit mappings for model species
+│   ├── reference_values.yaml    # Curated reference constants
+│   └── model_structure.json    # Model structure (requires MATLAB to regenerate)
 │
-├── prompts/                  # LLM prompts for extraction
-│   └── extract_calibration_target.md
+├── metadata_storage/             # Extraction outputs (YAML files)
+│   ├── submodel_targets/
+│   │   ├── curated/              # 37 curated SubmodelTargets (paper stats + inference)
+│   │   └── originals/            # 38 original LLM outputs (pre-curation)
+│   └── calibration_targets/
+│       ├── originals/            # 23 original CalibrationTargets (pre-curation)
+│       ├── curated/              # 50 curated CalibrationTargets (paired with originals)
+│       └── pdac_build/           # 59 final targets for PDAC model deployment
 │
-├── presentation/             # Conference presentations
-│   └── calibration_workflow_presentation.tex
+├── scripts/                      # Statistics and inference generation
+│   ├── generate_results.py       # Extraction pipeline metrics
+│   ├── generate_latex.py         # LaTeX table generation
+│   ├── generate_inference.py     # Julia/Turing.jl inference script generator
+│   ├── generate_curation_stats.py
+│   ├── generate_ct_stats.py
+│   ├── validate_submodel_target.py
+│   ├── joint_calibration.jl      # Generated Julia inference script
+│   └── logfire/                  # Logfire observability queries
+│       ├── pull_ct_extraction_metrics.py
+│       ├── query_logfire.py
+│       └── query_logfire_errors.py
 │
-└── archive/                  # Old manuscript materials
+└── supporting_files/             # Reference PDFs (gitignored)
+```
+
+## Setup
+
+Create a Python virtual environment and install the [MAPLE](https://github.com/popellab/maple) framework as an editable dependency:
+
+```bash
+uv venv
+uv pip install -e ../maple
+```
+
+A `.env` file is required at the repository root with the following keys:
+
+```
+OPENAI_API_KEY=...       # For LLM extraction via qsp-extract
+LOGFIRE_READ_TOKEN=...   # For querying extraction metrics from Logfire
+```
+
+## Reproducing Extractions
+
+The `batch_extraction/` directory contains all inputs needed to reproduce the LLM extraction step using the [MAPLE](https://github.com/popellab/maple) framework:
+
+```bash
+cd batch_extraction
+./run_extraction.sh
+```
+
+See `batch_extraction/run_extraction.sh` for details on how multiple independent derivations per parameter were obtained.
+
+## Reproducing Paper Statistics
+
+All quantitative results are auto-generated from the YAML metadata files:
+
+```bash
+# Collect metrics from extraction YAMLs
+python scripts/generate_results.py
+
+# Generate LaTeX tables
+python scripts/generate_latex.py
+
+# Generate curation and CalibrationTarget stats
+python scripts/generate_curation_stats.py
+python scripts/generate_ct_stats.py
+
+# Generate and run Bayesian inference
+python scripts/generate_inference.py metadata_storage/submodel_targets/curated --skip-single
+julia scripts/joint_calibration.jl
+```
+
+## Building the Paper
+
+The inference step above must complete before building, as it generates statistics included in the manuscript.
+
+```bash
+cd paper
+pdflatex main.tex
+bibtex main
+pdflatex main.tex
+pdflatex main.tex
 ```
 
 ## Supplementary Materials
@@ -40,17 +117,7 @@ qsp-llm-workflows-paper/
 
 ## Related Repository
 
-MAPLE (SubmodelTarget schema, validators, Julia translator) is implemented in [qsp-llm-workflows](https://github.com/popellab/qsp-llm-workflows).
-
-## Building the Paper
-
-```bash
-cd paper
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
-```
+MAPLE (SubmodelTarget and CalibrationTarget schemas, validators, Julia translator) is implemented in [maple](https://github.com/popellab/maple).
 
 ## License
 

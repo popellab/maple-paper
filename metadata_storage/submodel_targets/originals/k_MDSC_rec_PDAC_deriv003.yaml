@@ -1,0 +1,272 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: normal
+      rationale: The reported MDSC fraction is relatively high (about 0.67) with modest variability across tumors; measurement
+        noise and between-patient heterogeneity around this mean are reasonably approximated by a normal distribution on the
+        fraction scale for values comfortably away from 0 and 1.
+    name: human_tumor_MDSC_fraction_Porembka2012
+    observable:
+      code: null
+      rationale: null
+      state_variables: []
+      type: identity
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    mean_frac = inputs['mdsc_frac_tumor_porembka_mean']\n\
+      \    sd_frac = inputs['mdsc_frac_tumor_porembka_sd']\n    return {\n        'value': mean_frac.to(ureg('dimensionless')),\n\
+      \        'sd': sd_frac.magnitude,\n    }"
+    sample_size: 10
+    sample_size_rationale: The exact number of tumors contributing to the 66.6% +/- 3.2% estimate is not explicitly stated;
+      based on typical small clinical series and the methods description (archived PDAC resections), we assume approximately
+      10 tumor samples. This affects only the interpretation of whether the +/- value is closer to SD or SEM; we conservatively
+      treat it as SD.
+    units: dimensionless
+    uses_inputs:
+    - mdsc_frac_tumor_porembka_mean
+    - mdsc_frac_tumor_porembka_sd
+  forward_model:
+    code: "def compute(params, inputs, ureg):\n    k_rec = params['k_MDSC_rec']\n    k_death = params['k_MDSC_death']\n  \
+      \  f_ss = k_rec / k_death\n    return f_ss * ureg('dimensionless')"
+    code_julia: "function compute(params::Dict, inputs::Dict)\n    k_rec = params[\"k_MDSC_rec\"]\n    k_death = params[\"\
+      k_MDSC_death\"]\n    f_ss = k_rec / k_death\n    return f_ss\nend"
+    data_rationale: Porembka et al. report that in human pancreatic adenocarcinoma, approximately 66.6% of tumor-infiltrating
+      CD45+ leukocytes are CD11b+CD15+ myeloid cells that coexpress arginase-1 and functionally correspond to MDSC. This high
+      and relatively homogeneous fraction across tumors is consistent with a near steady-state balance between recruitment
+      and loss of MDSC in established PDAC lesions. Because only endpoint fractions are reported (no time courses), a steady-state
+      algebraic model relating recruitment and loss rates to the observed MDSC fraction is appropriate.
+    formula: f_MDSC_steady = k_MDSC_rec / k_MDSC_death (normalized to a reference leukocyte density).
+    independent_variable: null
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, k_MDSC_rec appears as a zero-order source term for V_T.MDSC, scaled
+      by tumor volume and chemokine/cytokine-dependent factors, while MDSCs are removed by first-order death and clearance
+      processes. Under conditions of a fixed effective tumor volume and averaged chemokine/cytokine drive, the steady-state
+      tumor MDSC burden is proportional to k_MDSC_rec/k_MDSC_death. We therefore construct an algebraic submodel in which
+      the predicted observable is the steady-state MDSC fraction, approximated (up to a scaling constant) by the ratio k_MDSC_rec/k_MDSC_death.
+      This preserves the mechanistic role of k_MDSC_rec as a source term balanced by first-order loss, while collapsing spatial
+      and chemokine heterogeneity into an effective steady-state relationship.
+    type: algebraic
+  identifiability_notes: This algebraic submodel relates the steady-state tumor MDSC fraction to the ratio k_MDSC_rec/k_MDSC_death.
+    With a single human PDAC measurement, only this ratio is statistically identifiable; k_MDSC_rec and k_MDSC_death cannot
+    be independently determined from this dataset alone. The chosen broad lognormal priors encode external knowledge that
+    tumor-infiltrating myeloid cells typically have rapid turnover (on the order of days), while the recruitment rate must
+    be of similar magnitude to sustain the observed high MDSC fraction. Additional calibration targets (for example, longitudinal
+    MDSC dynamics during therapy, or independent constraints on MDSC lifespan) would be required to separately constrain k_MDSC_rec
+    and k_MDSC_death.
+  parameters:
+  - name: k_MDSC_rec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: Very weakly-informative prior centered at 1 cell/(mL*day), spanning several orders of magnitude to accommodate
+        uncertainty in mapping from tumor MDSC fraction to absolute recruitment rate.
+      sigma: 2.0
+      upper: null
+    units: cell/(milliliter*day)
+  - name: k_MDSC_death
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 0.0
+      rationale: Tumor-infiltrating myeloid cells (including MDSC) typically have lifespans on the order of 1 to 3 days; a
+        lognormal prior centered at 1/day with broad uncertainty captures this while allowing slower or faster turnover.
+      sigma: 1.5
+      upper: null
+    units: 1/day
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: Multicolor flow cytometry of tumor digests gated on CD45+ leukocytes, followed by CD11b/CD15/CD33 phenotyping
+      (Porembka et al.).
+    name: tumor-infiltrating myeloid-derived suppressor cells (CD11b+CD15+CD33+ HLA-DR-)
+    phenotype: granulocytic MDSC enriched in PDAC tumor stroma
+  culture_conditions: null
+  indication: pancreatic ductal adenocarcinoma (PDAC)
+  species: human
+  system: in_vivo_clinical
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: mdsc_frac_tumor_porembka_mean
+  role: target
+  source_access: null
+  source_location: Results, section describing 66.6% +/- 3.2% CD15+CD11b+ cells among CD45+ leukocytes in tumor stroma
+  source_ref: Porembka2012
+  uncertainty:
+    ci95: null
+    sd: 0.032
+  units: dimensionless
+  value: 0.666
+  value_snippet: The stroma of human pancreatic cancers was noted to have a dense CD45+ infiltrate which was predominantly
+    composed of CD15+CD11b+ myeloid cells (66.6% +/- 3.2%); these cells also coexpressed CD33.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: null
+  name: mdsc_frac_tumor_porembka_sd
+  role: auxiliary
+  source_access: null
+  source_location: Same sentence reporting 66.6% +/- 3.2%
+  source_ref: Porembka2012
+  uncertainty: null
+  units: dimensionless
+  value: 0.032
+  value_snippet: CD15+CD11b+ myeloid cells (66.6% +/- 3.2%).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 8
+  name: mdsc_frac_bm_porembka_mean
+  role: auxiliary
+  source_access: null
+  source_location: Results, reporting 47.7 +/- 3.9% of CD45+ cells in bone marrow of PDAC patients
+  source_ref: Porembka2012
+  uncertainty:
+    ci95: null
+    sd: 0.039
+  units: dimensionless
+  value: 0.477
+  value_snippet: A similar expansion of myeloid cells was observed in the bone marrow of pancreatic cancer patients (47.7
+    +/- 3.9% of CD45+ cells, n = 8) compared to controls (22.3 +/- 1.4%, P < 0.001, n = 16).
+- extraction_method: manual
+  input_type: proxy_measurement
+  n: null
+  name: mdsc_frac_tumor_kpc_mean
+  role: auxiliary
+  source_access: null
+  source_location: Results, statement that Gr-1+CD11b+ cells comprise 20% to 30% of all leukocytes in KPC tumors
+  source_ref: Bayne2012_GMCSF
+  uncertainty:
+    ci95:
+    - 0.2
+    - 0.3
+    sd: null
+  units: dimensionless
+  value: 0.25
+  value_snippet: In tumor-bearing KPC mice, we found that Gr-1+ CD11b+ cells prominently accumulated in both the tumor and
+    the spleen compared to normal controls, comprising 20% to 30% of all leukocytes in these tissues.
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 7
+  name: gmdsc_frac_tumor_khaled_mean
+  role: auxiliary
+  source_access: null
+  source_location: Results, tumour-infiltrating MDSCs in pancreatic cancer tissue vs benign tissue (11.11% vs 0.20%)
+  source_ref: Khaled2014
+  uncertainty: null
+  units: dimensionless
+  value: 0.1111
+  value_snippet: The percentage of Lin-HLA-DR-CD33+CD11b+CD15+ MDSC subset in the tissue-infiltrating myeloid cells was markedly
+    increased in the tumour tissue when compared to the matched benign tissue (11.11% versus 0.20%, P = 0.037).
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 7
+  name: mmdsc_frac_tumor_khaled_mean
+  role: auxiliary
+  source_access: null
+  source_location: Same section, reporting 3.85% tumour-infiltrating monocytic Lin-HLA-DR-CD14+ cells
+  source_ref: Khaled2014
+  uncertainty: null
+  units: dimensionless
+  value: 0.0385
+  value_snippet: The frequency of infiltrating monocytic Lin-HLA-DR-CD14+ subset in tumour tissues was 3.85% versus 0.25%
+    in benign pancreatic tissue.
+key_assumptions:
+- Established human PDAC lesions sampled at surgical resection are approximately at steady state with respect to tumor-infiltrating
+  MDSC numbers (net dMDSC/dt close to 0 on the timescale of days).
+- CD11b+CD15+CD33+HLA-DR- cells quantified by Porembka et al. constitute the dominant tumor MDSC compartment represented by
+  V_T.MDSC in the QSP model; contributions from monocytic MDSC are subdominant for this parameterization.
+- Chemokine and cytokine factors driving MDSC recruitment (for example, CCL2, GM-CSF, IL-6) can be lumped into an effective,
+  approximately constant drive in untreated PDAC, so that recruitment behaves as a zero-order source term balanced by first-order
+  loss.
+- The reported 66.6% +/- 3.2% value reflects inter-patient variability and/or measurement error around the mean tumor MDSC
+  fraction, and the +/- value is treated conservatively as an SD rather than SEM to avoid underestimating variability.
+- Scaling from absolute MDSC cell numbers to the reported fraction among CD45+ leukocytes can be normalized away in this submodel,
+  so that the steady-state fraction is effectively proportional to k_MDSC_rec/k_MDSC_death.
+key_study_limitations:
+- Porembka et al. provide only cross-sectional data at a single time point; there are no longitudinal measurements of tumor
+  MDSC dynamics to independently constrain recruitment versus loss rates.
+- The study defines human MDSC primarily as CD11b+CD15+ cells; monocytic MDSC subsets (CD14+HLA-DRlow/-) are not fully quantified
+  within tumors, so the calibrated parameter primarily reflects granulocytic/PMN-MDSC recruitment.
+- Absolute tumor-infiltrating leukocyte densities (cells per mm2 or per gram of tissue) are not reported, preventing direct
+  calibration of k_MDSC_rec in physical units without additional assumptions about total leukocyte density.
+- Patients in this series represent resectable PDAC and may under-represent very advanced, unresectable disease where MDSC
+  fractions and recruitment dynamics could differ.
+- KPC mouse and Pan02 models discussed in the paper qualitatively recapitulate myeloid-dominated infiltrates but differ in
+  stromal architecture and immune contexture from human PDAC; these are therefore used qualitatively rather than quantitatively
+  in this submodel.
+primary_data_source:
+  authors:
+  - Porembka MR
+  - Mitchem JB
+  - Belt BA
+  - Hsieh C-S
+  - Lee H-M
+  - Herndon J
+  - Gillanders WE
+  - Linehan DC
+  - Goedegebuure P
+  doi: 10.1007/s00262-011-1178-0
+  source_tag: Porembka2012
+  title: Pancreatic adenocarcinoma induces bone marrow mobilization of myeloid-derived suppressor cells which promote primary
+    tumor growth
+  year: 2012
+secondary_data_sources:
+- authors:
+  - Bayne LJ
+  - Beatty GL
+  - Jhala N
+  - Clark CE
+  - Rhode PR
+  - Sclar GM
+  - Rathmell JC
+  - Vonderheide RH
+  contribution: Provides quantitative evidence in the KPC genetically engineered mouse model that Gr-1+CD11b+ myeloid cells
+    comprise approximately 20% to 30% of tumor-infiltrating leukocytes, supporting the concept that PDAC tumors (human and
+    murine) are myeloid-dominated and that sustained recruitment is required to maintain this high fraction.
+  doi: 10.1016/j.ccr.2012.04.025
+  source_quality: primary_animal_in_vivo
+  source_tag: Bayne2012_GMCSF
+  title: Tumor-derived granulocyte-macrophage colony-stimulating factor regulates myeloid inflammation and T cell immunity
+    in pancreatic cancer
+  url: null
+  year: 2012
+- authors:
+  - Khaled YS
+  - Ammori BJ
+  - Elkord E
+  contribution: Provides independent human PDAC data showing that tumour-infiltrating granulocytic MDSCs (Lin-HLA-DR-CD33+CD11b+CD15+)
+    are significantly enriched (11.11%) relative to benign pancreatic tissue (0.20%), and that monocytic MDSC (Lin-HLA-DR-CD14+)
+    are present at lower frequencies (3.85%), thereby supporting a predominantly granulocytic/PMN-MDSC phenotype in PDAC.
+  doi: 10.1155/2014/879897
+  source_quality: primary_human_clinical
+  source_tag: Khaled2014
+  title: Increased Levels of Granulocytic Myeloid-Derived Suppressor Cells in Peripheral Blood and Tumour Tissue of Pancreatic
+    Cancer Patients
+  url: null
+  year: 2014
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: Porembka et al. directly analyze tumor-infiltrating CD11b+CD15+ myeloid cells (MDSC) in
+    resected human pancreatic ductal adenocarcinoma specimens and demonstrate that these cells constitute approximately two-thirds
+    of CD45+ leukocytes in the tumor stroma. This matches the PDAC indication, tumor compartment, and functional myeloid suppressor
+    population represented by V_T.MDSC in the QSPIO-PDAC model.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: The data are derived from treatment-naive human PDAC surgical specimens with intact desmoplastic
+    stroma, abundant myeloid infiltration, and sparse effector T cells, closely matching the tumor microenvironment represented
+    in the QSPIO-PDAC model.
+  validation_warnings: null
+study_interpretation: Porembka et al. quantify CD11b+CD15+ arginase-1+ myeloid cells in human PDAC tumors and show that these
+  cells dominate the CD45+ leukocyte infiltrate (about 66.6% of CD45+ cells). In parallel, they demonstrate expansion of similar
+  CD11b+CD15+ cells in bone marrow and peripheral blood, and show that murine Pan02 pancreatic tumors recapitulate this myeloid-dominated
+  infiltrate. In the context of the QSPIO-PDAC model, these data indicate that, in established PDAC, tumor-resident MDSC are
+  maintained at a high steady-state fraction, implying that MDSC recruitment into the tumor must approximately balance their
+  relatively rapid loss. By abstracting tumor volume and chemokine dependence into an effective steady-state relationship,
+  the observed human PDAC MDSC fraction constrains the ratio of the recruitment rate k_MDSC_rec to the effective loss rate
+  k_MDSC_death.
+target_id: k_MDSC_rec_PDAC_Porembka2012

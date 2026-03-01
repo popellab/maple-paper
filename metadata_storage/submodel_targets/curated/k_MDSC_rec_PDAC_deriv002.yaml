@@ -1,0 +1,309 @@
+study_interpretation: |
+  Oo2022 demonstrates that patient-derived stromal fibroblasts from OSCC (PDS1/PDS2) secrete high levels of CCL2 and recruit CCR2+ Arg1+CD11b+GR1+ MDSCs from the bone marrow both in vitro and in vivo. In the Transwell migration assay, stromal coculture with HSC-2 cells increased migrated BM cells from 427 to 610 cells per field at 9 hours in the high-CCL2 PDS1 condition, and MDSCs were shown by multicolor IHC to be the dominant CCR2+Arg1+ subset in the tumor stroma. Under the assumption that death and egress are negligible over 9 hours and that CCL2 is saturating with baseline IL-6, the accumulated migrated cells per unit stromal volume and time provide an estimate of the maximal CCL2-driven MDSC recruitment flux. Mapping this flux onto the QSP model term k_MDSC_rec * V_T * (CCL2/(CCL2 + CCL2_50)) * (1 + H_IL6_MDSC) with the Hill term set to 1 and H_IL6_MDSC ≈ 0 yields a direct estimate of k_MDSC_rec.
+
+key_assumptions:
+- |
+  Migrated BM cells counted in the Transwell assay at 9 hours are dominated by CCR2+ MDSCs when PDS1 high-CCL2 stroma is present, based on in vivo data showing preferential recruitment of Arg1+CD11b+GR1+GFP+ MDSCs in the same model.
+- |
+  Cell death and reverse migration from the lower chamber are negligible over the 9-hour assay, so the accumulated migrants equal the integral of the recruitment flux.
+- |
+  PDS1 stroma produces sufficiently high CCL2 that CCL2/(CCL2 + CCL2_50) ≈ 1, and IL-6 levels remain at a baseline where H_IL6_MDSC ≈ 0, so the QSP recruitment term reduces to a constant k_MDSC_rec * V_eff.
+- |
+  An effective stromal volume corresponding to one microscope field in the Transwell lower chamber can be approximated as 0.01 mL with about one order-of-magnitude geometric uncertainty; this simplification links the 2D imaging readout to the 3D volumetric recruitment term used in the QSP model.
+- |
+  Biological and counting variability in migrated cell numbers is approximated by a lognormal distribution with 30% coefficient of variation in the absence of reported SD values.
+- |
+  OSCC stroma-driven MDSC recruitment is mechanistically similar to PDAC stroma-driven recruitment through the CCL2/CCR2 axis, so the estimated maximal recruitment rate is transferable up to a large uncertainty factor.
+
+key_study_limitations:
+- |
+  The experiment uses human OSCC cells and patient-derived oral stroma rather than PDAC tissue, so tumor-intrinsic and stromal properties (e.g., stiffness, vascularization, hypoxia) differ from the PDAC microenvironment.
+- |
+  Migration was measured in a 2D Transwell system with murine BM cells, which lacks tumor vasculature, interstitial flow, and full 3D extracellular matrix structure present in vivo.
+- |
+  The readout is total migrated BM cells per field and not directly gated MDSCs; attribution to MDSCs relies on separate in vivo multicolor IHC demonstrating that PDS1/PDS2 preferentially recruit Arg1+CD11b+GR1+GFP+ MDSCs.
+- |
+  Only a single short time point (9 h) was reported for the Transwell assay, preventing direct estimation of any saturation or depletion effects and requiring the assumption of constant recruitment rate over this interval.
+- |
+  The effective imaging volume per field is not experimentally reported and is approximated from plate geometry, introducing an additional order-of-magnitude uncertainty in the absolute value of k_MDSC_rec.
+
+experimental_context:
+  species: mouse
+  system: in_vitro_primary_cells
+  cell_lines:
+  - name: HSC-2
+    species: human
+    tissue_origin: oral cavity
+    cell_type: oral squamous cell carcinoma cell line
+  - name: HDF
+    species: human
+    tissue_origin: skin
+    cell_type: normal dermal fibroblasts
+  cell_types:
+  - name: bone marrow-derived cells
+    phenotype: GFP+ primary murine BM cells including CCR2+ MDSCs
+    isolation_method: |
+      flushed femur and tibia from 8-week-old GFP transgenic nude mice, cultured in alpha-MEM with 10% FBS
+  culture_conditions:
+    substrate: Transwell polycarbonate membrane, 24-well plates
+    serum_concentration: 10.0
+    serum_concentration_units: percent
+    oxygen_level: normoxic
+    culture_type: 2d_monolayer
+  indication: oral squamous cell carcinoma
+
+primary_data_source:
+  doi: 10.1172/jci.insight.148960
+  title: |
+    Resident stroma-secreted chemokine CCL2 governs myeloid-derived suppressor cells in the tumor microenvironment
+  authors:
+  - Oo H
+  - Kawai H
+  - Shan Q
+  - Ohara T
+  - Yoshida S
+  - Omori H
+  - Sukegawa S
+  - Nakano K
+  - Okamoto K
+  - Sasaki A
+  - Nagatsuka H
+  year: 2022
+  source_tag: Oo2022
+
+secondary_data_sources:
+- doi: 10.1002/iid3.523
+  url:
+  title: |
+    CCL2 produced by pancreatic ductal adenocarcinoma is essential for the accumulation and activation of monocytic myeloid-derived suppressor cells
+  authors:
+  - Gu H
+  - Deng W
+  - Zheng Z
+  - Wu K
+  - Sun F
+  year: 2021
+  source_tag: Gu2021_PDAC_CCL2_MDSC
+  contribution: |
+    Provides PDAC-specific evidence that tumor-derived CCL2 recruits monocytic MDSCs in vitro and in vivo, supporting the mechanistic assumption that CCL2-driven MDSC recruitment calibrated from an OSCC model is applicable to PDAC.
+  source_quality: primary_human_clinical
+- doi:
+  url: |
+    https://www.ovid.com/journals/canrep/pdf/10.1002/cnr2.70044~the-recruitment-and-immune-suppression-mechanisms-of
+  title: |
+    The recruitment and immune suppression mechanisms of myeloid-derived suppressor cells in tumor microenvironment
+  authors:
+  year: 2024
+  source_tag: CancerReports2024_MDSC_Review
+  contribution: |
+    Review article summarizing chemokines (including CCL2) that recruit MDSCs across tumor types and citing PDAC work showing CCL2-enhanced chemotaxis of monocytic MDSCs, used to justify treating CCL2/CCR2-mediated recruitment as a conserved mechanism.
+  source_quality: review_article
+
+target_id: k_MDSC_rec_oscc_ccl2_oo2022
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c069f42cf510f960e5a4b2564c108
+
+extraction_model: gpt-5.1
+
+extraction_reasoning_effort: medium
+
+inputs:
+- name: bm_cells_migrated_PDS1_9h_per_field
+  value: 610.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Oo2022
+  source_location: Figure 1B, Transwell migration assay, HSC-2 + PDS1 condition, 9 h
+  extraction_method: manual
+  value_snippet: |
+    Stromal cells (PDS1, PDS2, and HDF) cocultured with HSC-2 cancer cells significantly promoted higher BM cell migration (610, 534, and 518 cells per 1 field, respectively), compared with the HSC-2–alone culture (427 cells per 1 field) (Figure 1, A and B).
+- name: migration_time_9h
+  value: 9.0
+  units: hour
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Methods, Transwell migration assay
+  extraction_method: manual
+  value_snippet: |
+    Following incubation for 9 hours at 37°C, Giemsa staining was performed ... Photomicrographs of migrating cells were taken ... Independent experiments were repeated 3 times, and data were quantified with ImageJ.
+- name: lower_chamber_volume
+  value: 0.75
+  units: milliliter
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Methods, Transwell migration assay
+  extraction_method: manual
+  value_snippet: |
+    HSC-2 (6 × 10^4) with or without stromal cells (24 × 10^4) that were suspended in α-MEM (750 μL) containing 10% FBS were seeded in 24-well plates for 24 hours.
+- name: imaging_volume_per_field
+  value: 0.01
+  units: milliliter
+  uncertainty:
+    ci95:
+    - 0.001
+    - 0.1
+    sd:
+  n:
+  input_type: assumed_value
+  role: fixed_parameter
+  source_ref: Oo2022
+  source_location: Derived from 24-well Transwell geometry; see text for rationale
+  extraction_method: other
+  value_snippet:
+- name: bm_cells_initial_upper_chamber
+  value: 500000.0
+  units: cell
+  uncertainty:
+  n:
+  input_type: experimental_condition
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Methods, Transwell migration assay
+  extraction_method: manual
+  value_snippet: |
+    BM cells (0.5 × 10^6) suspended in serum-free α-MEM (300 μL) were placed into the upper inserts with a pore size of 8 μm.
+- name: assumed_cv_migrated
+  value: 0.30
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed 30% coefficient of variation on migrated cell counts (not reported explicitly in paper).
+- name: imaging_volume_uncertainty_fold
+  value: 10.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: assumed_value
+  role: auxiliary
+  source_ref: Oo2022
+  source_location: Modeling assumption
+  extraction_method: other
+  value_snippet: |
+    Assumed one order-of-magnitude geometric uncertainty in the effective imaging volume per field.
+
+calibration:
+  parameters:
+  - name: k_MDSC_rec
+    units: cell/(milliliter*day)
+    prior:
+      distribution: lognormal
+      mu: 12.0
+      sigma: 2.0
+      lower:
+      upper:
+      rationale: |
+        Centered on order-of-magnitude estimate from Oo2022 Transwell migration (approximately 1.6×10^5 cell/(mL*day) for high-CCL2 stroma), with wide sigma=2 to allow >2 orders-of-magnitude uncertainty due to cross-species and cross-indication translation and geometric assumptions about imaging volume.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: |
+      k_MDSC_rec = bm_cells_migrated_PDS1_9h_per_field / (imaging_volume_per_field * migration_time_days)
+    code: |
+      def compute(params, inputs):
+          """Forward model: given k_MDSC_rec, predict migrated cells per field."""
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+          k_rec = params['k_MDSC_rec']
+          V_eff = _val(inputs['imaging_volume_per_field'])
+          t_hours = _val(inputs['migration_time_9h'])
+          t_days = t_hours / 24.0
+          migrated = k_rec * V_eff * t_days
+          return migrated
+    code_julia: |
+      function compute(params, inputs)
+          k_rec = params["k_MDSC_rec"]
+          V_eff = inputs["imaging_volume_per_field"]
+          t_hours = inputs["migration_time_9h"]
+          t_days = t_hours / 24.0
+          migrated = k_rec * V_eff * t_days
+          return migrated  # cells
+      end
+    data_rationale: |
+      Oo2022 quantified the number of bone marrow-derived cells migrating from an upper Transwell chamber into a lower chamber containing oral squamous cell carcinoma (HSC-2) cells plus high-CCL2 patient-derived stroma (PDS1). After 9 hours, an average of 610 cells per microscope field were present on the lower side of the membrane. Under these short-time, in vitro conditions, cell death and egress are negligible, so the accumulated migrated cells approximate the time-integrated recruitment flux driven primarily by stromal CCL2.
+    submodel_rationale: |
+      In the full QSP PDAC model, tumor MDSCs obey d(MDSC_T)/dt = k_MDSC_rec * V_T * (CCL2/(CCL2 + CCL2_50)) * (1 + H_IL6_MDSC) - death and clearance terms. In the Oo2022 Transwell assay, IL-6 is not experimentally manipulated and can be treated as baseline (H_IL6_MDSC ≈ 0), and PDS1 stroma produces high CCL2 such that CCL2 ≫ CCL2_50, so the Hill term approaches 1. Over 9 hours, MDSC death and clearance from the lower compartment are minimal. Under these assumptions, the governing equation reduces to dM/dt ≈ k_MDSC_rec * V_eff, giving M(9 h) ≈ k_MDSC_rec * V_eff * t. Using the observed migrated cell count per field as M(9 h) and an effective stromal volume per imaged field V_eff (imaging_volume_per_field), we can directly solve for k_MDSC_rec.
+
+  error_model:
+  - name: k_MDSC_rec_from_PDS1_Transwell
+    units: cell
+    uses_inputs:
+    - bm_cells_migrated_PDS1_9h_per_field
+    - migration_time_9h
+    - imaging_volume_per_field
+    - assumed_cv_migrated
+    - imaging_volume_uncertainty_fold
+    sample_size: 3
+    sample_size_rationale: |
+      Oo2022 reports Transwell migration data as mean ± SD over n = 3 independent experiments, with 5 fields per group.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation from Transwell migration data.
+
+          The forward model predicts migrated cells per field, so we return
+          the observed migrated cells with combined log-scale SD.
+          """
+          import numpy as np
+          def _val(x):
+              return getattr(x, 'magnitude', x)
+
+          migrated_mean = _val(inputs['bm_cells_migrated_PDS1_9h_per_field'])
+          cv_migrated = _val(inputs['assumed_cv_migrated'])
+          fold_unc = _val(inputs['imaging_volume_uncertainty_fold'])
+
+          observed_value = migrated_mean
+
+          # Combine CV on migrated cells with geometric uncertainty on volume
+          sigma_m = np.sqrt(np.log(1.0 + cv_migrated**2))
+          sigma_V = np.log(fold_unc) / 1.96  # so that ~95% CI spans fold_unc
+          sigma_combined = np.sqrt(sigma_m**2 + sigma_V**2)
+
+          return {
+              'value': observed_value,
+              'sd': sigma_combined,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD computed from assumed values
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        k_MDSC_rec is strictly positive and expected to vary over orders of magnitude. The derived distribution from the Transwell assay is treated as an informative lognormal likelihood for this parameter, incorporating experimental variability and geometric uncertainty in the effective imaging volume.
+
+  identifiability_notes: |
+    This submodel constrains k_MDSC_rec under conditions of high stromal CCL2 and baseline IL-6, effectively providing an estimate of the maximal CCL2-driven MDSC recruitment rate. The absolute value of k_MDSC_rec depends on the assumed effective imaging volume per microscope field, which is uncertain by roughly an order of magnitude; this uncertainty is explicitly propagated in the distribution_code and reflected by a wide prior (sigma = 2 on the log scale). In the context of the full QSP PDAC model, k_MDSC_rec will be correlated with the CCL2_50 parameter and any IL-6-dependent modulation (H_IL6_MDSC). Additional in vivo PDAC data on MDSC accumulation kinetics and CCL2 levels would be needed to separately identify k_MDSC_rec, CCL2_50, and IL-6 effects.
+
+source_relevance:
+  indication_match: proxy
+  indication_match_justification: |
+    The primary data are from an oral squamous cell carcinoma (OSCC) stroma model in which patient-derived stromal fibroblasts (PDS1/PDS2) and an OSCC cell line (HSC-2) recruit murine bone marrow-derived CCR2+ MDSCs via CCL2. PDAC shares key mechanistic features with OSCC, including abundant cancer-associated fibroblasts, CCL2 secretion, and CCR2-dependent myeloid recruitment, but the tissue of origin, anatomical site, and degree of desmoplasia differ. Therefore, these data are used as a mechanistic proxy to inform the maximal CCL2-driven MDSC recruitment rate in PDAC, with substantial additional uncertainty for cross-indication and anatomical differences.
+  species_source: mouse
+  species_target: human
+  source_quality: primary_animal_in_vitro
+  perturbation_type: pathological_state
+  perturbation_relevance:
+  tme_compatibility: moderate
+  tme_compatibility_notes: |
+    Both OSCC and PDAC tumors display cancer-associated fibroblasts and chemokine-rich stroma that recruit myeloid cells, and CCL2/CCR2-dependent MDSC recruitment has been reported in multiple solid tumors. However, PDAC typically exhibits a denser, more hypoxic desmoplastic stroma and stronger T cell exclusion than OSCC. These differences likely alter absolute myeloid recruitment rates and spatial distribution, so the OSCC-derived k_MDSC_rec estimate is treated as an approximate upper bound for PDAC with at least one order-of-magnitude uncertainty.
+  estimated_translation_uncertainty_fold: 10.0
+  validation_warnings:

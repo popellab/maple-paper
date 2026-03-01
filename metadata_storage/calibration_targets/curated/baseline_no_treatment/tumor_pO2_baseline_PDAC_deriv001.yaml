@@ -1,0 +1,278 @@
+study_interpretation: |
+  Koong et al. (2000) measured intratumoral oxygen tension using computerized Eppendorf
+  polarographic needle electrode in 7 patients with locally advanced, unresectable pancreatic
+  adenocarcinoma prior to intraoperative radiotherapy. Per-patient median pO2 values ranged
+  from 0 to 5.3 mmHg, with an overall median of approximately 2.7 mmHg. The normal tissue
+  reference (pO2_normal = 50 mmHg) comes from Vaupel et al. 2007.
+
+  For QSP calibration, we model the distribution of per-patient median pO2 values as
+  log-normal (strictly positive, right-skewed), parameterized to match the reported overall
+  median of 2.7 mmHg with 95% coverage spanning the observed per-patient range. Because
+  pO2 cannot be negative and one patient had median pO2 = 0 mmHg (electrode detection limit),
+  we set the lower CI bound to 0.3 mmHg rather than 0.
+
+key_assumptions:
+- |
+  Per-patient median pO2 values from Eppendorf electrode measurements are taken as
+  representative of the bulk tumor oxygen tension that the QSP model's algebraic pO2
+  variable captures. The model assumes a well-mixed tumor compartment, whereas real
+  tumors have spatial gradients; the Eppendorf technique samples multiple tracks per
+  tumor, and the per-patient median integrates over this heterogeneity.
+- |
+  The distribution of per-patient median pO2 is modeled as log-normal, reflecting that
+  pO2 is strictly positive and right-skewed across patients. The overall median of
+  2.7 mmHg and CI95 of [0.3, 5.3] are chosen to span the observed per-patient range
+  while avoiding the non-physical value of 0.
+- |
+  The patient with median pO2 = 0 mmHg likely reflects the electrode detection limit
+  rather than true zero oxygen; we use 0.3 mmHg as the lower CI bound to avoid log(0)
+  in the log-normal parameterization.
+- |
+  Although the Koong et al. cohort consists of locally advanced, unresectable tumors
+  (potentially more hypoxic than resectable disease), PDAC is uniformly severely
+  hypoxic across stages. The pO2 values are assumed representative of the hypoxic
+  steady state the model should achieve at diagnosis.
+
+key_study_limitations:
+- |
+  Very small sample size (n = 7 patients) limits the precision of the pO2 distribution
+  estimate and may not capture the full range of inter-patient variability.
+- |
+  Patients had locally advanced, unresectable PDAC and were measured intraoperatively
+  before radiotherapy; this cohort may be more hypoxic than resectable PDAC patients
+  used for other calibration targets in this model.
+- |
+  Eppendorf polarographic electrodes consume oxygen during measurement and can
+  underestimate true tissue pO2 in very low-oxygen environments; the reported values
+  may be slight underestimates.
+- |
+  The study was published in 2000 with older electrode technology; modern fiber-optic
+  probes (OxyLite) or pimonidazole staining might yield somewhat different absolute
+  values, though the qualitative finding of severe hypoxia in PDAC is robust.
+
+observable:
+  code: |
+    def compute_observable(time, species_dict, constants, ureg):
+        """Tumor pO2 at diagnosis.
+
+        pO2 is a repeatedAssignment algebraic parameter in the hypoxia module,
+        representing bulk tumor oxygen partial pressure in mmHg. It equilibrates
+        quasi-instantaneously relative to the model's daily timestep.
+        """
+        pO2 = species_dict['pO2']
+        return pO2.to('millimeter_mercury')
+  units: millimeter_mercury
+  species:
+  - pO2
+  constants: []
+  inputs: []
+  support: positive_unbounded
+  mapping_rationale: |
+    The model's pO2 variable is a repeatedAssignment algebraic parameter computed from
+    oxygen supply (proportional to vasculature K), demand (metabolically active cells),
+    and vascular quality (VEGF-driven aberration). It represents bulk tumor oxygen
+    tension in mmHg — directly comparable to Eppendorf electrode polarography
+    measurements which report tissue pO2 in mmHg.
+  experimental_denominator:
+  model_denominator_species:
+  unmodeled_denominator_components:
+  aggregation:
+
+experimental_context:
+  species: human
+  system: clinical.resection
+  mouse_subspecifier:
+  indication: PDAC
+  treatment:
+    history:
+    - treatment_naive
+    status: off_treatment
+    specifier: |
+      Intraoperative measurement prior to intraoperative radiotherapy; no prior
+      systemic therapy or external beam radiation.
+  stage:
+    extent: locally_advanced
+    burden: high
+  cell_lines:
+  culture_conditions:
+  tissue_source: |
+    Primary pancreatic adenocarcinoma tumors measured in situ during exploratory
+    laparotomy, prior to intraoperative electron beam radiotherapy.
+  assay_type: |
+    Computerized Eppendorf polarographic needle electrode (pO2 histography).
+    Multiple electrode tracks per tumor; per-patient median pO2 reported.
+
+scenario:
+  description: |
+    Locally advanced, unresectable pancreatic adenocarcinoma at time of exploratory
+    laparotomy. Intratumoral pO2 measured in situ using Eppendorf electrode prior to
+    any therapeutic intervention. Represents the hypoxic steady state of established
+    PDAC tumors.
+  interventions:
+  - intervention_description: |
+      No therapeutic intervention prior to pO2 measurement. Patients underwent
+      exploratory laparotomy for planned intraoperative radiotherapy; pO2 measurements
+      were taken before radiotherapy delivery.
+
+empirical_data:
+  median:
+  - 2.6822
+  ci95:
+  - - 0.6387
+    - 11.4284
+  units: millimeter_mercury
+  sample_size: 7
+  sample_size_rationale: |
+    Koong et al. report per-patient median pO2 values for 7 patients with locally
+    advanced pancreatic adenocarcinoma measured by Eppendorf electrode polarography.
+  index_values:
+  index_unit:
+  index_type:
+  inputs:
+  - name: overall_median_pO2
+    value: 2.7
+    units: millimeter_mercury
+    description: |
+      Overall median of per-patient median pO2 values across 7 PDAC patients,
+      measured by Eppendorf polarographic electrode.
+    source_ref: Koong2000_PDAC_Hypoxia
+    value_location: |
+      Results section and Table 1 (per-patient median pO2 values).
+    value_snippet: |
+      The median pO2 of the 7 tumors ranged from 0 to 5.3 mmHg (median, 2.7 mmHg),
+      confirming that human pancreatic cancers are profoundly hypoxic.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  - name: min_patient_median_pO2
+    value: 0.0
+    units: millimeter_mercury
+    description: |
+      Minimum per-patient median pO2 across the 7 patients (electrode detection limit).
+    source_ref: Koong2000_PDAC_Hypoxia
+    value_location: Results section and Table 1.
+    value_snippet: |
+      The median pO2 of the 7 tumors ranged from 0 to 5.3 mmHg.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  - name: max_patient_median_pO2
+    value: 5.3
+    units: millimeter_mercury
+    description: |
+      Maximum per-patient median pO2 across the 7 patients.
+    source_ref: Koong2000_PDAC_Hypoxia
+    value_location: Results section and Table 1.
+    value_snippet: |
+      The median pO2 of the 7 tumors ranged from 0 to 5.3 mmHg.
+    input_type: direct_parameter
+    conversion_formula:
+    source_type: text
+    figure_id:
+    extraction_method:
+    extraction_notes:
+    dispersion_type:
+    dispersion_type_rationale:
+  assumptions:
+  - name: ci95_lower_floor
+    value: 0.3
+    units: millimeter_mercury
+    description: |
+      Floor for the lower CI bound. The reported minimum per-patient median pO2 is
+      0 mmHg, but log-normal parameterization requires strictly positive values.
+      0.3 mmHg represents the approximate Eppendorf electrode detection limit.
+    rationale: |
+      Log-normal parameterization requires strictly positive values. Setting the lower
+      bound to 0.3 mmHg avoids log(0) while still capturing near-anoxic conditions.
+  - name: n_mc_samples
+    value: 100000
+    units: dimensionless
+    description: |
+      Number of Monte Carlo samples for deriving median and 95% CI from the
+      log-normal distribution fit to the reported range.
+    rationale: |
+      100,000 samples provide stable percentile estimates with Monte Carlo error
+      well below 1%.
+  distribution_code: |
+    def derive_distribution(inputs, ureg):
+        import numpy as np
+
+        # Reported values from Koong 2000 (verbatim)
+        median_reported = inputs['overall_median_pO2'].magnitude  # 2.7 mmHg
+        range_max = inputs['max_patient_median_pO2'].magnitude    # 5.3 mmHg
+        units = inputs['overall_median_pO2'].units
+
+        # Modeling assumption: floor for lower bound
+        range_min = inputs['ci95_lower_floor'].magnitude           # 0.3 mmHg
+
+        n_samples = int(inputs['n_mc_samples'].magnitude)
+
+        # Fit log-normal: median of log-normal = exp(mu), so mu = log(median)
+        mu = np.log(median_reported)
+
+        # Estimate sigma from the range: treat range_min and range_max as
+        # approximate 2.5th and 97.5th percentiles of per-patient variability.
+        # For log-normal: log(x_97.5) = mu + 1.96*sigma
+        sigma = (np.log(range_max) - np.log(range_min)) / (2 * 1.96)
+
+        rng = np.random.default_rng(42)
+        samples = rng.lognormal(mu, sigma, n_samples) * units
+
+        median_obs = np.median(samples)
+        ci95_lower = np.percentile(samples, 2.5)
+        ci95_upper = np.percentile(samples, 97.5)
+
+        return {
+            'median_obs': median_obs,
+            'ci95_lower': ci95_lower,
+            'ci95_upper': ci95_upper,
+        }
+
+primary_data_source:
+  source_tag: Koong2000_PDAC_Hypoxia
+  title: |
+    Pancreatic tumors show high levels of hypoxia
+  first_author: Koong
+  year: 2000
+  doi: 10.1016/s0360-3016(00)00803-8
+
+secondary_data_sources: []
+
+calibration_target_id: tumor_pO2_baseline
+
+cancer_type: PDAC
+
+tags:
+- manually-curated
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    Study enrolled patients with histologically confirmed pancreatic adenocarcinoma,
+    directly matching the PDAC indication.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  perturbation_relevance: |
+    Intratumoral pO2 measured in situ reflects the hypoxic microenvironment of
+    established PDAC tumors, directly relevant to the model's hypoxia-HIF axis.
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    Eppendorf electrode measures actual tissue oxygen tension in the tumor
+    microenvironment, matching the well-mixed compartment pO2 in the QSP model.
+  estimated_translation_uncertainty_fold: 1.5
+  validation_warnings:
+  - |
+    Small sample size (n=7) and locally advanced cohort; resectable PDAC tumors
+    may be slightly less hypoxic.

@@ -1,0 +1,313 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Patient-to-patient TAM densities are positive and span more than an order of magnitude (range in CD68+ counts
+        per HPF). A lognormal likelihood on the macrophage density naturally captures this multiplicative heterogeneity; the
+        SD parameter is implemented as a coefficient of variation estimated from the reported range.
+    name: tam_density_peritumor_cd68
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size, ureg):\n    import numpy as np\n    # Inputs arrive as\
+      \ Pint quantities with declared units\n    med = inputs['cd68_peri_median_per_hpf']      # cell\n    low = inputs['cd68_peri_range_low_per_hpf']\
+      \   # cell\n    high = inputs['cd68_peri_range_high_per_hpf'] # cell\n    thickness = inputs['section_thickness_um']\
+      \    # micrometer\n    hpf_area = inputs['hpf_area_mm2']             # millimeter**2\n\n    # Convert thickness to millimeters\
+      \ for volume calculation\n    thickness_mm = thickness.to('millimeter')\n\n    # Volume of one high-power field section\
+      \ (mm^3)\n    vol = (hpf_area * thickness_mm).to('millimeter**3')\n\n    # Densities in cell/milliliter using Pint unit\
+      \ conversion (1 mm^3 = 1 microliter)\n    rho_med_q = (med / vol).to('cell/milliliter')\n    rho_low_q = (low / vol).to('cell/milliliter')\n\
+      \    rho_high_q = (high / vol).to('cell/milliliter')\n\n    rho_med = rho_med_q.magnitude\n    rho_low = rho_low_q.magnitude\n\
+      \    rho_high = rho_high_q.magnitude\n\n    # Approximate SD from reported range assuming ~95% of observations between\
+      \ low and high\n    sd_rho = (rho_high - rho_low) / (2.0 * 1.96)\n    # Coefficient of variation used as lognormal SD\
+      \ parameter\n    cv = sd_rho / rho_med\n\n    value = rho_med_q  # Pint Quantity with units cell/milliliter\n    return\
+      \ {\n        'value': value,\n        'sd': cv,\n    }\n"
+    sample_size: 70
+    sample_size_rationale: Seventy PDAC patients were included in the immunohistochemical analysis for CD68/CD163; for each
+      case, counts from three random peripheral high-power fields were averaged.
+    units: cell/milliliter
+    uses_inputs:
+    - cd68_peri_median_per_hpf
+    - cd68_peri_range_low_per_hpf
+    - cd68_peri_range_high_per_hpf
+    - section_thickness_um
+    - hpf_area_mm2
+  forward_model:
+    code: "def compute(params, inputs, ureg):\n    import numpy as np\n    # Parameter to infer; handle both plain floats\
+      \ and Pint quantities\n    k_raw = params['k_Mac_rec']\n    k_rec = getattr(k_raw, 'magnitude', k_raw)\n    # Fixed\
+      \ inputs\n    tau_raw = inputs['macrophage_res_time_days']\n    tau = getattr(tau_raw, 'magnitude', tau_raw)\n    H\
+      \ = inputs['H_CCL2_PD']  # dimensionless Hill term for CCL2 in baseline PDAC\n\n    # Effective first-order macrophage\
+      \ loss rate (1/day)\n    k_loss = np.log(2.0) / tau\n\n    # Steady-state total TAM density (cell/milliliter), numeric\
+      \ value\n    rho_val = (k_rec / k_loss) * H\n    return rho_val * ureg('cell/milliliter')\n"
+    code_julia: "function compute(params, inputs)\n    # Numeric implementation; units are handled externally in the inference\
+      \ engine\n    k_rec = params[\"k_Mac_rec\"]\n    tau = inputs[\"macrophage_res_time_days\"]\n    H = inputs[\"H_CCL2_PD\"\
+      ]  # dimensionless\n    # Effective loss rate 1/day\n    k_loss = log(2.0) / tau\n    rho = (k_rec / k_loss) * H\n \
+      \   return rho\nend"
+    data_rationale: Chen et al. quantified CD68+ tumor-associated macrophages per high-power field in peritumoral regions
+      of resected human PDAC, providing a cross-sectional estimate of steady-state TAM density rather than time-course data.
+      Under the assumption that macrophage numbers are in quasi-steady state over weeks in these untreated tumors, an algebraic
+      steady-state relationship between recruitment rate, loss rate, and observed density is appropriate.
+    formula: rho_TAM = (k_Mac_rec / k_Mac_loss) * H_CCL2_PD, with k_Mac_loss = ln(2) / macrophage_res_time_days and H_CCL2_PD
+      ≈ 1 for CCL2-saturated PDAC tumors.
+    independent_variable: null
+    state_variables: null
+    submodel_rationale: In the full QSPIO-PDAC model, k_Mac_rec appears in the recruitment reaction null -> V_T.Mac_M1 with
+      rate k_Mac_rec * V_T * (CCL2 / (CCL2 + CCL2_50)). At the level of macrophage density per tumor volume (rho_TAM = (Mac_M1
+      + Mac_M2)/V_T), and assuming (i) CCL2 is chronically elevated in PDAC so that CCL2 >> CCL2_50 and the Hill term is near
+      1, and (ii) macrophage numbers are in approximate steady state where recruitment balances effective loss (death + egress
+      + net polarization out of the counted pool), we obtain rho_TAM,ss = (k_Mac_rec / k_Mac_loss) * H_CCL2_PD with H_CCL2_PD
+      ≈ 1. Here k_Mac_loss is an effective first-order loss rate reflecting average residence time of TAMs in tumor tissue.
+      In the submodel we compute k_Mac_loss from an assumed macrophage residence time and treat the algebraic steady-state
+      relation as the forward model linking k_Mac_rec to observed TAM density. This preserves the mechanistic role of k_Mac_rec
+      as the source term for macrophages modulated by CCL2, but collapses fast polarization dynamics and local proliferation
+      into an effective loss timescale.
+    type: algebraic
+  identifiability_notes: With a single steady-state measurement of TAM density in peritumoral PDAC tissue and no independent
+    time-course information, only the ratio k_Mac_rec / k_Mac_loss is directly identifiable. In this submodel, the effective
+    loss rate k_Mac_loss is computed from an assumed macrophage residence time (macrophage_res_time_days), so k_Mac_rec is
+    effectively constrained but inherits uncertainty from that assumption. The CCL2 Hill term is fixed near 1 based on high
+    CCL2 expression in PDAC; any deviation from saturation would scale the inferred k_Mac_rec. Additional longitudinal data
+    on TAM depletion and re-accumulation (for example after CCR2 or CSF1R blockade) would be needed to independently constrain
+    macrophage residence time and recruitment rate, and separate bone-marrow recruitment from local self-renewal contributions.
+  parameters:
+  - name: k_Mac_rec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 14.66
+      rationale: Centered so that, for a representative TAM density of ~1e8 cell/mL in peritumoral PDAC tissue and an assumed
+        macrophage residence time of ~30 days, the implied recruitment rate k_Mac_rec ~ 2e6 cell/(mL*day). A broad sigma=1
+        log-space prior (roughly 3-fold SD) allows for uncertainty in residence time, CCL2 saturation, and inter-patient heterogeneity.
+      sigma: 1.0
+      upper: null
+    units: cell/(milliliter*day)
+experimental_context:
+  cell_lines: null
+  cell_types:
+  - isolation_method: In situ immunohistochemistry on formalin-fixed, paraffin-embedded PDAC surgical specimens
+    name: tumor-associated macrophages
+    phenotype: CD68-positive, includes both M1- and M2-like TAMs
+  culture_conditions: null
+  indication: pancreatic ductal adenocarcinoma
+  species: human
+  system: ex_vivo_clinical_tissue
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 70
+  name: cd68_peri_median_per_hpf
+  role: auxiliary
+  source_access: null
+  source_location: Results, section 3.1 and Figure 3 / Table I (peripheral CD68-positive macrophages)
+  source_ref: Chen2015_PDAC_TAM
+  uncertainty: null
+  units: cell
+  value: 71.5
+  value_snippet: 'In Figure 3, median CD68-positive macrophage counts per high-power field were 30.5 (range: 5.7–93.0) in
+    group A, 3.7 (range: 0.0–33.3) in group B, 71.5 (range: 13.0–198.0) in group C, and 7.7 (range: 0.0–71.7) in group D.'
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 70
+  name: cd68_peri_range_low_per_hpf
+  role: auxiliary
+  source_access: null
+  source_location: Results, section 3.1 and Figure 3 / Table I (peripheral CD68-positive macrophages)
+  source_ref: Chen2015_PDAC_TAM
+  uncertainty: null
+  units: cell
+  value: 13.0
+  value_snippet: 'In Figure 3, median CD68-positive macrophage counts per high-power field were 30.5 (range: 5.7–93.0) in
+    group A, 3.7 (range: 0.0–33.3) in group B, 71.5 (range: 13.0–198.0) in group C, and 7.7 (range: 0.0–71.7) in group D.'
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 70
+  name: cd68_peri_range_high_per_hpf
+  role: auxiliary
+  source_access: null
+  source_location: Results, section 3.1 and Figure 3 / Table I (peripheral CD68-positive macrophages)
+  source_ref: Chen2015_PDAC_TAM
+  uncertainty: null
+  units: cell
+  value: 198.0
+  value_snippet: 'In Figure 3, median CD68-positive macrophage counts per high-power field were 30.5 (range: 5.7–93.0) in
+    group A, 3.7 (range: 0.0–33.3) in group B, 71.5 (range: 13.0–198.0) in group C, and 7.7 (range: 0.0–71.7) in group D.'
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 83
+  name: section_thickness_um
+  role: fixed_parameter
+  source_access: null
+  source_location: Methods, section 2.2 Immunohistochemistry for CD68 and CD163
+  source_ref: Chen2015_PDAC_TAM
+  uncertainty: null
+  units: micrometer
+  value: 3.0
+  value_snippet: Paraffin-embedded tissues were cut to a thickness of 3 μm.
+- extraction_method: manual
+  input_type: assumed_value
+  n: 1
+  name: hpf_area_mm2
+  role: fixed_parameter
+  source_access: null
+  source_location: Application note text describing standard HPF area at 400X for field number 22
+  source_ref: HPFCounting2024
+  uncertainty: null
+  units: millimeter**2
+  value: 0.237
+  value_snippet: Most diagnostic thresholds are based on a standard microscope field number (FN) of 22, which defines an HPF
+    area of approximately 0.237 mm2 at 400X magnification.
+- extraction_method: manual
+  input_type: assumed_value
+  n: 1
+  name: macrophage_res_time_days
+  role: fixed_parameter
+  source_access: null
+  source_location: Introduction and conclusions (discussion of long-lived, self-renewing tissue-resident and tumor-associated
+    macrophages)
+  source_ref: Filiberti2022_SelfRenewal
+  uncertainty: null
+  units: day
+  value: 30.0
+  value_snippet: Tissue-resident macrophages (TRMs) are long-lived cells and can be phenotypically distinct from monocyte-derived
+    macrophages. ... Emerging evidence showed that TAMs retained the self-renewal capacity ... This unique feature was shown
+    to markedly contribute to increasing the pool of protumoral TAMs.
+- extraction_method: manual
+  input_type: assumed_value
+  n: 1
+  name: H_CCL2_PD
+  role: fixed_parameter
+  source_access: null
+  source_location: Abstract and Results (human pancreatic cancers express high CCL2 and are infiltrated by CCR2+ macrophages)
+  source_ref: Sanford2013_CCR2
+  uncertainty: null
+  units: dimensionless
+  value: 1.0
+  value_snippet: Human pancreatic cancer produces CCL2, and immunosuppressive CCR2(+) macrophages infiltrate these tumors.
+    Patients with tumors that exhibit high CCL2 expression/low CD8 T-cell infiltrate have significantly decreased survival.
+key_assumptions:
+- PDAC tumors in this surgical cohort are in quasi-steady state with respect to TAM numbers over the timescale of interest
+  (weeks), so that recruitment approximately balances effective loss (death, egress, and net polarization out of the counted
+  pool).
+- CD68 immunostaining captures the majority of tumor-associated macrophages (both M1- and M2-like) relevant to the QSPIO-PDAC
+  Mac_M1/Mac_M2 compartments, and non-macrophage CD68+ cells are negligible.
+- The standard 400x high-power field area for an FN22 microscope (approximately 0.237 mm^2) is a reasonable approximation
+  for the Olympus CX-40 system used in the study, enabling conversion from counts per HPF to volumetric density.
+- The 3 μm section thickness reported by Chen et al. can be used directly to estimate the imaged tissue volume for each HPF,
+  with minimal bias from partial-volume effects.
+- An effective TAM residence time of roughly 30 days is a reasonable order-of-magnitude for tumor-associated macrophages in
+  PDAC, given that tissue-resident macrophages are long-lived and TAM populations can be maintained by self-renewal; this
+  timescale is encoded as an assumed_value and may differ between patients.
+- CCL2 levels in established human PDAC are sufficiently high that the CCL2/(CCL2 + CCL2_50) recruitment Hill term is near
+  1 at baseline, so the dependence of recruitment on CCL2 can be collapsed into a constant H_CCL2_PD ≈ 1 for this calibration
+  step.
+- Local proliferation of TAMs and contributions from embryonically derived tissue-resident macrophages are effectively absorbed
+  into the assumed residence time and do not require an explicit proliferation term in the submodel.
+key_study_limitations:
+- The study reports macrophage counts as medians and ranges per high-power field rather than full distributions or per-volume
+  densities; the conversion to volumetric density and the derivation of a coefficient of variation from the range introduce
+  additional uncertainty.
+- The high-power field area of the Olympus CX-40 at 400x magnification is not explicitly reported and is approximated using
+  a standard FN22 HPF area from microscopy application notes, which may differ modestly from the actual setup.
+- Only CD68 (pan-macrophage) and CD163 (M2 marker) are quantified; the data do not directly separate M1 vs M2 subsets, whereas
+  the QSP model distinguishes Mac_M1 and Mac_M2. The submodel therefore calibrates total TAM recruitment rather than strictly
+  M1 recruitment.
+- No temporal measurements of TAM dynamics (e.g., before and after CCR2/CSF1R blockade) are available in this cohort, so macrophage
+  residence time is not directly constrained and must be assumed from external literature on macrophage self-renewal and lifespan.
+- Counts are based on three randomly selected hot-spot HPFs per region per tumor, which may over-represent areas of high infiltration
+  relative to the whole tumor and bias density estimates upward.
+- Patients had resectable PDAC and variable prior clinical histories; although no specific TAM-targeting therapies were given,
+  systemic inflammation or co-morbidities could influence macrophage infiltration compared with de novo tumors represented
+  in the QSP model.
+primary_data_source:
+  authors:
+  - Chen SJ
+  - Zhang QB
+  - Zeng LJ
+  - Lian GD
+  - Li JJ
+  - Qian CC
+  - Chen YZ
+  - Chen YT
+  - Huang KH
+  doi: 10.3747/co.22.2150
+  source_tag: Chen2015_PDAC_TAM
+  title: 'Distribution and clinical significance of tumour-associated macrophages in pancreatic ductal adenocarcinoma: a retrospective
+    analysis in China'
+  year: 2015
+secondary_data_sources:
+- authors: null
+  contribution: Provided the standard high-power field (HPF) area of approximately 0.237 mm^2 at 400X magnification for FN22
+    optics, used to convert CD68+ counts per HPF into macrophage densities per tissue volume.
+  doi: null
+  source_quality: null
+  source_tag: HPFCounting2024
+  title: HPF Counting Remains a Core Tool in Clinical Microscopy
+  url: https://evidentscientific.com/en/applications/hpf-counting-remains-a-core-tool-in-clinical-microscopy
+  year: 2024
+- authors:
+  - Filiberti S
+  - Russo M
+  - Lonardi S
+  - Bugatti M
+  - Vermi W
+  - Tournier C
+  - Giurisato E
+  contribution: Reviewed evidence that tissue-resident macrophages and tumor-associated macrophages are long-lived and can
+    self-renew locally, supporting the use of a relatively long effective residence time for TAMs in the submodel.
+  doi: 10.3390/biomedicines10112709
+  source_quality: review_article
+  source_tag: Filiberti2022_SelfRenewal
+  title: 'Self-Renewal of Macrophages: Tumor-Released Factors and Signaling Pathways'
+  url: null
+  year: 2022
+- authors:
+  - Sanford DE
+  - Belt BA
+  - Panni RZ
+  - Mayer A
+  - Deshpande AD
+  - Carpenter D
+  - Mitchem JB
+  - Plambeck-Suess SM
+  - Worley LA
+  - Goetz BD
+  - Wang-Gillam A
+  - Eberlein TJ
+  - Denardo DG
+  - Goedegebuure SP
+  - Linehan DC
+  contribution: Demonstrated that human pancreatic cancers express high levels of CCL2 and are infiltrated by CCR2+ macrophages,
+    supporting the assumption that CCL2-driven recruitment is active and near-saturated in PDAC tumors used for calibration.
+  doi: 10.1158/1078-0432.CCR-13-0525
+  source_quality: primary_human_clinical
+  source_tag: Sanford2013_CCR2
+  title: 'Inflammatory monocyte mobilization decreases patient survival in pancreatic cancer: a role for targeting the CCL2/CCR2
+    axis'
+  url: null
+  year: 2013
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The primary dataset is a retrospective clinical study of human pancreatic ductal adenocarcinoma
+    (PDAC) surgical specimens. CD68-positive tumor-associated macrophages were quantified in central and peritumoral regions
+    of PDAC lesions, exactly matching the indication and anatomic site of the QSPIO-PDAC model. The submodel uses these data
+    to estimate steady-state TAM density in PDAC, which is directly relevant to calibrating the macrophage recruitment rate
+    parameter in the same disease context.
+  perturbation_relevance: null
+  perturbation_type: pathological_state
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: The specimens are untreated human PDAC tumors with characteristic dense fibrosis and abundant tumor-associated
+    macrophage infiltration. This closely reflects the desmoplastic, immunosuppressive tumor microenvironment represented
+    in the QSPIO-PDAC model, including high myeloid content and stromal barriers. No experimental manipulation alters baseline
+    trafficking; data reflect endogenous TAM accumulation in PDAC.
+  validation_warnings: null
+study_interpretation: Chen et al. provide quantitative immunohistochemical counts of CD68+ tumor-associated macrophages in
+  central and peritumoral regions of human PDAC, showing substantially higher macrophage infiltration in PDAC than in chronic
+  pancreatitis and enrichment at the tumor periphery. By combining the reported median peripheral CD68+ counts per 400x high-power
+  field, the section thickness, and a standard HPF area, we estimate a typical TAM density on the order of 1e8 cells per mL
+  of peritumoral PDAC tissue. Assuming that macrophage numbers are in quasi-steady state over weeks and that CCL2-driven recruitment
+  is near saturation in PDAC, this steady-state density constrains the ratio of macrophage recruitment to effective loss rate.
+  Fixing an effective TAM residence time based on macrophage self-renewal literature then allows us to infer a plausible magnitude
+  for k_Mac_rec consistent with the full QSP model reaction null -> V_T.Mac_M1.
+target_id: k_Mac_rec_PDAC_TAM_recruitment_Chen2015

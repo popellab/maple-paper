@@ -1,0 +1,203 @@
+calibration:
+  error_model:
+  - evaluation_points: null
+    likelihood:
+      distribution: lognormal
+      rationale: Plasma cytokine concentrations are strictly positive and typically right-skewed across patients; a lognormal
+        likelihood with an assumed coefficient of variation captures this behavior when only median and range (but not SD/SEM)
+        are reported. The observable is expressed in nanomole per liter to match the units implied by k_CCL2_sec.
+    name: plasma_mcp1_advanced_pdac_median
+    observable: null
+    observation_code: "def derive_observation(inputs, sample_size):\n    median_pgml = inputs['mcp1_plasma_median_advanced_pdac']\n\
+      \    factor = inputs['mcp1_pgml_to_nmolL_factor']\n    cv_assumed = inputs['mcp1_plasma_assumed_cv']\n    median_nmolL\
+      \ = median_pgml * factor\n    # Use the converted median (nmol/L) as the central tendency; assume a 50% coefficient\
+      \ of variation\n    # as a conservative estimate of inter-patient variability in plasma MCP-1.\n    return {\n     \
+      \   'value': median_nmolL,\n        'sd': cv_assumed,\n        'sd_uncertain': True,\n    }"
+    sample_size: 328
+    sample_size_rationale: Number of advanced pancreatic cancer patients with baseline EDTA plasma biomarker measurements
+      in the CALGB 80303 correlative study (N=328).
+    units: nanomole / liter
+    uses_inputs:
+    - mcp1_plasma_median_advanced_pdac
+    - mcp1_plasma_assumed_cv
+    - mcp1_pgml_to_nmolL_factor
+  forward_model:
+    clearance_rate: k_CCL2_deg
+    data_rationale: '[Scrubbed due to ''secret'']'
+    distribution_volume:
+      reference_ref: blood_volume
+    independent_variable: null
+    secretion_rate: '[Scrubbed due to ''secret'']'
+    source_count:
+      reference_ref: pdac_total_tumor_cells
+    state_variables: null
+    submodel_rationale: '[Scrubbed due to ''secret'']'
+    type: steady_state_concentration
+    unit_conversion_factor: '1.0'
+  identifiability_notes: With a single steady-state concentration measurement (converted to nanomole per liter), this target
+    constrains primarily the ratio k_CCL2_sec * (pdac_total_tumor_cells) / (k_CCL2_deg * blood_volume). On its own, the dataset
+    cannot uniquely identify both k_CCL2_sec and k_CCL2_deg. An informative prior on k_CCL2_deg derived from independent CCL2
+    half-life data anchors the clearance, making k_CCL2_sec the main parameter updated by this calibration. Uncertainty in
+    tumor cell burden, distribution volume, and unit conversion is represented via reference values and the assumed CV; large
+    systematic errors in these quantities will rescale the inferred k_CCL2_sec approximately linearly.
+  parameters:
+  - name: k_CCL2_sec
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: -20.0
+      rationale: '[Scrubbed due to ''secret'']'
+      sigma: 1.0
+      upper: null
+    units: nanomole / cell / day
+  - name: k_CCL2_deg
+    prior:
+      distribution: lognormal
+      lower: null
+      mu: 1.94
+      rationale: Anchored to independent data on CCL2 plasma half-life (~0.1 day), corresponding to a first-order degradation
+        rate k_CCL2_deg ≈ ln(2)/0.1 ≈ 6.9 day^-1, with a moderately tight prior (roughly 2-fold credible range) to reflect
+        residual uncertainty and possible disease-related variation.
+      sigma: 0.3
+      upper: null
+    units: 1 / day
+experimental_context:
+  cell_lines: null
+  cell_types: null
+  culture_conditions: null
+  indication: Advanced PDAC
+  species: human
+  system: in_vivo_clinical
+inputs:
+- extraction_method: manual
+  input_type: direct_measurement
+  n: 328
+  name: mcp1_plasma_median_advanced_pdac
+  role: target
+  source_access: null
+  source_location: Table 1, Analyte characteristics at baseline (MCP-1 row)
+  source_ref: Nixon2013_CALGB80303
+  uncertainty: null
+  units: picogram / milliliter
+  value: 521.8
+  value_snippet: MCP-1 (pg/mL) 10.4 328 521.8 146.7 3,445
+- extraction_method: manual
+  input_type: experimental_condition
+  n: 328
+  name: mcp1_plasma_n_patients
+  role: auxiliary
+  source_access: null
+  source_location: Table 1, Analyte characteristics at baseline (MCP-1 row)
+  source_ref: Nixon2013_CALGB80303
+  uncertainty: null
+  units: dimensionless
+  value: 328.0
+  value_snippet: Analyte Unit %CV N Median Min Max ... MCP-1 (pg/mL) 10.4 328 521.8 146.7 3,445
+- extraction_method: other
+  input_type: assumed_value
+  n: null
+  name: mcp1_plasma_assumed_cv
+  role: auxiliary
+  source_access: null
+  source_location: Assumption based on typical inter-patient variability for circulating cytokines when only median and range
+    are reported.
+  source_ref: Nixon2013_CALGB80303
+  uncertainty: null
+  units: dimensionless
+  value: 0.5
+  value_snippet: Assumed coefficient of variation of 0.5 (50%) for plasma MCP-1, as a conservative estimate of between-patient
+    variability in cytokine levels.
+- extraction_method: other
+  input_type: inferred_estimate
+  n: null
+  name: mcp1_pgml_to_nmolL_factor
+  role: auxiliary
+  source_access: null
+  source_location: Derived from the reported MCP-1 units (pg/mL) using the reference molecular weight of mature human CCL2
+    (8679 g/mol) to convert concentrations to nanomole per liter for consistency with k_CCL2_sec units.
+  source_ref: Nixon2013_CALGB80303
+  uncertainty: null
+  units: dimensionless
+  value: 0.00011522064754003917
+  value_snippet: Conversion factor from pg/mL to nmol/L for MCP-1, computed as (1 pg/mL) × (1e-12 g/pg) × (1e3 mL/L) / (8679
+    g/mol) ≈ 1.15e-4 nmol/L.
+key_assumptions:
+- '[Scrubbed due to ''secret'']'
+- '[Scrubbed due to ''secret'']'
+- The reference value pdac_total_tumor_cells (~1e9 cells for a 10 mL resectable PDAC tumor) provides a reasonable order-of-magnitude
+  anchor for total viable tumor cell burden in advanced PDAC; deviations among individuals are absorbed into the assumed coefficient
+  of variation and the lognormal likelihood.
+- The effective CCL2 distribution volume relevant for the measured plasma concentrations can be approximated by the central
+  blood volume (reference blood_volume ~5 L), neglecting additional distribution into peripheral interstitial spaces or lymph,
+  which would otherwise dilute concentrations.
+- CCL2 clearance kinetics in these patients can be adequately described by first-order degradation with a rate constant consistent
+  with a plasma half-life of approximately 0.1 day; disease-related changes in clearance are captured by the prior uncertainty
+  on k_CCL2_deg.
+- Because only the median and range of plasma MCP-1 are reported, a 50% coefficient of variation is assumed as a conservative
+  estimate of inter-patient variability in CCL2 levels; this assumption is explicitly modeled via an auxiliary input and marked
+  as uncertain in the likelihood specification.
+- Conversion from pg/mL to nmol/L using a fixed molecular weight for mature CCL2 is accurate enough for QSP calibration purposes;
+  isoform heterogeneity and post-translational modifications are neglected.
+key_study_limitations:
+- The CALGB 80303 cohort comprises patients with advanced (locally advanced/metastatic) PDAC, whereas the reference tumor
+  cell count used in the model is based on resectable tumors; the relationship between cell burden and plasma CCL2 may differ
+  between these settings.
+- '[Scrubbed due to ''secret'']'
+- Only a single baseline plasma measurement per patient is available, precluding direct assessment of temporal dynamics or
+  confirmation of steady-state; transient fluctuations due to acute inflammation or sampling time relative to treatment are
+  not captured.
+- The analyte table reports median, minimum, and maximum but not standard deviation or interquartile range for MCP-1; as a
+  result, variability must be assumed rather than directly measured, introducing additional uncertainty handled via an assumed
+  CV and sd_uncertain flag.
+- Patients were enrolled in a systemic therapy trial and may have heterogeneous performance status, comorbidities, and tumor
+  burdens, all of which can influence inflammatory cytokine levels and clearance and are not explicitly modeled in this calibration
+  target.
+- The conversion factor from pg/mL to nmol/L assumes a single molecular weight for mature CCL2 and does not account for potential
+  assay cross-reactivity with related chemokines or modified forms of CCL2, which could slightly bias the effective concentration
+  scale.
+primary_data_source:
+  authors:
+  - Nixon AB
+  - Pang H
+  - Starr MD
+  - Friedman PN
+  - Bertagnolli MM
+  - Kindler HL
+  - Goldberg RM
+  - Venook AP
+  - Hurwitz HI
+  doi: 10.1158/1078-0432.CCR-13-0926
+  source_tag: Nixon2013_CALGB80303
+  title: 'Prognostic and Predictive Blood-Based Biomarkers in Patients with Advanced Pancreatic Cancer: Results from CALGB
+    80303 (Alliance)'
+  year: 2013
+secondary_data_sources:
+- authors:
+  - Iwamoto H
+  - Izumi K
+  - Mizokami A
+  contribution: '[Scrubbed due to ''secret'']'
+  doi: 10.3390/ijms21239328
+  source_quality: review_article
+  source_tag: Iwamoto2020
+  title: Is the C-C Motif Ligand 2-C-C Chemokine Receptor 2 Axis a Promising Target for Cancer Therapy and Diagnosis?
+  url: null
+  year: 2020
+source_relevance:
+  estimated_translation_uncertainty_fold: 2.0
+  indication_match: exact
+  indication_match_justification: The study cohort consists of human patients with advanced pancreatic adenocarcinoma enrolled
+    in a phase III trial (CALGB 80303). This directly matches the PDAC indication of the QSPIO-PDAC model, although disease
+    stage is predominantly locally advanced or metastatic rather than resectable. As the model is intended to capture PDAC
+    tumor–immune–stroma interactions across disease stages, these baseline plasma CCL2 levels in untreated advanced PDAC are
+    considered indication-matched data.
+  perturbation_relevance: null
+  perturbation_type: physiological_baseline
+  source_quality: primary_human_clinical
+  species_source: human
+  species_target: human
+  tme_compatibility: high
+  tme_compatibility_notes: '[Scrubbed due to ''secret'']'
+  validation_warnings: []
+study_interpretation: '[Scrubbed due to ''secret'']'
+target_id: k_CCL2_sec_pdac_plasma_Nixon2013

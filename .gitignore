@@ -38,7 +38,9 @@ jobs
 archive
 _minted
 *.json
+!paper/generated/*.json
+!batch_extraction/*.json
 .claude
-*.jl
 *.png
 notes/
+paper/diff_output/

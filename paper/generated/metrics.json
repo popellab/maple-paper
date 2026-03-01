@@ -1,6 +1,8 @@
 {
   "extraction": {
+    "n_attempted": 18,
     "n_targets": 18,
+    "n_failed": 0,
     "n_first_attempt_success": 0,
     "first_attempt_rate": 0.0,
     "total_retries": 50,
@@ -378,426 +380,404 @@
     ]
   },
   "codegen": {
-    "n_unique_parameters": 18,
-    "n_shared_parameters": 0,
-    "n_targets": 18,
-    "total_lines": 703,
+    "n_unique_parameters": 19,
+    "n_shared_parameters": 11,
+    "n_targets": 37,
+    "total_lines": 1320,
     "parameters": [
       "N_IL2_CD4",
       "N_IL2_CD8",
-      "initial_tumour_diameter",
       "k_C1_growth",
-      "k_ECM_apsc_sec",
-      "k_ECM_deg",
-      "k_ECM_qpsc_sec",
+      "k_CCL2_sec",
+      "k_CCL2_deg",
       "k_M1_pol",
+      "k_M2_pol",
       "k_MDSC_rec",
       "k_MDSC_death",
-      "L_leukocyte_T",
       "k_Mac_rec",
+      "k_Mac_death",
       "k_apsc_death",
       "k_psc_activation",
-      "k_psc_const",
-      "k_qpsc_death",
       "n_CD8_clones",
-      "n_Treg_clones"
+      "q_CD8_T_in",
+      "k_CD8_death",
+      "cd8_exclusion_fraction",
+      "q_Treg_T_in",
+      "k_Treg_death"
     ],
-    "shared_params_detail": {}
+    "shared_params_detail": {
+      "k_C1_growth": [
+        "k_C1_growth_pdac_human_vdt_ahn2017",
+        "k_C1_growth_pdac_tumor_doubling_jang2015"
+      ],
+      "k_CCL2_sec": [
+        "k_CCL2_sec_Fujita2010_PrSC",
+        "k_CCL2_sec_Steube1999_proxy",
+        "k_CCL2_sec_bcproxy_yoshimura2023",
+        "k_CCL2_sec_psc_michalski2008",
+        "k_CCL2_sec_pdac_plasma_Nixon2013"
+      ],
+      "k_M1_pol": [
+        "k_M1_pol_Watkins2007_IL12_TAM_reprogramming",
+        "k_M1_pol_repolarization_horhold2020",
+        "k_M1_pol_rp182_m2_to_m1_repolarization",
+        "k_M1_pol_pdac_cd86_cd163_gu2023",
+        "k_M1_pol_steady_state_ratio_DLBCL2021",
+        "k_M1_pol_pdac_m1m2ratio_DeSimoni2023",
+        "k_M1_pol_tam_ratio_herwig2013",
+        "k_Mac_rec_humanPDAC_CD40_2021"
+      ],
+      "k_M2_pol": [
+        "k_M1_pol_pdac_cd86_cd163_gu2023",
+        "k_M1_pol_steady_state_ratio_DLBCL2021",
+        "k_M1_pol_pdac_m1m2ratio_DeSimoni2023",
+        "k_M1_pol_tam_ratio_herwig2013",
+        "k_Mac_rec_humanPDAC_CD40_2021"
+      ],
+      "k_MDSC_rec": [
+        "k_MDSC_rec_recruitment_pericyte_MDSC_Hong2015",
+        "k_MDSC_rec_oscc_ccl2_oo2022",
+        "k_MDSC_rec_PDAC_Porembka2012",
+        "k_MDSC_rec_panc02_spleenexpansion_ghansah2013",
+        "k_MDSC_rec_pdac_trovato2019",
+        "k_MDSC_rec_panc02_tnfr1_chopra2013"
+      ],
+      "k_MDSC_death": [
+        "k_MDSC_rec_PDAC_Porembka2012",
+        "k_MDSC_rec_pdac_trovato2019",
+        "k_MDSC_rec_panc02_tnfr1_chopra2013"
+      ],
+      "k_Mac_rec": [
+        "k_Mac_rec_PDAC_M1_recruitment_Gu2023",
+        "k_Mac_rec_PDAC_TAM_recruitment_Chen2015"
+      ],
+      "k_Mac_death": [
+        "k_Mac_rec_PDAC_M1_recruitment_Gu2023",
+        "k_Mac_rec_PDAC_TAM_recruitment_Chen2015"
+      ],
+      "k_apsc_death": [
+        "k_apsc_death_melatoninPSC_Estaras2021",
+        "k_apsc_death_RA_Xiao2015",
+        "k_apsc_death_hsc_apoptosis_issa2001"
+      ],
+      "q_CD8_T_in": [
+        "q_CD8_T_in_extravasation_boissonnas2007",
+        "q_CD8_T_in_yorty2007_sv11_brain_tumor",
+        "q_CD8_T_in_PDAC_CD8density_ModPathol2019"
+      ],
+      "q_Treg_T_in": [
+        "q_Treg_T_in_Tremblay2017_MRIcelltracking",
+        "q_Treg_T_in_PDAC_Tang2014",
+        "q_Treg_T_in_extravasation_PDAC",
+        "q_Treg_T_in_Jiang2014_Liyanage2002"
+      ]
+    }
   },
   "julia_generation": {
-    "joint_generated": true,
+    "joint_generated": false,
     "single_generated": false,
-    "joint_path": "/Users/joeleliason/Projects/qsp-llm-workflows-paper/scripts/joint_calibration.jl",
+    "joint_path": null,
     "single_path": null,
     "errors": [
-      "Single-target generation failed: /Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/submodel_target.py:2836: UserWarning: Parameter 'N_IL2_CD4' has lognormal prior \u03c3=0.50, but estimated_translation_uncertainty_fold=3.0x suggests \u03c3 should be at least 1.10.\n\nThe prior may be too narrow to capture source-to-target translation uncertainty. Consider:\n  - Increasing prior \u03c3 to ~1.1\n  - Or reducing estimated_translation_uncertainty_fold if justified\n\nReference: \u03c3=ln(fold) for lognormal \u2192 \u03c3=1.10 for 3x, \u03c3=2.30 for 10x\n  warnings.warn(\n/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/submodel_target.py:2168: UserWarning: Input 'initial_tumour_diameter_n_ahn2017' has units 'dimensionless' but measurement 'initial_tumour_diameter_measurement' expects 'centimeter'.\nIf AlgebraicModel.code converts between these units, this is OK.\nOtherwise, check for unit errors.\n  warnings.warn(\n/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/submodel_target.py:2463: UserWarning: Large coefficient of variation (CV = 99.8%) detected but not discussed in identifiability_notes.\nConsider adding discussion of whether this reflects:\n  - Biological variability\n  - Measurement error\n  - Heterogeneous population\n  warnings.warn(\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1800, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1686, in main\n    full_script = translator.generate_script(yaml_path)\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 687, in generate_script\n    return self.generator.generate_single_target(target, yaml_path)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 375, in generate_single_target\n    sections.append(self._generate_turing_model(target, obs_data))\n                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 551, in _generate_turing_model\n    if obs_data.observations[0].likelihood_distribution == \"lognormal\":\n       ~~~~~~~~~~~~~~~~~~~~~^^^\nIndexError: list index out of range\n"
+      "Joint generation failed: /Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/submodel_target.py:2389: UserWarning: Input 'jang_n_patients' has units 'dimensionless' but measurement 'vdt_jang2015' expects 'day'.\nIf AlgebraicModel.code converts between these units, this is OK.\nOtherwise, check for unit errors.\n  warnings.warn(\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 2300, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 2276, in main\n    code = builder.build_from_files(yaml_paths, force_fixed_sigma=force_fixed_sigma)\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1066, in build_from_files\n    target = self._load_target(path)\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1338, in _load_target\n    return SubmodelTarget.model_validate(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        data,\n        ^^^^^\n        context={\"model_structure\": self.model_structure, \"reference_db\": self.reference_db},\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows-paper/.venv/lib/python3.13/site-packages/pydantic/main.py\", line 716, in model_validate\n    return cls.__pydantic_validator__.validate_python(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        obj,\n        ^^^^\n    ...<5 lines>...\n        by_name=by_name,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\npydantic_core._pydantic_core.ValidationError: 1 validation error for SubmodelTarget\n  Value error, Invalid reference_ref values:\n  - Model molecular_weight references unknown reference_ref 'ccl2_molecular_weight_mature'\n  - Available reference values: [] [type=value_error, input_value={'study_interpretation': ... distribution_code.\\n'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n",
+      "Single-target generation failed: /Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/submodel_target.py:2389: UserWarning: Input 'jang_n_patients' has units 'dimensionless' but measurement 'vdt_jang2015' expects 'day'.\nIf AlgebraicModel.code converts between these units, this is OK.\nOtherwise, check for unit errors.\n  warnings.warn(\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 2300, in <module>\n    main()\n    ~~~~^^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 2244, in main\n    code = builder.build_single_all(yaml_paths)\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1100, in build_single_all\n    target = self._load_target(path)\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows/src/qsp_llm_workflows/core/calibration/julia_translator.py\", line 1338, in _load_target\n    return SubmodelTarget.model_validate(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        data,\n        ^^^^^\n        context={\"model_structure\": self.model_structure, \"reference_db\": self.reference_db},\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/Users/joeleliason/Projects/qsp-llm-workflows-paper/.venv/lib/python3.13/site-packages/pydantic/main.py\", line 716, in model_validate\n    return cls.__pydantic_validator__.validate_python(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        obj,\n        ^^^^\n    ...<5 lines>...\n        by_name=by_name,\n        ^^^^^^^^^^^^^^^^\n    )\n    ^\npydantic_core._pydantic_core.ValidationError: 1 validation error for SubmodelTarget\n  Value error, Invalid reference_ref values:\n  - Model molecular_weight references unknown reference_ref 'ccl2_molecular_weight_mature'\n  - Available reference values: [] [type=value_error, input_value={'study_interpretation': ... distribution_code.\\n'}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error\n"
     ]
   },
-  "inference_run": {
-    "success": true,
-    "results_path": "/Users/joeleliason/Projects/qsp-llm-workflows-paper/scripts/inference_results.json",
-    "figure_path": "/Users/joeleliason/Projects/qsp-llm-workflows-paper/scripts/posterior_marginals.png",
-    "runtime_sec": 59.717753171920776,
-    "error": null
-  },
-  "inference_results": {
-    "n_samples": 1000,
-    "parameters": {
-      "k_ECM_deg": {
-        "median": 0.003990973323966675,
-        "rhat": 0.9997216578586506,
-        "ci_975": 0.0066652590220655904,
-        "ci_025": 0.0024107091168053194,
-        "ess_tail": 2477.8003998733902,
-        "ci_05": 0.002629740681947636,
-        "ess_bulk": 5690.611421083879,
-        "mean": 0.004148328632249722,
-        "ci_95": 0.006219326571903009,
-        "std": 0.0010891020123382131
-      },
-      "initial_tumour_diameter": {
-        "median": 2.769217725433964,
-        "rhat": 1.0033890364255018,
-        "ci_975": 5.052339373284404,
-        "ci_025": 1.5395260061374232,
-        "ess_tail": 2937.5706393113624,
-        "ci_05": 1.6809736425325135,
-        "ess_bulk": 7638.961455314284,
-        "mean": 2.9014666363775525,
-        "ci_95": 4.539756335940324,
-        "std": 0.9009517285530058
-      },
-      "k_psc_activation": {
-        "median": 0.5226880393856761,
-        "rhat": 1.0010560541787663,
-        "ci_975": 0.6216773305024004,
-        "ci_025": 0.4361663975653812,
-        "ess_tail": 2986.7699712362128,
-        "ci_05": 0.44946445639560056,
-        "ess_bulk": 6804.515685940906,
-        "mean": 0.52442539390475,
-        "ci_95": 0.6053940478396138,
-        "std": 0.04749151642862738
-      },
-      "n_CD8_clones": {
-        "median": 51.65295719470981,
-        "rhat": 0.9998865355785224,
-        "ci_975": 89.3645028400314,
-        "ci_025": 31.30124192670808,
-        "ess_tail": 3134.239829689789,
-        "ci_05": 33.29486921436417,
-        "ess_bulk": 6330.086764638512,
-        "mean": 53.9124388125576,
-        "ci_95": 82.07712456806867,
-        "std": 15.019922120163901
-      },
-      "N_IL2_CD8": {
-        "median": 9.976857433910183,
-        "rhat": 1.0007401339029531,
-        "ci_975": 10.812596637651719,
-        "ci_025": 9.132911052914604,
-        "ess_tail": 3178.6695603926123,
-        "ci_05": 9.243068248046209,
-        "ess_bulk": 5081.240283933386,
-        "mean": 9.974973164115582,
-        "ci_95": 10.695923135238013,
-        "std": 0.443212597809499
-      },
-      "k_MDSC_death": {
-        "median": 0.4583837034743918,
-        "rhat": 0.9998506551162157,
-        "ci_975": 1.1557412558418794,
-        "ci_025": 0.18154013406611658,
-        "ess_tail": 3065.5460767629415,
-        "ci_05": 0.20773227852616458,
-        "ess_bulk": 5417.386463257589,
-        "mean": 0.5090969796972515,
-        "ci_95": 0.9995011293641204,
-        "std": 0.2504599653195253
-      },
-      "k_ECM_qpsc_sec": {
-        "median": 2.631668161889704e-11,
-        "rhat": 1.0005404809017175,
-        "ci_975": 1.2766832746786995e-09,
-        "ci_025": 4.785631687054898e-13,
-        "ess_tail": 3130.3950892637886,
-        "ci_05": 8.901342259955184e-13,
-        "ess_bulk": 6388.69410984589,
-        "mean": 1.735717866581088e-10,
-        "ci_95": 6.714878645062132e-10,
-        "std": 6.832032787136082e-10
-      },
-      "k_Mac_rec": {
-        "median": 4857480.297681928,
-        "rhat": 1.0029015203107463,
-        "ci_975": 12554365.486400068,
-        "ci_025": 1937393.5220768214,
-        "ess_tail": 2820.073363950821,
-        "ci_05": 2225454.404818738,
-        "ess_bulk": 5649.61341793431,
-        "mean": 5458451.005275531,
-        "ci_95": 10776174.520363167,
-        "std": 2787189.1473458754
-      },
-      "L_leukocyte_T": {
-        "median": 9298864.26434604,
-        "rhat": 0.9996446319399952,
-        "ci_975": 38971393.54420103,
-        "ci_025": 2145136.281938759,
-        "ess_tail": 2683.842559165306,
-        "ci_05": 2716990.9419811815,
-        "ess_bulk": 3457.8279224013554,
-        "mean": 12134273.591038093,
-        "ci_95": 31418213.234745465,
-        "std": 10295788.56365904
-      },
-      "k_ECM_apsc_sec": {
-        "median": 1.2247880611945029e-09,
-        "rhat": 0.999929065978833,
-        "ci_975": 6.0554850355947855e-09,
-        "ci_025": 2.4391050657899407e-10,
-        "ess_tail": 3035.7432755149653,
-        "ci_05": 3.2035379913456276e-10,
-        "ess_bulk": 7087.274539388795,
-        "mean": 1.7017808089967143e-09,
-        "ci_95": 4.72525894753048e-09,
-        "std": 1.602917887524558e-09
-      },
-      "k_apsc_death": {
-        "median": 0.08753013298893082,
-        "rhat": 1.000690651116494,
-        "ci_975": 0.1093279638981703,
-        "ci_025": 0.06614015516964658,
-        "ess_tail": 3030.5746831270308,
-        "ci_05": 0.06927353637265925,
-        "ess_bulk": 6660.722493510338,
-        "mean": 0.087513407519449,
-        "ci_95": 0.10580008609770308,
-        "std": 0.011045935450171993
-      },
-      "k_qpsc_death": {
-        "median": 0.01753950631280652,
-        "rhat": 1.000649474904658,
-        "ci_975": 0.019441185471488685,
-        "ci_025": 0.015808858920767638,
-        "ess_tail": 3002.998275081202,
-        "ci_05": 0.016077847069809765,
-        "ess_bulk": 6428.7795610043195,
-        "mean": 0.017568907668947763,
-        "ci_95": 0.019168994601993644,
-        "std": 0.0009217527173841177
-      },
-      "k_psc_const": {
-        "median": 98901461.60601097,
-        "rhat": 1.0000239303258207,
-        "ci_975": 424262046.71128523,
-        "ci_025": 24414271.621994104,
-        "ess_tail": 2987.009381329861,
-        "ci_05": 30404159.94524821,
-        "ess_bulk": 5734.9457944402175,
-        "mean": 131335439.79319681,
-        "ci_95": 337789527.3953108,
-        "std": 110773868.90019047
-      },
-      "k_C1_growth": {
-        "median": 0.005294640768840429,
-        "rhat": 1.0023146117126374,
-        "ci_975": 0.01965595169573948,
-        "ci_025": 0.0013398606983048413,
-        "ess_tail": 2921.056593924103,
-        "ci_05": 0.001668242849305841,
-        "ess_bulk": 8167.635585944174,
-        "mean": 0.0067641239367628465,
-        "ci_95": 0.016093030606738532,
-        "std": 0.005608653057510896
-      },
-      "N_IL2_CD4": {
-        "median": 7.417043429132159,
-        "rhat": 1.000408402639261,
-        "ci_975": 8.769050274369185,
-        "ci_025": 6.054861539514503,
-        "ess_tail": 2836.566977786016,
-        "ci_05": 6.256110378858325,
-        "ess_bulk": 8458.203933115828,
-        "mean": 7.417654320770689,
-        "ci_95": 8.541614110099259,
-        "std": 0.6916119351191932
-      },
-      "n_Treg_clones": {
-        "median": 7592.393639622867,
-        "rhat": 1.0014690258004995,
-        "ci_975": 14361.03047376995,
-        "ci_025": 3988.796853305614,
-        "ess_tail": 2969.6661379790803,
-        "ci_05": 4451.268631437924,
-        "ess_bulk": 5732.243890451761,
-        "mean": 8027.725726350723,
-        "ci_95": 13040.017472574747,
-        "std": 2713.6272271996404
-      },
-      "k_MDSC_rec": {
-        "median": 1035233.6690672734,
-        "rhat": 1.0000650616947948,
-        "ci_975": 4160246.1498559383,
-        "ci_025": 243821.891939785,
-        "ess_tail": 2978.664301589911,
-        "ci_05": 309712.69908332475,
-        "ess_bulk": 3587.847768438604,
-        "mean": 1362130.30912468,
-        "ci_95": 3491292.543287585,
-        "std": 1172495.6104969087
-      },
-      "k_M1_pol": {
-        "median": 0.5193098137458183,
-        "rhat": 1.0008680771845788,
-        "ci_975": 1.3322012243347914,
-        "ci_025": 0.20110795186909386,
-        "ess_tail": 2930.577654533364,
-        "ci_05": 0.2388656193422707,
-        "ess_bulk": 5621.012767902056,
-        "mean": 0.5864680337131271,
-        "ci_95": 1.1463938405080663,
-        "std": 0.30032550560633764
-      }
-    },
-    "n_chains": 4
-  },
+  "inference_run": null,
+  "inference_results": null,
   "validation": {
-    "n_files": 18,
-    "n_valid": 18,
+    "n_files": 37,
+    "n_valid": 37,
     "n_invalid": 0,
     "pass_rate": 1.0
   },
-  "inference_available": true,
+  "inference_available": false,
   "yaml_metrics": {
     "source_quality": {
-      "primary_animal_in_vitro": 5,
-      "primary_animal_in_vivo": 4,
-      "primary_human_clinical": 7,
-      "primary_human_in_vitro": 2
+      "primary_animal_in_vitro": 7,
+      "primary_animal_in_vivo": 9,
+      "primary_human_clinical": 17,
+      "primary_human_in_vitro": 3,
+      "review_article": 1
     },
     "species_translation": {
-      "mouse\u2192human": 6,
-      "human\u2192human": 8,
-      "rat\u2192human": 2,
-      "human_and_rat\u2192human": 1,
-      "chick\u2192human": 1
+      "mouse\u2192human": 13,
+      "human\u2192human": 21,
+      "rat\u2192human": 3
     },
     "indication_match": {
-      "proxy": 11,
-      "exact": 5,
-      "related": 2
+      "proxy": 16,
+      "exact": 17,
+      "related": 4
     },
     "model_types": {
-      "algebraic": 17,
-      "two_state": 1
+      "algebraic": 18,
+      "batch_accumulation": 4,
+      "steady_state_concentration": 1,
+      "steady_state_ratio": 5,
+      "steady_state_fraction": 3,
+      "steady_state_density": 4,
+      "first_order_decay": 2
     },
     "complexity": [
       {
         "file": "N_IL2_CD4_PDAC_deriv001.yaml",
-        "n_inputs": 4,
-        "n_params": 1,
-        "n_states": 0,
-        "code_lines": 19
-      },
-      {
-        "file": "N_IL2_CD8_PDAC_deriv001.yaml",
         "n_inputs": 2,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 15
+        "code_lines": 22
       },
       {
-        "file": "initial_tumour_diameter_PDAC_deriv001.yaml",
-        "n_inputs": 3,
+        "file": "N_IL2_CD8_PDAC_deriv001.yaml",
+        "n_inputs": 4,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 15
+        "code_lines": 38
       },
       {
         "file": "k_C1_growth_PDAC_deriv001.yaml",
-        "n_inputs": 3,
+        "n_inputs": 2,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 14
+        "code_lines": 37
+      },
+      {
+        "file": "k_C1_growth_PDAC_deriv002.yaml",
+        "n_inputs": 4,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 28
       },
       {
         "file": "k_CCL2_sec_PDAC_deriv001.yaml",
-        "n_inputs": 0,
-        "n_params": 0,
-        "n_states": 0,
-        "code_lines": 2
-      },
-      {
-        "file": "k_ECM_apsc_sec_PDAC_deriv001.yaml",
-        "n_inputs": 6,
+        "n_inputs": 5,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 47
+        "code_lines": 30
       },
       {
-        "file": "k_ECM_deg_PDAC_deriv001.yaml",
+        "file": "k_CCL2_sec_PDAC_deriv002.yaml",
         "n_inputs": 3,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 28
+      },
+      {
+        "file": "k_CCL2_sec_PDAC_deriv003.yaml",
+        "n_inputs": 4,
         "n_params": 1,
         "n_states": 0,
         "code_lines": 24
       },
       {
-        "file": "k_ECM_qpsc_sec_PDAC_deriv001.yaml",
-        "n_inputs": 1,
+        "file": "k_CCL2_sec_PDAC_deriv004.yaml",
+        "n_inputs": 5,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 6
+        "code_lines": 10
+      },
+      {
+        "file": "k_CCL2_sec_PDAC_deriv005.yaml",
+        "n_inputs": 4,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 12
       },
       {
         "file": "k_M1_pol_PDAC_deriv001.yaml",
         "n_inputs": 3,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 20
+        "code_lines": 32
       },
       {
-        "file": "k_MDSC_rec_PDAC_deriv001.yaml",
-        "n_inputs": 4,
-        "n_params": 3,
-        "n_states": 0,
-        "code_lines": 31
-      },
-      {
-        "file": "k_Mac_rec_PDAC_deriv001.yaml",
-        "n_inputs": 7,
-        "n_params": 1,
-        "n_states": 0,
-        "code_lines": 18
-      },
-      {
-        "file": "k_apsc_death_PDAC_deriv001.yaml",
-        "n_inputs": 3,
-        "n_params": 1,
-        "n_states": 0,
-        "code_lines": 2
-      },
-      {
-        "file": "k_psc_activation_PDAC_deriv001.yaml",
-        "n_inputs": 4,
-        "n_params": 1,
-        "n_states": 0,
-        "code_lines": 16
-      },
-      {
-        "file": "k_psc_const_PDAC_deriv001.yaml",
-        "n_inputs": 8,
+        "file": "k_M1_pol_PDAC_deriv002.yaml",
+        "n_inputs": 2,
         "n_params": 1,
         "n_states": 0,
         "code_lines": 32
       },
       {
-        "file": "k_qpsc_death_PDAC_deriv001.yaml",
+        "file": "k_M1_pol_PDAC_deriv003.yaml",
+        "n_inputs": 7,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 17
+      },
+      {
+        "file": "k_M1_pol_PDAC_deriv004.yaml",
+        "n_inputs": 8,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 32
+      },
+      {
+        "file": "k_M1_pol_PDAC_deriv005.yaml",
+        "n_inputs": 5,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 17
+      },
+      {
+        "file": "k_M1_pol_PDAC_deriv006.yaml",
+        "n_inputs": 6,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 16
+      },
+      {
+        "file": "k_M1_pol_PDAC_deriv007.yaml",
+        "n_inputs": 2,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 9
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv001.yaml",
+        "n_inputs": 4,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 37
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv002.yaml",
+        "n_inputs": 7,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 39
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv003.yaml",
+        "n_inputs": 6,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 7
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv004.yaml",
+        "n_inputs": 5,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 19
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv005.yaml",
+        "n_inputs": 3,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 10
+      },
+      {
+        "file": "k_MDSC_rec_PDAC_deriv006.yaml",
+        "n_inputs": 3,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 15
+      },
+      {
+        "file": "k_Mac_rec_PDAC_deriv001.yaml",
+        "n_inputs": 5,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 31
+      },
+      {
+        "file": "k_Mac_rec_PDAC_deriv002.yaml",
+        "n_inputs": 7,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 24
+      },
+      {
+        "file": "k_Mac_rec_PDAC_deriv003.yaml",
+        "n_inputs": 5,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 11
+      },
+      {
+        "file": "k_apsc_death_PDAC_deriv001.yaml",
+        "n_inputs": 5,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 20
+      },
+      {
+        "file": "k_apsc_death_PDAC_deriv002.yaml",
         "n_inputs": 2,
         "n_params": 1,
         "n_states": 0,
+        "code_lines": 23
+      },
+      {
+        "file": "k_apsc_death_PDAC_deriv003.yaml",
+        "n_inputs": 3,
+        "n_params": 1,
+        "n_states": 0,
         "code_lines": 11
+      },
+      {
+        "file": "k_psc_activation_PDAC_deriv001.yaml",
+        "n_inputs": 2,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 25
       },
       {
         "file": "n_CD8_clones_PDAC_deriv001.yaml",
         "n_inputs": 2,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 11
+        "code_lines": 39
       },
       {
-        "file": "n_Treg_clones_PDAC_deriv001.yaml",
-        "n_inputs": 4,
+        "file": "q_CD8_T_in_PDAC_deriv001.yaml",
+        "n_inputs": 8,
         "n_params": 1,
         "n_states": 0,
-        "code_lines": 26
+        "code_lines": 47
+      },
+      {
+        "file": "q_CD8_T_in_PDAC_deriv002.yaml",
+        "n_inputs": 3,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 39
+      },
+      {
+        "file": "q_CD8_T_in_PDAC_deriv003.yaml",
+        "n_inputs": 9,
+        "n_params": 3,
+        "n_states": 0,
+        "code_lines": 15
       },
       {
         "file": "q_Treg_T_in_PDAC_deriv001.yaml",
-        "n_inputs": 0,
-        "n_params": 0,
+        "n_inputs": 3,
+        "n_params": 1,
         "n_states": 0,
-        "code_lines": 2
+        "code_lines": 35
+      },
+      {
+        "file": "q_Treg_T_in_PDAC_deriv002.yaml",
+        "n_inputs": 6,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 49
+      },
+      {
+        "file": "q_Treg_T_in_PDAC_deriv003.yaml",
+        "n_inputs": 9,
+        "n_params": 1,
+        "n_states": 0,
+        "code_lines": 49
+      },
+      {
+        "file": "q_Treg_T_in_PDAC_deriv004.yaml",
+        "n_inputs": 8,
+        "n_params": 2,
+        "n_states": 0,
+        "code_lines": 15
       }
     ]
   }

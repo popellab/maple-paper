@@ -1,0 +1,217 @@
+study_interpretation: |
+  Meng et al. 2023 provide a PDAC-specific quantification of tumor-reactive CD8 T cell receptor clonotypes by combining single-cell transcriptomics with functional validation of TCRs against autologous tumor cells. They report 93 tumor-reactive TCR clonotypes across 3 genetically unstable and 6 genetically stable human PDAC tumors, indicating that individual tumors harbor multiple distinct tumor-reactive CD8 T cell clones. Treating these functionally validated clonotypes as independent tumor-specific CD8 T cell clones, the data imply an average on the order of 10 tumor-reactive CD8 T cell clones per PDAC tumor. In the QSPIO-PDAC model, this informs the parameter n_CD8_clones, which scales both the production of recognizable tumor antigen P1 and the rate of antigen-specific CD8 and Th activation in the tumor-draining lymph node.
+
+key_assumptions:
+- |
+  Each functionally validated tumor-reactive TCR clonotype in Meng et al. 2023 corresponds to one effective tumor-specific CD8 T cell clone in the QSP model, and polyclonal responses to the same epitope are not explicitly distinguished.
+- |
+  The 9 PDAC tumors analyzed by Meng et al. (3 genetically unstable and 6 genetically stable) are representative of the broader PDAC population modeled in QSPIO-PDAC, despite known heterogeneity in mutational burden and immune infiltration.
+- |
+  Tumor-reactive CD8 T cell clones identified ex vivo from resected tumors reflect the steady-state number of functional tumor-specific clones participating in the in vivo response, ignoring potential loss or gain of clones during processing and culture.
+- |
+  Clonotypes that were not recovered or not functionally tested in Meng et al. 2023 contribute a relatively small fraction of effective tumor-reactive CD8 clones compared with the identified set, so that the mean number of identified tumor-reactive clonotypes per tumor provides a lower-bound but still informative estimate for n_CD8_clones.
+- |
+  The mapping between tumor-reactive CD8 clonotypes and the model antigen P1 is many-to-one: we treat n_CD8_clones as the number of distinct effective clones recognizing one or more immunodominant tumor antigens aggregated into P1, without resolving individual epitope specificities.
+
+key_study_limitations:
+- |
+  Meng et al. 2023 profiled only 9 PDAC tumors, and the number of tumor-reactive clonotypes per tumor is not reported explicitly; instead, the total of 93 tumor-reactive clonotypes across all tumors is used to derive an average, which may underestimate inter-patient variability.
+- |
+  Detection of tumor-reactive clonotypes depends on T cell viability, capture efficiency during single-cell sequencing, and the panel of functional assays used; low-frequency or weakly reactive clones are likely undercounted, so the inferred n_CD8_clones should be interpreted as a lower bound.
+- |
+  The dataset distinguishes genetically unstable from genetically stable PDAC tumors, with higher frequencies of tumor-reactive clones in unstable tumors; this submodel uses a single average value and does not capture genotype-dependent variation in n_CD8_clones.
+- |
+  The experimental definition of tumor reactivity (TCR-mediated recognition of autologous tumor cells in vitro) may not perfectly match in vivo efficacy, as it does not account for factors such as T cell exhaustion, metabolic constraints, or spatial exclusion by stroma.
+
+experimental_context:
+  species: human
+  system: ex_vivo_tumor_resection
+  cell_lines:
+  cell_types:
+  - name: CD8 T cell
+    phenotype: |
+      tumor-infiltrating CD8 positive T lymphocyte; tumor-reactive versus bystander subsets distinguished by TCR functional testing and transcriptional profile
+    isolation_method: |
+      CD8 positive T cells were isolated from freshly resected human PDAC tumors and profiled by single-cell RNA sequencing with paired TCR sequencing and functional testing against autologous tumor cells, as described by Meng et al. 2023.
+  culture_conditions:
+  indication: pancreatic ductal adenocarcinoma
+
+source_relevance:
+  indication_match: exact
+  indication_match_justification: |
+    Single-cell TCR sequencing and functional validation of tumor-reactive CD8 T cell clonotypes from resected human PDAC tumors provides direct quantification of anti-tumor T cell diversity in the target disease context.
+  species_source: human
+  species_target: human
+  source_quality: primary_human_clinical
+  perturbation_type: pathological_state
+  tme_compatibility: high
+  tme_compatibility_notes: |
+    T cells isolated from freshly resected human PDAC tumors directly reflect the clonal diversity present in the native tumor microenvironment.
+  estimated_translation_uncertainty_fold: 2.0
+
+primary_data_source:
+  doi: 10.1126/scitranslmed.adh9562
+  title: |
+    Transcriptome-based identification of tumor-reactive and bystander CD8+ T cell receptor clonotypes in human pancreatic cancer
+  authors:
+  - Meng Z
+  - Rodriguez Ehrenfried A
+  - Tan C L
+  - Steffens L K
+  - Kehm H
+  - Lauenstein C
+  - Poschke I
+  - Offringa R
+  year: 2023
+  source_tag: Meng2023_SciTM
+
+secondary_data_sources:
+- doi: 10.1080/2162402X.2016.1240859
+  url:
+  title: |
+    Identification of a tumor-reactive T-cell repertoire in the immune infiltrate of patients with resectable pancreatic ductal adenocarcinoma
+  authors:
+  - Poschke I
+  - Faryna M
+  - Bergmann F
+  - Offringa R
+  year: 2016
+  source_tag: Poschke2016_Oncoimmunology
+  contribution: |
+    Provides complementary evidence that PDAC tumors harbor clonally expanded tumor-infiltrating T cells whose TCR repertoires are dominated by a limited number of large clones, supporting the assumption that only a modest number of tumor-specific T cell clones contribute substantially to antitumor immunity.
+- doi: 10.3389/fimmu.2021.730746
+  url:
+  title: |
+    Tumor-Infiltrating B- and T-Cell Repertoire in Pancreatic Cancer Associated With Host and Tumor Features
+  authors:
+  - Pineda S
+  - Lopez de Maturana E
+  - Yu K
+  - Sirota M
+  year: 2021
+  source_tag: Pineda2021_FrontImmunol
+  contribution: |
+    Analyzes TCR diversity and clonotype distributions in large PDAC cohorts, showing reduced TCR diversity and evidence of clonal enrichment in tumors compared with normal pancreas, consistent with oligoclonal tumor-reactive T cell responses assumed in the QSP model.}]}
+
+target_id: n_CD8_clones_Meng2023_PDAC
+
+tags:
+- ai-generated
+
+logfire_trace_id: 019c00d3106b0d9ae9febd0aefb00c43
+extraction_model: gpt-5.1
+extraction_reasoning_effort: medium
+
+inputs:
+- name: total_TR_clonotypes_Meng2023
+  value: 93.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: direct_measurement
+  role: target
+  source_ref: Meng2023_SciTM
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    On the basis of a comprehensive dataset including 93 tumor-reactive and 65 bystander TCR clonotypes, we delineated a gene signature that effectively distinguishes between these T cell subsets in PDAC, as well as in other tumor indications.
+- name: n_PDAC_tumors_Meng2023
+  value: 9.0
+  units: dimensionless
+  uncertainty:
+  n:
+  input_type: inferred_estimate
+  role: auxiliary
+  source_ref: Meng2023_SciTM
+  source_location: Abstract
+  extraction_method: manual
+  value_snippet: |
+    This revealed a high frequency of tumor-reactive TCR clonotypes in three genetically unstable samples. In contrast, the T cell repertoire in six genetically stable PDAC tumors was largely dominated by bystander T cells.
+
+calibration:
+  parameters:
+  - name: n_CD8_clones
+    units: dimensionless
+    prior:
+      distribution: lognormal
+      mu: 2.3
+      sigma: 1.0
+      lower:
+      upper:
+      rationale: |
+        Tumor-reactive CD8 T cell repertoires in human PDAC tumors show on the order of 10 distinct tumor-reactive TCR clonotypes per tumor when 93 tumor-reactive clonotypes are distributed across 9 tumors in Meng et al. 2023, with substantial inter-patient variability. A lognormal prior with median around 10 and wide dispersion (approximate 95 percent interval 1-100) captures this scale while remaining weakly informative.
+
+  forward_model:
+    independent_variable:
+    state_variables:
+    type: algebraic
+    formula: n_CD8_clones = total_TR_clonotypes_Meng2023 / n_PDAC_tumors_Meng2023
+    code: |
+      def compute(params, inputs):
+          """Forward model: given n_CD8_clones, predict total clonotypes."""
+          n_clones = params['n_CD8_clones']
+          n_tumors_input = inputs['n_PDAC_tumors_Meng2023']
+          n_tumors = getattr(n_tumors_input, 'magnitude', n_tumors_input)
+          total_tr = n_clones * n_tumors
+          return total_tr
+    code_julia: |
+      function compute(params, inputs)
+          n_clones = params["n_CD8_clones"]
+          n_tumors = inputs["n_PDAC_tumors_Meng2023"]
+          total_tr = n_clones * n_tumors
+          return total_tr
+      end
+    data_rationale: |
+      Meng et al. 2023 used single-cell transcriptomics combined with functional testing of TCRs against autologous tumor cells to identify 93 tumor-reactive CD8 T cell receptor clonotypes across 9 PDAC tumors (3 genetically unstable, 6 genetically stable). This directly constrains the typical number of distinct tumor-reactive CD8 clonotypes per PDAC tumor.
+    submodel_rationale: |
+      In the full QSPIO-PDAC model, n_CD8_clones multiplies the rate of antigen-specific CD8 T cell activation and the amount of free tumor antigen P1 generated per cancer cell, effectively representing the number of distinct tumor-specific CD8 T cell clones recognizing independent epitopes. Assuming that each experimentally identified tumor-reactive TCR clonotype corresponds to one such functional clone, the average number of tumor-reactive clonotypes per tumor provides a direct estimate of n_CD8_clones in the baseline PDAC setting.
+
+  error_model:
+  - name: tumor_reactive_clones_per_tumor
+    units: dimensionless
+    uses_inputs:
+    - total_TR_clonotypes_Meng2023
+    - n_PDAC_tumors_Meng2023
+    sample_size: 9
+    sample_size_rationale: |
+      Meng et al. 2023 report 93 tumor-reactive TCR clonotypes identified across 3 genetically unstable and 6 genetically stable PDAC tumors (9 tumors total). We treat these 9 tumors as independent samples for the average number of tumor-reactive clones per tumor.
+    observation_code: |
+      def derive_observation(inputs, sample_size):
+          """
+          Derive observation (point estimate + uncertainty) from clonotype data.
+
+          The paper reports 93 tumor-reactive TCR clonotypes across 9 PDAC tumors.
+          The forward model predicts: total_clonotypes = n_CD8_clones * n_tumors
+
+          For lognormal likelihood on count data:
+          - value: total observed clonotypes (93)
+          - sd: log-scale SD from Poisson counting statistics
+
+          Poisson SD = sqrt(count), so CV = 1/sqrt(count) ≈ 0.104 for count=93
+          σ_log = sqrt(ln(1 + CV²)) ≈ 0.104
+          """
+          import numpy as np
+
+          total_tr = inputs['total_TR_clonotypes_Meng2023']
+
+          # Point estimate: total observed clonotypes
+          observed_value = total_tr
+
+          # Uncertainty from Poisson counting statistics
+          # CV = sqrt(count) / count = 1 / sqrt(count)
+          cv = 1.0 / np.sqrt(total_tr)
+          sigma_log = np.sqrt(np.log(1 + cv**2))
+
+          return {
+              'value': observed_value,
+              'sd': sigma_log,  # dimensionless for lognormal likelihood
+              'sd_uncertain': False,  # SD from Poisson counting statistics
+              'n': sample_size,
+          }
+    likelihood:
+      distribution: lognormal
+      rationale: |
+        Count data (total tumor-reactive clonotypes) is positive and well-modeled by lognormal likelihood when uncertainty arises from Poisson counting statistics. The log-scale SD captures the multiplicative uncertainty in the observation.
+
+  identifiability_notes: |
+    This submodel constrains n_CD8_clones primarily through the average number of experimentally identified tumor-reactive CD8 TCR clonotypes per PDAC tumor from Meng et al. 2023. Because the underlying dataset is small (9 tumors) and subject to detection limits (only clonotypes recovered and functionally tested are counted), the resulting constraint on n_CD8_clones is moderate. In the full QSP model, n_CD8_clones will be correlated with other parameters that scale antigen-driven T cell priming, such as P1_C1 (antigen per cancer cell), k_T_activation_per_APC, and n_T_expansion_burst. Additional data linking the absolute abundance of tumor-reactive CD8 T cells (e.g., tetramer frequencies or functional ELISPOT counts per tumor) to clinical responses in PDAC would help break these correlations and more tightly identify n_CD8_clones.
