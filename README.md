@@ -10,7 +10,7 @@ MAPLE is a framework for LLM-assisted calibration of quantitative systems pharma
 maple-paper/
 ├── paper/                        # Manuscript
 │   ├── main.tex                  # Main manuscript
-│   ├── supplementary.tex         # Supplementary materials (S1-S5)
+│   ├── supplementary.tex         # Supplementary materials (S1-S15)
 │   ├── references.bib            # Bibliography
 │   └── generated/                # Auto-generated tables, figures, and LaTeX macros
 │
@@ -114,6 +114,16 @@ pdflatex main.tex
 - **S3**: Validation checks with code examples (DOI, value-in-snippet, unit validators)
 - **S4**: Generated Julia/Turing.jl code structure
 - **S5**: Pydantic model definitions
+- **S6**: SubmodelTarget schema details
+- **S7**: Complete CalibrationTarget example
+- **S8**: SubmodelTarget source characteristics
+- **S9**: CalibrationTarget detailed metrics
+- **S10**: Inference results
+- **S11**: Model-aware prompt construction details
+- **S12**: Schema implementation details
+- **S13**: Source relevance assessment details
+- **S14**: Collaboration mode details
+- **S15**: Detailed comparison to existing approaches
 
 ## Related Repository
 

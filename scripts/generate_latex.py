@@ -236,8 +236,7 @@ def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
         retries = t.get("retries", 0)
         duration = t.get("duration", 0) / 60  # Convert to minutes
         tokens = t.get("tokens", 0)
-        cost = t.get("cost", 0)
-        rows.append(f"{name} & {retries} & {duration:.1f} & {tokens:,} & \\${cost:.2f}")
+        rows.append(f"{name} & {retries} & {duration:.1f} & {tokens:,}")
 
     rows_tex = " \\\\\n".join(rows)
 
@@ -246,13 +245,13 @@ def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
 \centering
 \caption{{Extraction metrics per calibration target.}}
 \label{{tab:extraction}}
-\begin{{tabular}}{{lcccc}}
+\begin{{tabular}}{{lccc}}
 \toprule
-Target & Retries & Duration (min) & Tokens & Cost \\
+Target & Retries & Duration (min) & Tokens \\
 \midrule
 {rows_tex} \\
 \midrule
-\textbf{{Average}} & \textbf{{{metrics.total_retries / max(metrics.n_targets, 1):.1f}}} & \textbf{{{metrics.avg_duration_min:.1f}}} & \textbf{{{metrics.avg_tokens:,}}} & \textbf{{\${metrics.avg_cost:.2f}}} \\
+\textbf{{Average}} & \textbf{{{metrics.total_retries / max(metrics.n_targets, 1):.1f}}} & \textbf{{{metrics.avg_duration_min:.1f}}} & \textbf{{{metrics.avg_tokens:,}}} \\
 \bottomrule
 \end{{tabular}}
 \end{{table}}"""
@@ -300,7 +299,7 @@ def generate_error_categories_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated error categories table
 \begin{{table}}[htbp]
 \centering
-\caption{{Error categories encountered during extraction. Each target may have multiple errors.}}
+\caption{{Error categories caught by validators during batch extraction. Units: incorrect or inconsistent unit conversions. Prior: proposed uncertainty range incompatible with stated translation context. Fabrication: LLM-generated DOIs or citations that do not resolve to real publications. Code: observation function fails unit checks or execution. Hallucination: extracted values not found in the cited source text. Each target may trigger multiple errors.}}
 \label{{tab:error-categories}}
 \begin{{tabular}}{{lcc}}
 \toprule

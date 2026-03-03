@@ -496,6 +496,26 @@ Four validators check that all cross-references within the schema are consistent
 
 These validators catch internal inconsistencies where an LLM generates references to entities that don't exist elsewhere in the document.
 
+\subsection{Code Execution Validation}
+
+Code validation goes beyond syntax checking. The validator parses the code structure, then executes it with mock data to verify correct behavior. For \texttt{observation\_code}, execution must return the required dictionary keys (\texttt{value}, \texttt{sd}, \texttt{sd\_uncertain}) with appropriate types. For observable code, execution must return arrays with correct units and dimensions. This catches logic errors and signature mismatches before inference.
+
+\subsection{Hardcoded Constant Detection}
+
+Hardcoded constant detection scans code blocks for numeric literals that should be documented inputs. The parser identifies constants (e.g., \texttt{1440} for a minutes-to-days conversion) that are not in the allowed set (small integers 0--5, common fractions, statistical percentiles). Each flagged constant must either be moved to an input with provenance or documented as an \texttt{observable\_constant} with a \texttt{biological\_basis} explanation.
+
+\subsection{Scale Consistency Validation}
+
+Scale consistency validation executes observable code with mock species data spanning a 1000-fold range. If the output is constant despite varying inputs, or if the output magnitude suggests a ratio/score mismatch (e.g., values near 100 when 0--1 is expected), validation warns of potential unit or scaling errors.
+
+\subsection{Control Character Validation}
+
+Control character validation scans all string fields for characters that corrupt YAML parsing (ASCII control codes, non-breaking spaces, and similar). PDF copy-paste often introduces invisible characters that cause parsing failures; this validator catches them before they propagate.
+
+\subsection{CalibrationTarget-Specific Validation}
+
+CalibrationTarget adds validators for full-model observables. Observable code is executed against mock species data to verify correct function signatures, output dimensionality, and unit consistency. A denominator audit requires that density or fraction observables explicitly document what tissue area or cell population serves as the denominator, both experimentally and in the model, catching a common source of order-of-magnitude errors. Species existence checks verify that every species referenced in the observable code exists in the model structure. Distribution code is executed with the declared inputs to verify that computed summary statistics (median and CI95) match the values reported in the empirical data block within tolerance (1\% for median, 10\% for CI bounds), catching transcription errors and code bugs before they propagate to calibration.
+
 %=============================================================================
 \section{Generated Julia Code Structure}
 \label{sec:julia-code}
@@ -1311,6 +1331,69 @@ Figure~\ref{fig:posteriors} shows posterior estimates for all \nUniqueParams{} p
 Most posteriors are narrower than their priors, indicating that the data constrained the parameters. The tumor growth rate \texttt{k\_C1\_growth} (\KConeGrowthMed{} day$^{-1}$, 90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}) implies a doubling time of about 130 days, consistent with clinical PDAC observations. The activated PSC death rate \texttt{k\_apsc\_death} (\KApscDeathMed{} day$^{-1}$) implies a half-life of about 10 days.
 
 The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall within the 7--8 generation range expected from CFSE proliferation tracking, where dye dilution limits counting. The CD8+ estimate (\NIltwoCdeightMed{}) is somewhat lower, possibly reflecting differences in experimental conditions between the source studies.
+
+%=============================================================================
+\section{Model-Aware Prompt Construction Details}
+\label{sec:prompt-construction}
+%=============================================================================
+
+For each target parameter, the prompt injects mechanistic context extracted from the model structure. The system automatically retrieves: the parameter's name, units, and biological description; the reactions where the parameter appears with their rate laws; the species involved in those reactions with descriptions; other parameters appearing in the same reactions; and the broader reaction network showing other reactions that involve the same species. For example, when searching for data to calibrate a proliferation rate \texttt{k\_apsc\_prolif}, the prompt includes the reaction \texttt{aPSC -> 2*aPSC} with rate law \texttt{k\_apsc\_prolif * aPSC}, species descriptions explaining that aPSC represents activated pancreatic stellate cells, and related parameters like death rates that appear in the same reaction network.
+
+This context guides the LLM's search toward experiments that actually constrain the target parameters, rather than experiments that mention similar concepts but measure different quantities. The broader reaction network helps the LLM identify whether additional parameters should be jointly calibrated. Extracting multiple parameters from the same study is intentional and preferred when the data supports it, as shared experimental conditions reduce inter-study variability.
+
+To encourage literature diversity, source exclusion prevents the LLM from reusing papers across extractions. The prompt includes a list of primary sources already used for other calibration targets, and a strict exclusion mode extends this to sources used by related parameters in the same reaction network.
+
+Beyond mechanistic context, the prompt includes the complete schema structure with field descriptions, enabling the LLM to generate valid output without trial and error. The prompt also provides explicit guidance on common pitfalls: distinguishing SEM from SD (with conversion formulas), avoiding hardcoded numeric values in code blocks, and properly documenting source relevance for cross-species or cross-indication extractions. By showing validation requirements upfront (such as the prohibition on non-peer-reviewed sources and required uncertainty thresholds for proxy data), the prompt reduces the retry loop by preventing predictable errors.
+
+%=============================================================================
+\section{Schema Implementation Details}
+\label{sec:schema-implementation-detail}
+%=============================================================================
+
+Both schemas are implemented using Pydantic \citep{Colvin_Pydantic_Validation_2025}, a Python library for declarative data validation. Each schema component is defined as a Pydantic model with typed fields and constraints. When YAML is parsed, Pydantic validates all constraints automatically: required fields must be present, values must match declared types, enumerations must use allowed values, and cross-field constraints must be satisfied.
+
+The validation error messages are detailed and structured, reporting the field path, expected type, and actual value for each violation. This specificity is important for the LLM retry loop: when extraction fails validation, the error message provides actionable feedback. For example, a snippet validation error reports ``Value-snippet mismatches (possible hallucination): input 'cell\_count\_mean' has value 4.37 but snippet contains '3.21'. Check that extracted values match the source text exactly.'' This tells the LLM both what failed and how to fix it.
+
+SubmodelTarget uses discriminated unions for its 15 forward model types: the \texttt{type} field determines which additional fields are required, ensuring type-specific validation without manual dispatch logic. CalibrationTarget uses a class hierarchy with shared base models for source documentation, relevance assessment, and experimental context.
+
+%=============================================================================
+\section{Source Relevance Assessment Details}
+\label{sec:source-relevance-detail}
+%=============================================================================
+
+Each target includes structured metadata about its data sources. The \texttt{primary\_data\_source} block captures the main reference: DOI, title, authors, year, and a short \texttt{source\_tag} used for cross-referencing elsewhere in the schema. Secondary sources that provide supporting context (e.g., reviews explaining biological mechanisms, or related studies used for uncertainty estimation) are listed in \texttt{secondary\_data\_sources}, each with a \texttt{contribution} field explaining how that source informs the extraction.
+
+The \texttt{indication\_match} field classifies how well the source disease context matches the model: \texttt{exact} (same indication), \texttt{related} (same organ or disease class), \texttt{proxy} (different tissue used as mechanistic proxy), or \texttt{unrelated}. Cross-indication extractions require a justification explaining why the data is still informative.
+
+Species translation is captured by \texttt{species\_source} and \texttt{species\_target} fields. When these differ (e.g., mouse data informing a human model), the extraction must document the assumed translation.
+
+The \texttt{source\_quality} field categorizes the evidence type: \texttt{primary\_human\_clinical}, \texttt{primary\_human\_in\_vitro}, \texttt{primary\_animal\_in\_vivo}, \texttt{primary\_animal\_in\_vitro}, \texttt{review\_article}, or \texttt{textbook}. By default, non-peer-reviewed sources trigger a validation warning; in practice, preprints (e.g., from bioRxiv) that have been publicly available for several months can provide valuable data, and the validator can be configured to accept them with documented justification.
+
+For immune and stromal parameters, \texttt{tme\_compatibility} assesses whether the tumor microenvironment in the source matches the target model (\texttt{high}, \texttt{moderate}, or \texttt{low}). A T cell trafficking rate measured in melanoma (a T cell-permissive tumor) may not translate directly to PDAC (an immunosuppressive tumor); low compatibility requires explicit documentation.
+
+Finally, \texttt{estimated\_translation\_uncertainty\_fold} quantifies the expected uncertainty from all translation factors combined. Cross-species extraction from a proxy indication with low TME compatibility might warrant 10-fold or greater uncertainty, which propagates to prior width during inference.
+
+%=============================================================================
+\section{Collaboration Mode Details}
+\label{sec:collaboration-modes}
+%=============================================================================
+
+The two collaboration modes observed in this study offer different trade-offs. In the batch pipeline mode, the LLM produces a structured draft that the modeler then curates interactively: selecting appropriate forward model types and prior distributions for SubmodelTargets, correcting observable code and species mappings for CalibrationTargets, and revising source relevance assessments for both. This mode is efficient for initial coverage (many files per run) but carries a high rejection rate (58\% in a documented batch review) because the LLM lacks real-time modeler guidance on source selection, species mapping, and denominator definitions. In the interactive mode, the modeler and LLM work together from the start, with the modeler directing extraction decisions while the LLM handles text generation, code writing, and literature comprehension. This mode produces near-final quality but requires deeper per-file engagement.
+
+In both modes, the schema serves as the collaboration interface. It defines what information must be captured (ensuring completeness), constrains how it is represented (enabling validation), and separates data extraction from modeling decisions (clarifying where different types of expertise are needed). The validators provide guardrails during both LLM extraction and human editing, catching errors regardless of their source.
+
+%=============================================================================
+\section{Detailed Comparison to Existing Approaches}
+\label{sec:detailed-comparison}
+%=============================================================================
+
+General-purpose biomedical extraction frameworks like LLM-IE \citep{hsuLLMIEPythonPackage2025} provide building blocks for named entity recognition and relation extraction, but do not address the downstream requirements of QSP calibration: uncertainty quantification, forward model specification, and code generation for inference. Interactive systems like SciDaSynth \citep{wangSciDaSynthInteractiveStructured2025} support structured data extraction with human-in-the-loop refinement, but focus on tabular output rather than the hierarchical schema needed for QSP model calibration. QSP-Copilot \citep{sainiQSPCopilotAIAugmentedPlatform2025a} applies LLMs to QSP model development broadly, including literature extraction, but emphasizes model structure discovery (entity-interaction pairs) rather than quantitative parameter calibration with provenance.
+
+The validation approach in MAPLE draws on established strategies for hallucination detection. Requiring extracted values to appear in quoted source text is analogous to the grounding strategies used in retrieval-augmented generation \citep{liMitigatingHallucinationLarge2025}, where LLM outputs are verified against retrieved documents. The schema-based validation enforces structural constraints similar to those in constrained decoding and structured output systems, where JSON schemas guide LLM generation toward valid output \citep{gengJSONSchemaBenchRigorous2025}. The key contribution is combining these strategies with domain-specific validators (DOI resolution, unit parsing, code execution) in a framework tailored to quantitative scientific extraction.
+
+Recent work on knowledge graph construction from biomedical literature \citep{heAIpoweredImmuneCell2026, gaoJointExtractionEntity2024} demonstrates that LLMs can extract structured relationships at scale. The Immune Cell Knowledge Graph (ICKG) used zero-shot prompting with Llama 3.1 to extract activation and inhibition relationships from over 24,000 PubMed abstracts. Such approaches prioritize coverage and can tolerate some extraction errors because downstream analyses aggregate across many relationships. Parameter calibration has different requirements: each extracted value directly influences model predictions, so individual errors matter more. MAPLE trades some throughput for higher per-target validation stringency.
+
+The IQ Consortium has outlined best practices for AI/ML in quantitative modeling, including the use of NLP for knowledge extraction from biomedical literature \citep{terranovaArtificialIntelligenceQuantitative2024a}. They emphasize explainability, human-in-the-loop oversight, and consideration of context of use. MAPLE aligns with these principles: the schema documents reasoning and provenance, validators catch errors before human review, and the generated code is transparent and modifiable. The growing interest in coupling QSP with machine learning \citep{folguera-blascoCouplingQuantitativeSystems2024a, pawlowskiEmulationQuantitativeSystems2024, goryaninRevolutionizingDrugDiscovery2025, androulakisDawnNewEra2025} suggests that hybrid approaches combining mechanistic modeling with data-driven methods will become increasingly important; automated literature extraction is one component of this broader integration. Recent work has also explored using LLMs directly as tools for comparing and synthesizing perspectives on QSP methodology \citep{androulakisLeveragingLargeLanguage2025}. While we evaluate MAPLE on a QSP model, the approach is not limited to pharmacology: any parameter-rich mechanistic model that draws calibration data from literature (e.g., systems biology signaling networks, physiologically-based models) could benefit from structured extraction with validation.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}

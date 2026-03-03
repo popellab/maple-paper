@@ -9,7 +9,7 @@ This repository contains the manuscript for MAPLE (Model-Aware Parameter Literat
 ```
 paper/                          # Manuscript
   main.tex                      # Main manuscript (Intro, Methods, Results, Discussion)
-  supplementary.tex             # Supplementary materials (S1-S5)
+  supplementary.tex             # Supplementary materials (S1-S15)
   references.bib                # Bibliography
   generated/                    # Auto-generated tables, figures, and LaTeX macros
 
@@ -90,5 +90,5 @@ julia scripts/joint_calibration.jl           # Run Bayesian inference
 
 ## Current State
 
-- Manuscript: Complete (all sections)
-- Supplementary S1-S5: Complete
+- Manuscript: Complete (all sections, CPT:PSP compliant)
+- Supplementary S1-S15: Complete (S11-S15 contain detail moved from main text for word limit compliance)
