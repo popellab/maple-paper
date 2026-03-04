@@ -47,6 +47,11 @@
 
 \noindent\textit{Keywords:} quantitative systems pharmacology, model calibration, large language models, parameter extraction, structured validation
 
+\medskip
+\noindent\textit{Conflict of Interest:} A.S.P. receives research funding from Merck and Pfizer in the area of QSP modeling; he is also a founder and holds equity in OptaNova Pharma and Terebra Therapeutics outside the work described therein. The terms of these arrangements are being managed by the Johns Hopkins University in accordance with its conflict-of-interest policies. J.E. declares that the research was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.
+
+\noindent\textit{Funding:} The research was funded by the Lustgarten Foundation: Pancreatic Cancer Research.
+
 %=============================================================================
 % ABSTRACT
 %=============================================================================
@@ -61,7 +66,7 @@ Quantitative systems pharmacology (QSP) models require calibration data from pub
 
 Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response \citep{gadkarSixStageWorkflowRobust2016}. QSP models can comprise tens to hundreds of ordinary differential equations, and calibration requires data from diverse sources including targeted experimental studies and clinical endpoints \citep{wangQuantitativeSystemsPharmacology2025, wangVirtualPatientsDigital2024}. Because virtual population generation and virtual clinical trials depend on parameter distributions rather than point estimates \citep{riegerImprovingGenerationSelection2018a, craigPracticalGuideGeneration2023}, calibration must quantify uncertainty. As QSP increasingly integrates with machine learning \citep{folguera-blascoCouplingQuantitativeSystems2024a, terranovaArtificialIntelligenceQuantitative2024a, goryaninRevolutionizingDrugDiscovery2025, androulakisDawnNewEra2025, androulakisLeveragingLargeLanguage2025}, the bottleneck of manual parameter extraction becomes more acute.
 
-Extracting calibration data from literature requires judgment about applicability, uncertainty, and potential biases, with full provenance for reproducibility. We use the term \textit{calibration target} to refer to a structured representation of experimental data that captures what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters. Many experiments isolate specific mechanisms (e.g., in vitro proliferation assays, ex vivo cytotoxicity studies) and directly constrain individual parameters.
+Extracting calibration data from literature requires judgment about applicability, uncertainty, and potential biases, with full provenance for reproducibility. We use the term \textit{calibration target} to refer to a structured representation of published data that captures what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters. Some studies isolate specific mechanisms (e.g., in vitro proliferation assays, ex vivo cytotoxicity studies) and directly constrain individual parameters, while clinical and in vivo endpoints constrain the integrated model.
 
 Manual curation remains the standard approach but is labor-intensive, with inconsistent documentation across individuals and projects. When personnel change, the reasoning behind parameter choices may be lost. Without structured representations, combining constraints from multiple experiments requires ad-hoc scripting with no standard path from extracted data to inference code. Traditional NLP pipelines for automated extraction require task-specific training data \citep{zhaoRecentAdvancesBiomedical2021, huAccurateMedicalNamed2024, gonzalezhernandezNamedEntityRecognition2024} and do not generalize to the diverse parameter types in QSP modeling.
 
@@ -156,7 +161,7 @@ We applied MAPLE to extract SubmodelTargets for a PDAC QSP model, covering tumor
 
 \input{generated/extraction_table}
 
-None of the extractions passed validation on the first attempt; all required at least one automated retry (Figure~\ref{fig:retry-distribution}). Seven targets succeeded after a single retry, while parameters like CCL2 secretion and ECM production required up to \maxRetries{} iterations to resolve unit ambiguities or conflicting literature. Each extraction took \avgDurationMin{} minutes on average, consuming \avgTokens{} tokens per target (\totalTokensM{}M total). The validators caught \totalErrorsCaught{} errors during extraction (Table~\ref{tab:error-categories}), with unit errors most common, followed by fabrication (invalid DOIs), prior specification, and code errors. The LLM used \toolWebSearch{} web searches and \toolCodeExecution{} code executions.
+None of the extractions passed validation on the first attempt; all required at least one automated retry (Figure~\ref{fig:retry-distribution}). Seven targets succeeded after a single retry, while parameters like CCL2 secretion and PSC activation required up to \maxRetries{} iterations to resolve unit ambiguities or conflicting literature. Each extraction took \avgDurationMin{} minutes on average, consuming \avgTokens{} tokens per target (\totalTokensM{}M total). The validators caught \totalErrorsCaught{} errors during extraction (Table~\ref{tab:error-categories}), with unit errors most common, followed by fabrication (invalid DOIs), prior specification, and code errors. The LLM used \toolWebSearch{} web searches and \toolCodeExecution{} code executions.
 
 \begin{figure}[htbp]
 \centering
@@ -188,7 +193,7 @@ We applied the CalibrationTarget schema to \ctTotal{} full-model endpoints for t
 
 Of the \ctTotal{} targets, \ctGPT{} were extracted by GPT-5.1 through the batch pipeline, \ctClaude{} interactively with Claude Opus 4 using source PDFs, and \ctManual{} manually. The \ctTreatment{} neoadjuvant immunotherapy targets include per-patient data digitized from scatter plots (\ctFigureDigitizedPct{} of all CalibrationTargets). Curation metrics for both extraction modes are reported in Section~\ref{sec:curation}.
 
-The observables span \ctUniqueSpecies{} unique model species, with complexity ranging from \ctSpeciesMin{} to \ctSpeciesMax{} species per target (mean \ctSpeciesMean{}). The targets drew from \ctUniqueDOIs{} unique primary sources (\ctYearMin{}--\ctYearMax{}). Supplementary Section~\ref{sec:ct-detailed-metrics} provides detailed per-target metrics.
+The observables span \ctUniqueSpecies{} unique model species, with complexity ranging from \ctSpeciesMin{} to \ctSpeciesMax{} species per target (mean \ctSpeciesMean{}). The targets drew from \ctUniqueDOIs{} unique primary sources (from years \ctYearMin{}--\ctYearMax{}). Supplementary Section~\ref{sec:ct-detailed-metrics} provides detailed per-target metrics.
 
 \subsection{Code Generation and Inference}
 
@@ -263,18 +268,6 @@ Claude (Anthropic) and GPT-5.1 (OpenAI) were used for literature search, data ex
 %=============================================================================
 
 J.E. designed research, performed research, analyzed data, and wrote the manuscript. A.S.P. designed research and wrote the manuscript.
-
-%=============================================================================
-\section*{Funding}
-%=============================================================================
-
-The research was funded by the Lustgarten Foundation: Pancreatic Cancer Research.
-
-%=============================================================================
-\section*{Conflict of Interest}
-%=============================================================================
-
-A.S.P. receives research funding from Merck and Pfizer in the area of QSP modeling; he is also a founder and holds equity in OptaNova Pharma and Terebra Therapeutics outside the work described therein. The terms of these arrangements are being managed by the Johns Hopkins University in accordance with its conflict-of-interest policies. J.E. declares that the research was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.
 
 %=============================================================================
 \section*{Data Availability Statement}
