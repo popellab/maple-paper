@@ -7,8 +7,10 @@
 \usepackage{multirow}
 \usepackage{float}
 \usepackage{hyperref}
-\usepackage[numbers]{natbib}
+\usepackage[super,comma]{natbib}
+\usepackage{doi}
 \usepackage[dvipsnames]{xcolor}
+\usepackage{pdflscape}
 
 \title{Supplementary Materials:\\Structured Schemas for LLM-Expert Collaboration in QSP Model Calibration}
 \author{Joel Eliason and Aleksander S. Popel}
@@ -282,6 +284,7 @@ The SubmodelTarget schema has the following top-level structure:
 
 The SubmodelTarget schema supports 15 built-in forward model types, organized into four categories.
 
+\begin{landscape}
 \begin{table}[htbp]
 \centering
 \caption{Built-in forward model types organized by category.}
@@ -315,6 +318,7 @@ Accumulation
 \bottomrule
 \end{tabular}
 \end{table}
+\end{landscape}
 
 Each structured steady-state and accumulation model declares its fields as typed roles: a field can reference a calibration parameter (to be estimated), an extracted input (from the inputs layer), a curated reference value from a shared database, or a numeric literal. This role-based design allows the same template to serve different estimation scenarios depending on which field is treated as the unknown.
 
@@ -1395,7 +1399,7 @@ Recent work on knowledge graph construction from biomedical literature \citep{he
 
 The IQ Consortium has outlined best practices for AI/ML in quantitative modeling, including the use of NLP for knowledge extraction from biomedical literature \citep{terranovaArtificialIntelligenceQuantitative2024a}. They emphasize explainability, human-in-the-loop oversight, and consideration of context of use. MAPLE aligns with these principles: the schema documents reasoning and provenance, validators catch errors before human review, and the generated code is transparent and modifiable. The growing interest in coupling QSP with machine learning \citep{folguera-blascoCouplingQuantitativeSystems2024a, pawlowskiEmulationQuantitativeSystems2024, goryaninRevolutionizingDrugDiscovery2025, androulakisDawnNewEra2025} suggests that hybrid approaches combining mechanistic modeling with data-driven methods will become increasingly important; automated literature extraction is one component of this broader integration. Recent work has also explored using LLMs directly as tools for comparing and synthesizing perspectives on QSP methodology \citep{androulakisLeveragingLargeLanguage2025}. While we evaluate MAPLE on a QSP model, the approach is not limited to pharmacology: any parameter-rich mechanistic model that draws calibration data from literature (e.g., systems biology signaling networks, physiologically-based models) could benefit from structured extraction with validation.
 
-\bibliographystyle{unsrtnat}
+\bibliographystyle{vancouver}
 \bibliography{references}
 
 \end{document}

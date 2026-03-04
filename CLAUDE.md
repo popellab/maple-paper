@@ -38,6 +38,9 @@ scripts/                        # Statistics and inference generation
   validate_submodel_target.py   # Schema + value-in-snippet validation
   validate_snippets_in_source.py
   joint_calibration.jl          # Generated Julia inference script
+  export_docx.sh                # Export main + supplementary to Word docx via pandoc
+  postprocess_docx.py           # Post-process docx (caption numbering, bold headers)
+  clean_bbl.py                  # Strip BibTeX formatting artifacts from .bbl for pandoc
   logfire/                      # Logfire observability queries
     pull_ct_extraction_metrics.py  # Pull CalibrationTarget extraction metrics
     query_logfire.py               # Query extraction run traces
@@ -86,7 +89,15 @@ python scripts/generate_ct_stats.py          # CalibrationTarget stats
 python scripts/generate_inference.py metadata_storage/submodel_targets/curated --skip-single
 julia scripts/joint_calibration.jl           # Run Bayesian inference
 # Then build paper: cd paper && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
+# Export to Word docx: ./scripts/export_docx.sh
 ```
+
+## Bibliography
+
+- Style: Vancouver (vancouver.bst) with superscript numbered citations via natbib
+- The doi package handles DOI rendering; vancouver.bst is configured with `adddoiresolver=1` and outputs `\doi{}` commands
+- Docx export uses pandoc with `vancouver-superscript.csl` (CSL has `initialize-with` for author initials)
+- The `clean_bbl.py` script strips BibTeX `{{double braces}}` and `{\relax}` wrappers for pandoc compatibility
 
 ## Current State
 

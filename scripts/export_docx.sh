@@ -4,7 +4,10 @@
 
 set -e
 
-cd "$(dirname "$0")/../paper"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+cd "$REPO_ROOT/paper"
 
 # Preprocess main.tex: replace supplementary cross-refs with section numbers
 # since pandoc can't resolve \externaldocument refs
@@ -32,20 +35,30 @@ pandoc main_preprocessed.tex \
   --from latex \
   --to docx \
   --bibliography references.bib \
+  --csl vancouver-superscript.csl \
   --citeproc \
   --number-sections \
+  --table-caption-position=below \
+  --reference-doc reference.docx \
+  --metadata reference-section-title=References \
   --output main.docx
 
 rm main_preprocessed.tex
-echo "Created paper/main.docx"
 
 # Also export supplementary
 pandoc supplementary.tex \
   --from latex \
   --to docx \
   --bibliography references.bib \
+  --csl vancouver-superscript.csl \
   --citeproc \
   --number-sections \
+  --table-caption-position=below \
+  --reference-doc reference.docx \
+  --metadata reference-section-title=References \
   --output supplementary.docx
 
-echo "Created paper/supplementary.docx"
+# Post-process: number captions and style them
+"$REPO_ROOT/.venv/bin/python3" "$SCRIPT_DIR/postprocess_docx.py" main.docx supplementary.docx
+
+echo "Created paper/main.docx and paper/supplementary.docx"

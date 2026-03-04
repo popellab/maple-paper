@@ -40,6 +40,9 @@ maple-paper/
 │   ├── generate_ct_stats.py
 │   ├── validate_submodel_target.py
 │   ├── joint_calibration.jl      # Generated Julia inference script
+│   ├── export_docx.sh            # Export to Word docx via pandoc
+│   ├── postprocess_docx.py       # Post-process docx (captions, bold headers)
+│   ├── clean_bbl.py              # Strip BibTeX artifacts for pandoc
 │   └── logfire/                  # Logfire observability queries
 │       ├── pull_ct_extraction_metrics.py
 │       ├── query_logfire.py
@@ -106,6 +109,14 @@ bibtex main
 pdflatex main.tex
 pdflatex main.tex
 ```
+
+### Exporting to Word
+
+```bash
+./scripts/export_docx.sh
+```
+
+This uses pandoc with Vancouver-superscript CSL for bibliography formatting, and post-processes the output to number captions and bold table headers. Requires `python-docx` in the virtual environment.
 
 ## Supplementary Materials
 
