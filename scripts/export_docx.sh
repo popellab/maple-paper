@@ -9,6 +9,12 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$REPO_ROOT/paper"
 
+# Convert PDF figures to PNG for docx compatibility
+for pdf in generated/figures/*.pdf; do
+  png="${pdf%.pdf}.png"
+  magick -density 300 "$pdf" "$png"
+done
+
 # Preprocess main.tex: replace supplementary cross-refs with section numbers
 # since pandoc can't resolve \externaldocument refs
 sed \
@@ -29,6 +35,7 @@ sed \
   -e 's/\\ref{sec:collaboration-modes}/S14/g' \
   -e 's/\\ref{sec:detailed-comparison}/S15/g' \
   -e '/\\externaldocument/d' \
+  -e 's/\.pdf}/\.png}/g' \
   main.tex > main_preprocessed.tex
 
 pandoc main_preprocessed.tex \
