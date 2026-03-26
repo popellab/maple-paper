@@ -35,7 +35,7 @@
 \label{sec:complete-example}
 %=============================================================================
 
-This section presents a complete calibration target for activated pancreatic stellate cell (aPSC) proliferation, demonstrating all schema components.
+This section presents a complete SubmodelTarget for activated pancreatic stellate cell (aPSC) proliferation, demonstrating all schema components.
 
 \subsection{Overview}
 
@@ -1341,9 +1341,9 @@ The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall wi
 \label{sec:prompt-construction}
 %=============================================================================
 
-For each target parameter, the prompt injects mechanistic context extracted from the model structure. The system automatically retrieves: the parameter's name, units, and biological description; the reactions where the parameter appears with their rate laws; the species involved in those reactions with descriptions; other parameters appearing in the same reactions; and the broader reaction network showing other reactions that involve the same species. For example, when searching for data to calibrate a proliferation rate \texttt{k\_apsc\_prolif}, the prompt includes the reaction \texttt{aPSC -> 2*aPSC} with rate law \texttt{k\_apsc\_prolif * aPSC}, species descriptions explaining that aPSC represents activated pancreatic stellate cells, and related parameters like death rates that appear in the same reaction network.
+For each target, the prompt injects mechanistic context extracted from the model structure. For target parameters, the system automatically retrieves: the parameter's name, units, and biological description; the reactions where the parameter appears with their rate laws; the species involved in those reactions with descriptions; other parameters appearing in the same reactions; and the broader reaction network showing other reactions that involve the same species. For target observables, the system retrieves the observable's name, units, and description, along with the species and compartments that define it. For example, when searching for data to calibrate a proliferation rate \texttt{k\_apsc\_prolif}, the prompt includes the reaction \texttt{aPSC -> 2*aPSC} with rate law \texttt{k\_apsc\_prolif * aPSC}, species descriptions explaining that aPSC represents activated pancreatic stellate cells, and related parameters like death rates that appear in the same reaction network.
 
-This context guides the LLM's search toward experiments that actually constrain the target parameters, rather than experiments that mention similar concepts but measure different quantities. The broader reaction network helps the LLM identify whether additional parameters should be jointly calibrated. Extracting multiple parameters from the same study is intentional and preferred when the data supports it, as shared experimental conditions reduce inter-study variability.
+This context guides the LLM's search toward experiments that actually constrain the targets, rather than experiments that mention similar concepts but measure different quantities. For parameters, the broader reaction network helps the LLM identify whether additional parameters should be jointly calibrated. Extracting multiple parameters from the same study is intentional and preferred when the data supports it, as shared experimental conditions reduce inter-study variability.
 
 To encourage literature diversity, source exclusion prevents the LLM from reusing papers across extractions. The prompt includes a list of primary sources already used for other calibration targets, and a strict exclusion mode extends this to sources used by related parameters in the same reaction network.
 
