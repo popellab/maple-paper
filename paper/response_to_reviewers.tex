@@ -1,0 +1,322 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[super,comma]{natbib}
+\usepackage{doi}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xr-hyper}
+\externaldocument{main}
+\externaldocument{supplementary}
+
+% Pull in any generated stats macros used in inserted snippets
+\input{generated/extraction_stats}
+\input{generated/codegen_stats}
+\input{generated/yaml_stats}
+\input{generated/ct_stats}
+\input{generated/inference_stats}
+\input{generated/curation_stats}
+
+\definecolor{reviewercolor}{RGB}{170,0,0}
+\definecolor{responsecolor}{RGB}{0,100,0}
+
+\newcommand{\reviewer}[1]{\textcolor{reviewercolor}{\textit{#1}}}
+\newcommand{\response}[1]{\textcolor{responsecolor}{\textbf{Response:} #1}}
+
+\providecommand{\trackchanges}{1}
+\newenvironment{revised}{\if1\trackchanges\color{blue}\fi}{}
+\newcommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
+
+\title{Response to Reviewers\\
+\large Manuscript PSP-2026-0079:\\
+``Structured Schemas for LLM-Modeler Collaboration in\\
+Quantitative Systems Pharmacology Model Calibration''}
+\author{Joel Eliason and Aleksander S. Popel}
+\date{}
+
+\begin{document}
+\maketitle
+
+We thank the Editor-in-Chief and both reviewers for their careful reading of the manuscript and for comments that have substantially strengthened the work. Below we respond to each point in turn. \textbf{Reviewer comments appear in red italics, our responses in green, and verbatim insertions or replacements in the revised manuscript in blue.} Each blue block is also present in the corresponding location of the revised manuscript, with the same colour highlighting, so reviewers can locate each change in context.
+
+\bigskip
+
+\section*{Summary of Changes}
+
+The principal revisions are:
+\begin{itemize}[leftmargin=*]
+  \item Recalibrated the framing of LLM versus modeler contribution in the abstract, introduction, and discussion to match the curation evidence (R1 Major \#1).
+  \item Acknowledged confounds in the batch-versus-interactive comparison (R1 Major \#2).
+  \item Corrected the effective sample size statement and added citations supporting biological plausibility claims (R1 Major \#3).
+  \item Added caveats on generalizability and a Generalization Requirements paragraph (R1 Major \#4).
+  \item Documented the CalibrationTarget metrics gap and pinned the MAPLE version (v0.1.0, commit \texttt{7f1faa4}) used to generate the reported results (R1 Major \#5, Minor \#5).
+  \item Audited and reconciled all target counts, corrected Table 3, and clarified the dataset accounting (R2).
+  \item Added a workflow figure and a compact schema example, and expanded the human-curation analysis (R2).
+  \item Editorial: page and line numbers, ORCID IDs, conflict of interest and funding statements on the title page, figures as separate files, AI use disclosure, reference audit.
+\end{itemize}
+
+\bigskip
+
+\section*{Reviewer \#1}
+
+We thank Reviewer 1 for the careful and generous reading, and especially for noting the principles behind the \texttt{source\_relevance} block and the value-in-snippet check. The major comments identified the places where the original framing outran the evidence; we have corrected each.
+
+\subsection*{Major comments}
+
+\subsubsection*{1. Framing of LLM vs.\ modeler contribution}
+
+\reviewer{The title says ``LLM-Modeler Collaboration,'' but the data tells us the modeler changed the forward model type in 65\% of files, adjusted priors in 46\%, and revised source relevance in 100\%. After curation, the LLM's surviving contribution is essentially literature identification, snippet extraction, and YAML scaffolding. That is genuinely useful, but it is closer to an intelligent assistant than a scientific collaborator. I am not suggesting this is a weakness; it may be exactly the right division of labor. But the framing should match the evidence. Explicitly characterizing the LLM as handling mechanical tasks while the modeler provides scientific content would actually make the contribution claim more defensible.}
+
+\response{Agreed that the original framing overclaimed the LLM's role. We have revised the abstract, the closing paragraph of the Introduction, and the opening of Section~\ref{sec:modeler-contribution} to describe the LLM as competent at the scientific tasks it is given when supplied with sufficient context, while characterising the modeler's primary contribution as supplying or correcting the context the LLM cannot infer from the static prompt. The new Section~\ref{sec:curation-categories} enumerates the categories of context the modeler supplies, with concrete examples from this dataset.}
+
+\medskip
+
+Revised abstract closing (replaces the final two sentences of the abstract):
+
+\begin{revised}
+\input{snippets/r1m1_abstract_framing}
+\end{revised}
+
+\medskip
+
+Revised closing paragraph of the Introduction:
+
+\begin{revised}
+\input{snippets/r1m1_intro_framing}
+\end{revised}
+
+\medskip
+
+Revised opening of Section~\ref{sec:modeler-contribution} (``Modeler Contribution and Limitations of Extracted Data''):
+
+\begin{revised}
+\input{snippets/r1m1_disc_framing}
+\end{revised}
+
+\bigskip
+
+\subsubsection*{2. Batch vs.\ interactive comparison}
+
+\reviewer{The batch pipeline used GPT-5.1; interactive extraction used Claude Opus 4. Since these differ in capability, context handling, and error profiles, the observed differences between modes could reflect the LLM rather than the workflow. Combined with learning effects (the modeler curated batch outputs before doing interactive work), the comparison is observational at best. I would not ask for a controlled experiment, but the text should explicitly acknowledge these confounds rather than implying interactive mode is inherently superior.}
+
+\response{Agreed. Section~\ref{sec:curation} now closes with an explicit confounds paragraph; we no longer present the batch-versus-interactive difference as evidence of mode-level superiority.}
+
+\medskip
+
+Inserted at the end of Section~\ref{sec:curation}:
+
+\begin{revised}
+\input{snippets/r1m2_batch_interactive_confounds}
+\end{revised}
+
+\bigskip
+
+\subsubsection*{3. Inference validation}
+
+\reviewer{The inference section appropriately serves as a pipeline demonstration rather than a full calibration study. However, the claim that all ESS $>$ 3000 is contradicted by Table~9 (\texttt{N\_IL2\_CD8} tail-ESS = 1334, \texttt{N\_IL2\_CD4} tail-ESS = 2549) and should be corrected. The biological plausibility claims (e.g., $\sim$130-day doubling time) should cite specific clinical references, a paper setting this standard for provenance in extraction should apply it to its own results.}
+
+\response{ESS statement corrected in both main text and Supplementary Section~\ref{sec:inference-results} to report the actual bulk- and tail-ESS ranges and to explain the lower tail-ESS values for the hierarchical clone-count parameters. The doubling-time claim now cites the two clinical sources that supplied the underlying prior \citep{ahnTimeProgressionPancreatic2017, jangMissedPancreaticDuctal2015}.}
+
+\medskip
+
+Replacement sentence in Section~\ref{sec:results} (Code Generation and Inference):
+
+\begin{revised}
+\input{snippets/r1m3_main_inference_fix}
+\end{revised}
+
+\medskip
+
+Replacement paragraph in Supplementary Section~\ref{sec:inference-results}:
+
+\begin{revised}
+\input{snippets/r1m3_supp_inference_fix}
+\end{revised}
+
+\bigskip
+
+\subsubsection*{4. Generalizability claims}
+
+\reviewer{The evaluation covers one model, one disease area, one group. This is perfectly acceptable for a methods paper introducing a new framework, but the abstract and Discussion should say so. Notably, 49\% of SubmodelTargets used the generic ``algebraic'' type, meaning the 15 built-in templates covered only about half the use cases even for this model. A brief ``Generalization Requirements'' paragraph discussing what adaptation would be needed for a non-oncology application would be helpful.}
+
+\response{Agreed. We added a scope caveat to the abstract and a ``Generalization requirements'' paragraph to Section~\ref{sec:limitations} (Limitations and Future Work) that separates the domain-independent components from the forward-model type library, notes that \mtAlgebraicPct{} of SubmodelTargets used the generic algebraic type, and discusses what adaptation a non-oncology application would require.}
+
+\medskip
+
+Added to the abstract:
+
+\begin{revised}
+\input{snippets/r1m4_abstract_caveat}
+\end{revised}
+
+\medskip
+
+Added to Section~\ref{sec:limitations} (Limitations and Future Work):
+
+\begin{revised}
+\input{snippets/r1m4_generalization_requirements}
+\end{revised}
+
+\bigskip
+
+\subsubsection*{5. CalibrationTarget metrics gap}
+
+\reviewer{Per-target extraction metrics are reported only for the 18 SubmodelTargets. For the 59 CalibrationTargets, the majority of the dataset, there are no retries, tokens, or error breakdowns. I understand this is because the Logfire tracing was only instrumented for SubmodelTargets, but even aggregate statistics would help the reader assess performance on the more complex schema.}
+
+\response{The reviewer is correct about the cause. The CalibrationTarget extraction runs predate the Logfire instrumentation, so per-target retry, token, and error metrics were never recorded for that cohort and cannot be reconstructed faithfully. We did not re-run the CalibrationTarget extraction to recover these metrics: the reported results were generated with MAPLE v0.1.0 (commit \texttt{7f1faa4}, now pinned in the Data Availability Statement), and because LLM extraction is stochastic, a fresh run would not reproduce the original even at the same version, so any backfilled metrics would describe a different run than the one behind the reported targets. We have instead made the gap explicit in Section~\ref{sec:ct-extraction} and the Limitations, and we note that the schema-validation and curation results already reported for the CalibrationTarget cohort are the performance evidence specific to that schema.}
+
+\medskip
+
+Added to Section~\ref{sec:ct-extraction} (CalibrationTarget Extraction):
+
+\begin{revised}
+\input{snippets/r1m5_ct_metrics_gap}
+\end{revised}
+
+\bigskip
+
+\subsection*{Minor comments}
+
+\subsubsection*{1. Table 10 units}
+\reviewer{All parameter units listed as ``-'' in a paper about rigorous unit tracking. Please correct.}\\
+\response{Corrected. The table generator was reading parameter units from a path that is not part of the public repository, so every unit fell back to ``---''. The generator now reads units from \texttt{model\_structure.json} (with the three submodel-only parameters sourced from \texttt{model\_definitions.json} and the curated YAMLs), and Table~\ref{tab:posteriors} now reports the correct units, with genuinely unitless quantities shown explicitly as ``dimensionless''.}
+
+\subsubsection*{2. External validator}
+\reviewer{The snippet-in-paper validator (Section~2.3.3) is described but its pass/fail rate is not reported. If it was systematically applied, report results; if not, clarify its status.}\\
+\response{It was not applied systematically across the full corpus. Because external full-text availability is uneven across sources, the external validator was used as an on-demand spot-check during curation; we have clarified this in Section~\ref{sec:external-validation} and made explicit that the internal value-in-snippet check is the systematically applied anti-hallucination defense.}
+
+\begin{revised}
+It is provided in the repository as an on-demand verification tool and was applied selectively during curation rather than as part of the automated per-target validation gate, since external full-text availability is uneven across sources; the value-in-snippet check described above is the systematically applied internal anti-hallucination defense.
+\end{revised}
+
+\subsubsection*{3. Threshold justification}
+\reviewer{The fuzzy-match thresholds (75\% title, 80\% snippet) and uncertainty multipliers (2-fold cross-species, 3-fold cross-indication) directly affect what passes validation. Brief justification would help.}\\
+\response{Added a brief justification to the Content Validation subsection (Section~\ref{sec:results}, Methods).}
+
+\begin{revised}
+The fuzzy-match thresholds (75\% for titles, 80\% for snippets) were set to tolerate minor formatting, punctuation, and OCR differences between extracted and source text while still rejecting genuinely different strings; the cross-species, cross-indication, and low-TME multipliers are conservative minimum uncertainty defaults, applied as floors that the modeler may widen further when source applicability is weaker.
+\end{revised}
+
+\subsubsection*{4. Prompt availability}
+\reviewer{Extraction prompts are described conceptually but not provided. Since results are prompt-dependent, representative prompts should be in the repository.}\\
+\response{The representative extraction prompts for both schemas are included in the MAPLE repository; the Data Availability Statement now states this explicitly.}
+
+\subsubsection*{5. LLM versioning}
+\reviewer{Exact model identifiers and API dates should be recorded for reproducibility.}\\
+\response{Exact identifiers and the extraction period are now recorded in Section~\ref{sec:results} (Application: PDAC QSP Model).}
+
+\begin{revised}
+Batch SubmodelTarget extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed in February 2026.
+\end{revised}
+
+\subsubsection*{6. 58\% rejection rate}
+\reviewer{This derives from N=12 CalibrationTarget files. Note the limited sample size or report confidence intervals.}\\
+\response{We added a sentence noting that this rate comes from a single small batch and should be read as indicative.}
+
+\begin{revised}
+This rate comes from a single small batch and should be read as indicative rather than a precise rejection rate.
+\end{revised}
+
+\subsubsection*{7. Terminology}
+\reviewer{``Calibration target'' as general concept vs.\ CalibrationTarget as schema name is occasionally confusing. A brief clarification early on would help.}\\
+\response{To remove the ambiguity at its source, we eliminated the lower-case ``calibration target'' as a general term throughout the manuscript and supplementary materials. The manuscript now refers to the two schemas by name (\texttt{SubmodelTarget} and \texttt{CalibrationTarget}) and uses ``calibration data'' for the general concept, and we note this convention explicitly in the Schema Design section.}
+
+\begin{revised}
+For clarity, the manuscript refers to these two schemas by name (\texttt{SubmodelTarget} and \texttt{CalibrationTarget}) rather than using ``calibration target'' as a general term.
+\end{revised}
+
+\subsubsection*{8. Figure 1}
+\reviewer{The retry distribution bar chart for 18 targets could be reported inline. Consider whether it warrants a figure.}\\
+\response{Agreed. We removed the figure and report the full retry distribution inline in Section~\ref{sec:results}.}
+
+\begin{revised}
+Seven targets succeeded after a single retry, three each after two, three, and five retries, and one each after six and seven retries; \ldots
+\end{revised}
+
+\subsubsection*{9. QSP-Copilot comparison}
+\reviewer{Section~4.4 characterizes QSP-Copilot as focusing solely on model structure discovery, but it does include literature extraction components. The contrast is slightly overstated.}\\
+\response{Rephrased the comparison in Section~\ref{sec:results} (Relationship to Existing Approaches) to acknowledge QSP-Copilot's literature extraction components.}
+
+\begin{revised}
+\ldots and QSP-focused tools like QSP-Copilot, which include literature extraction components but emphasize model structure discovery rather than quantitative parameter calibration with documented provenance and uncertainty propagation.
+\end{revised}
+
+\subsubsection*{10. PDAC model availability}
+\reviewer{The model is ``adapted from'' an unpublished bioRxiv preprint. Is the PDAC model itself available for independent evaluation?}\\
+\response{The PDAC QSP model is part of separate work by our group that has not yet been published, so the full model cannot be released independently at this time. The structural representation that MAPLE actually consumes (the model structure, species and parameter definitions, and unit mappings) is included in the \texttt{maple-paper} repository, so the extraction inputs and the reported evaluation are reproducible without the full model implementation, and MAPLE itself is model-agnostic. We have clarified this in the Data Availability Statement.}
+
+\begin{revised}
+The underlying PDAC QSP model is part of separate work that has not yet been published; the structural representation that MAPLE consumes (model structure, species and parameter definitions, and unit mappings) is included in the \texttt{maple-paper} repository, so the extraction inputs and reported evaluation are fully reproducible. The complete PDAC model will be released with its own publication.
+\end{revised}
+
+\subsubsection*{11. Cost context}
+\reviewer{$\sim$218K tokens per target is reported, but without even rough modeler time estimates, readers cannot assess net efficiency. A qualitative discussion would help.}\\
+\response{Added a qualitative paragraph to the Discussion (Section~\ref{sec:modeler-contribution}) on the token-versus-modeler-time trade-off and why we do not report a controlled time comparison.}
+
+\begin{revised}
+\input{snippets/r1m11_cost_context}
+\end{revised}
+
+\bigskip
+
+\section*{Reviewer \#2}
+
+We thank Reviewer 2 for the constructive framing of MAPLE as a structured handoff between modeler and machine and for the targeted requests to tighten quantitative accounting and supplement the manuscript with figure and schema material. We address each below.
+
+\subsection*{Comments}
+
+\subsubsection*{Inconsistent target counts}
+\reviewer{Several target counts appear inconsistent. For example, the manuscript reports 87 targets versus 18 SubmodelTargets plus 59 CalibrationTargets, it later mention of 37 curated SubmodelTargets, and a scenario table that appears not to sum to 59 (Table~3).}\\
+\response{The Table~\ref{tab:ct-summary} discrepancy was a loader bug: \texttt{generate\_ct\_stats.py} recursively included 5 retired targets held under \texttt{baseline\_no\_treatment/excluded/}; the loader now skips \texttt{excluded/} paths and the table sums correctly to \ctTotal{}. The remaining apparent inconsistencies came from three distinct cohorts (batch-instrumented SubmodelTargets, \nTargets{}; final curated SubmodelTargets, \nYAMLTargets{}; final CalibrationTargets, \ctTotal{}) that were not consistently named; the abstract, Methods, Results, supplementary, and data-availability statements now use these denominators consistently. The earlier 87-target figure was the curation-paired throughput (a distinct quantity from the inference cohort) and has been removed from the abstract.}
+
+\subsubsection*{Validator performance and residual errors}
+\reviewer{It would also help clarifying validator performance, reporting whether errors remained after validation.}\\
+\response{No final target retains an unresolved validator failure: every SubmodelTarget and CalibrationTarget passes the full validator suite. We have clarified in Section~\ref{sec:results} (Validation as the Core Mechanism) that automated validation certifies structural, provenance, unit, and code correctness but not the scientific judgment in the calibration layer, and that the errors which survive validation are judgment errors measured by the curation revision rates rather than validator failures.}
+
+\begin{revised}
+\input{snippets/r2_residual_errors}
+\end{revised}
+
+\subsubsection*{Workflow figure and compact schema example}
+\reviewer{$\ldots$ as well as adding a workflow figure and one compact schema example $\ldots$}\\
+\response{We have added a compact SubmodelTarget example (Figure~\ref{fig:compact-schema}) to the Schema Design section, showing the two-layer inputs/calibration structure in roughly thirty lines, and a workflow figure (Figure~\ref{fig:workflow}) at the top of the Methods section showing the end-to-end pipeline (parameter target, LLM literature search, extraction, automated validation with retry, modeler curation with re-extract and revise-source feedback edges, and joint Bayesian inference).}
+
+\medskip
+
+The added figures appear in the marked-up manuscript at the top of the Methods section (workflow) and within the Schema Design subsection (compact SubmodelTarget example).
+
+\subsubsection*{Expanded human-curation analysis}
+\reviewer{$\ldots$ expanding the human-curation analysis.}\\
+\response{The new Section~\ref{sec:curation-categories} enumerates seven recurring categories of modeler-supplied context observed across SubmodelTarget and CalibrationTarget curation, each illustrated with a concrete example from the dataset (units, source selection, cross-source aggregation, auxiliary-parameter bridging, denominator choices, scenario-specific forward-model structure, and uncertainty widening from source quality). The existing field-level rates in Section~\ref{sec:curation} remain.}
+
+\bigskip
+
+\section*{Editorial Office}
+
+\subsection*{Comments}
+
+\subsubsection*{Page and line numbers}
+\response{Both the main manuscript and the Supplementary Materials now carry continuous page and line numbers (the \texttt{lineno} package, with page numbers in the footer).}
+
+\subsubsection*{ORCID IDs}
+\response{ORCID identifiers have been added to the title page: J.E.\ \texttt{0000-0003-2227-8727}; A.S.P.\ \texttt{0000-0002-6706-9235}.}
+
+\subsubsection*{Conflict of Interest and Funding}
+\response{The title page already carries a Conflict of Interest statement covering both authors and a Funding statement (Lustgarten Foundation: Pancreatic Cancer Research); these match the information entered in the submission system.}
+
+\subsubsection*{Figures as separate files; captions at end}
+\response{Figures are provided as separate files at submission, one figure per file, with the figure labels removed from the image files; the figure legends are collected at the end of the main manuscript file.}
+
+\subsubsection*{AI use disclosure}
+\response{The Acknowledgments section discloses the use of AI tools: Claude (Anthropic) and GPT-5.1 (OpenAI) for the literature search, data extraction, and code generation that constitute the study method, and Claude Code (\texttt{claude-opus-4-6}) for manuscript preparation and interactive curation, with all AI-generated content reviewed and verified by the authors.}
+
+\subsubsection*{Reference completeness}
+\response{We audited the reference list. Every in-text citation resolves to a complete bibliography entry, all entries carry a DOI or full publication details, and no reference is cited only in a figure or table caption (so no reordering of figure/table references is required). Reference metadata was cross-checked against Crossref, arXiv, and Semantic Scholar.}
+
+\bibliographystyle{vancouver}
+\bibliography{references}
+
+\end{document}

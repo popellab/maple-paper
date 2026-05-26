@@ -297,9 +297,6 @@ def main():
         "% Interactive extraction (claude-opus-4-6)",
         f"\\newcommand{{\\ctInteractiveFiles}}{{{interactive['n_files']}}}",
         f"\\newcommand{{\\ctInteractiveTotalLines}}{{{interactive['total_lines']:,}}}",
-        "%",
-        "% Total target files (SMT derivations + all CTs)",
-        f"\\newcommand{{\\totalTargetFiles}}{{{total_ct_files}}}",
     ]
     OUTPUT.write_text("\n".join(lines) + "\n")
     print(f"\nWrote {OUTPUT}")

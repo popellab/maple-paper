@@ -11,8 +11,15 @@
 \usepackage{doi}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{pdflscape}
+\usepackage{lineno}
+\linenumbers
 
-\title{Supplementary Materials:\\Structured Schemas for LLM-Expert Collaboration in QSP Model Calibration}
+% Revision tracking
+\providecommand{\trackchanges}{1}
+\newenvironment{revised}{\if1\trackchanges\color{blue}\fi}{}
+\newcommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
+
+\title{Supplementary Materials:\\Structured Schemas for LLM-Modeler Collaboration in Quantitative Systems Pharmacology Model Calibration}
 \author{Joel Eliason and Aleksander S. Popel}
 \date{}
 
@@ -258,7 +265,7 @@ secondary_data_sources:
 The SubmodelTarget schema has the following top-level structure:
 
 \begin{itemize}
-    \item \textbf{target\_id}: Unique identifier for the calibration target
+    \item \textbf{target\_id}: Unique identifier for the target
     \item \textbf{inputs}: List of values extracted from literature with provenance
     \item \textbf{calibration}: Everything needed for inference code generation
     \begin{itemize}
@@ -451,7 +458,7 @@ ValidationError: Value-snippet mismatches (possible hallucination):
     'Cell proliferation was 3.21-fold of control...'
 \end{verbatim}
 
-This validator is particularly effective because LLMs that hallucinate values rarely fabricate consistent snippets---the mismatch provides a reliable detection signal.
+This validator is particularly effective because LLMs that hallucinate values rarely fabricate consistent snippets, so the mismatch provides a reliable detection signal.
 
 \subsection{Unit Validation}
 
@@ -573,7 +580,7 @@ For joint inference over multiple targets, the translator identifies shared para
 \label{sec:pydantic-models}
 %=============================================================================
 
-This section provides the key Pydantic model definitions that implement both calibration target schemas. The full implementations are available in the repository at \texttt{src/qsp\_llm\_workflows/core/calibration/}.
+This section provides the key Pydantic model definitions that implement both schemas. The full implementations are available in the repository at \texttt{src/qsp\_llm\_workflows/core/calibration/}.
 
 \subsection{Top-Level Model}
 
@@ -755,7 +762,7 @@ class Prior(BaseModel):
 
 \subsection{Loading and Validating YAML Files}
 
-To load and validate a calibration target:
+To load and validate a target:
 
 \begin{verbatim}
 import yaml
@@ -998,46 +1005,46 @@ calibration:
 
 \subsection{Forward Model Specification}
 
-The forward model captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice.
+The forward model (\texttt{model} field) captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice.
 
-Code block~\ref{lst:model} shows a forward model using the exponential growth template.
+Code block~\ref{lst:model} shows a forward model using the exponential growth template, together with the surrounding state variables and independent-variable block.
 
 \begin{figure}[H]
 \begin{verbatim}
 calibration:
-  forward_model:
+  state_variables:
+    - name: aPSC_rel
+      units: dimensionless
+      initial_condition:
+        value: 1.0
+        rationale: Normalized to control baseline.
+  model:
     type: exponential_growth
     rate_constant: k_apsc_prolif
-    independent_variable:
-      name: time
-      units: day
-      span: [0.0, 1.0]
-    state_variables:
-      - name: aPSC_rel
-        units: dimensionless
-        initial_condition:
-          value: 1.0
-          rationale: Normalized to control baseline.
     data_rationale: |
       BrdU assay measures proliferation over ~24h with
       constant PDGF stimulus. Exponential growth fits.
     submodel_rationale: |
       At saturating PDGF, the full model reduces to
       dN/dt = k_apsc_prolif * N.
+  independent_variable:
+    name: time
+    units: day
+    span: [0.0, 1.0]
 \end{verbatim}
 \caption{Forward model specification with state variable and time span.}
 \label{lst:model}
 \end{figure}
 
-\subsection{Error Model Specification}
+\subsection{Measurement Specification}
 
-The error model specifies the statistical relationship between predictions and observed data. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
+Each entry of the \texttt{measurements} list specifies the statistical relationship between model predictions and one observed quantity. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
 
-Code block~\ref{lst:error-model} shows a complete error model entry.
+Code block~\ref{lst:error-model} shows a complete measurement entry.
 
 \begin{figure}[H]
 \begin{verbatim}
-  error_model:
+  measurements:
     - name: viability_48h
       units: dimensionless
       uses_inputs: [viability_mean, viability_sem]
@@ -1222,9 +1229,9 @@ empirical_data:
 \begin{verbatim}
 primary_data_source:
   doi: "10.7717/peerj.11397"
-  title: ""; expression of immune cell markers in the tumor
+  title: "Expression of immune cell markers in the tumor
           microenvironment and association with survival"
-  authors: [Jansen, van Doorn,"; et al"]
+  authors: [Jansen, van Doorn, et al]
   year: 2021
   source_tag: Jansen2021
 
@@ -1257,7 +1264,7 @@ key_study_limitations:
 \label{sec:source-characteristics}
 %=============================================================================
 
-This section provides detailed breakdowns of source quality, species translation, and indication match for the \nTargets{} SubmodelTarget extractions.
+This section provides detailed breakdowns of source quality, species translation, and indication match for the \revisedtext{\nYAMLTargets{} curated} SubmodelTarget extractions.
 
 \subsection{Source Quality}
 
@@ -1302,7 +1309,7 @@ Of the \ctAIGenerated{} AI-generated targets, \ctHumanVerified{} (\ctHumanVerifi
 
 \subsection{Primary Data Sources}
 
-The \ctTotal{} targets drew from \ctUniqueDOIs{} unique primary sources (by DOI), with publication years spanning \ctYearMin{}--\ctYearMax{}. Two sources contributed the majority of targets: a neoadjuvant immunotherapy trial (Li et al., Cancer Cell, 2022) provided data for all \ctTreatment{} GVAX/nivolumab targets, and a large-scale immunohistochemistry study (Liudahl et al., Cancer Discovery, 2021) provided data for 11 baseline targets covering immune cell densities, fractions, and ratios.
+The \ctTotal{} targets drew from \ctUniqueDOIs{} unique primary sources (by DOI), with publication years spanning \ctYearMin{}--\ctYearMax{}. Two sources contributed the majority of targets: a neoadjuvant immunotherapy trial (Li et al., Cancer Cell, 2022) provided data for all \ctTreatment{} GVAX/nivolumab targets, and a large-scale immunohistochemistry study (Liudahl et al., Cancer Discovery, 2021) provided data for 12 baseline targets covering immune cell densities, fractions, and ratios.
 
 \section{Inference Results}
 \label{sec:inference-results}
@@ -1315,7 +1322,7 @@ The generated script is self-contained, requiring only DifferentialEquations.jl,
 
 \subsection{Convergence Diagnostics}
 
-We ran \nChains{} chains of \nSamples{} samples each using the NUTS sampler. All parameters achieved $\hat{R} < 1.01$ and effective sample sizes above 3000 (Table~\ref{tab:convergence}). Sampling took about 42 seconds on an M-series MacBook Air.
+\begin{revised}\input{snippets/r1m3_supp_inference_fix}\end{revised}
 
 \input{generated/convergence_table}
 
@@ -1345,7 +1352,7 @@ For each target, the prompt injects mechanistic context extracted from the model
 
 This context guides the LLM's search toward experiments that actually constrain the targets, rather than experiments that mention similar concepts but measure different quantities. For parameters, the broader reaction network helps the LLM identify whether additional parameters should be jointly calibrated. Extracting multiple parameters from the same study is intentional and preferred when the data supports it, as shared experimental conditions reduce inter-study variability.
 
-To encourage literature diversity, source exclusion prevents the LLM from reusing papers across extractions. The prompt includes a list of primary sources already used for other calibration targets, and a strict exclusion mode extends this to sources used by related parameters in the same reaction network.
+To encourage literature diversity, source exclusion prevents the LLM from reusing papers across extractions. The prompt includes a list of primary sources already used for other targets, and a strict exclusion mode extends this to sources used by related parameters in the same reaction network.
 
 Beyond mechanistic context, the prompt includes the complete schema structure with field descriptions, enabling the LLM to generate valid output without trial and error. The prompt also provides explicit guidance on common pitfalls: distinguishing SEM from SD (with conversion formulas), avoiding hardcoded numeric values in code blocks, and properly documenting source relevance for cross-species or cross-indication extractions. By showing validation requirements upfront (such as the prohibition on non-peer-reviewed sources and required uncertainty thresholds for proxy data), the prompt reduces the retry loop by preventing predictable errors.
 

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository contains the manuscript for MAPLE (Model-Aware Parameter Literature Extraction), a framework for LLM-assisted QSP model calibration. The paper targets CPT: Pharmacometrics & Systems Pharmacology.
+This repository contains the manuscript for MAPLE (Model-Aware Parameterization from Literature Evidence), a framework for LLM-assisted QSP model calibration. The paper targets CPT: Pharmacometrics & Systems Pharmacology.
 
 ## Repository Layout
 

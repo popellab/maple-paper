@@ -17,6 +17,12 @@
 \usepackage{doi}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{float}
+\usepackage{rotating}
+
+% Revision tracking: set \trackchanges to 1 to render revised text in blue, 0 to suppress.
+\providecommand{\trackchanges}{1}
+\newenvironment{revised}{\if1\trackchanges\color{blue}\fi}{}
+\newcommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
@@ -38,7 +44,8 @@
 
 \author{Joel Eliason$^{1,*}$ and Aleksander S. Popel$^{1}$\\[0.5em]
 \small $^{1}$Department of Biomedical Engineering, Johns Hopkins University, Baltimore, MD, USA\\[0.3em]
-\small $^{*}$Corresponding author: jeliaso2@jh.edu}
+\small $^{*}$Corresponding author: jeliaso2@jh.edu\\[0.3em]
+\small ORCID: J.E.\ \href{https://orcid.org/0000-0003-2227-8727}{0000-0003-2227-8727}; A.S.P.\ \href{https://orcid.org/0000-0002-6706-9235}{0000-0002-6706-9235}}
 
 \date{}
 
@@ -51,14 +58,14 @@
 \medskip
 \noindent\textit{Conflict of Interest:} A.S.P. receives research funding from Merck and Pfizer in the area of QSP modeling; he is also a founder and holds equity in OptaNova Pharma and Terebra Therapeutics outside the work described therein. The terms of these arrangements are being managed by the Johns Hopkins University in accordance with its conflict-of-interest policies. J.E. declares that the research was conducted in the absence of any commercial or financial relationships that could be construed as a potential conflict of interest.
 
-\noindent\textit{Funding:} The research was funded by the Lustgarten Foundation: Pancreatic Cancer Research.
+\noindent\textit{Funding:} This work was supported in part by NIH grants R01CA138264 and U01CA212007 and the Lustgarten Foundation: Pancreatic Cancer Research.
 
 %=============================================================================
 % ABSTRACT
 %=============================================================================
 
 \begin{abstract}
-Quantitative systems pharmacology (QSP) models require calibration data from published literature, yet manual curation produces inconsistent documentation while large language model (LLM) extraction exhibits hallucination and fabrication errors unacceptable for quantitative modeling. We present MAPLE (Model-Aware Parameterization from Literature Evidence), a framework that uses structured validation schemas as a collaboration interface between LLMs and modelers. Two complementary schemas capture calibration data at different scales: one for isolated experiments that constrain individual parameters through simplified forward models, and one for clinical and in vivo endpoints that constrain the full model through species-level observables. Both schemas separate data extraction from modeling decisions, capturing literature values with full provenance in a machine-verifiable form. Targeted validators catch characteristic LLM errors: value-in-snippet matching detects hallucinated values, DOI resolution flags fabricated citations, and code execution catches malformed forward models. We evaluate MAPLE on \totalTargetFiles{} calibration targets for a pancreatic ductal adenocarcinoma (PDAC) QSP model, using two collaboration modes: batch LLM extraction followed by interactive curation, and interactive extraction where modeler and LLM collaborate in real time. Both modes required substantial modeler input: the modeler changed forward model types in \smtFmTypeChangedPct{} of SubmodelTargets, adjusted prior parameters in \smtPriorChangedPct{}, and revised source relevance assessments in all files. Interactively extracted targets embedded modeler effort in the extraction process, producing near-final output. The schemas ensure completeness and enable reproducible, provenance-rich calibration regardless of workflow.
+Quantitative systems pharmacology (QSP) models require calibration data from published literature, yet manual curation produces inconsistent documentation while large language model (LLM) extraction exhibits hallucination and fabrication errors unacceptable for quantitative modeling. We present MAPLE (Model-Aware Parameterization from Literature Evidence), a framework that uses structured validation schemas as a collaboration interface between LLMs and modelers. Two complementary schemas capture calibration data at different scales: one for isolated experiments that constrain individual parameters through simplified forward models, and one for clinical and in vivo endpoints that constrain the full model through species-level observables. Both schemas separate data extraction from modeling decisions, capturing literature values with full provenance in a machine-verifiable form. Targeted validators catch characteristic LLM errors: value-in-snippet matching detects hallucinated values, DOI resolution flags fabricated citations, and code execution catches malformed forward models. We evaluate MAPLE on \revisedtext{\nYAMLTargets{} SubmodelTargets and \ctTotal{} CalibrationTargets} for a pancreatic ductal adenocarcinoma (PDAC) QSP model, using two collaboration modes: batch LLM extraction followed by interactive curation, and interactive extraction where modeler and LLM collaborate in real time. Both modes required substantial modeler input: the modeler changed forward model types in \smtFmTypeChangedPct{} of SubmodelTargets, adjusted prior parameters in \smtPriorChangedPct{}, and revised source relevance assessments in all files. \begin{revised}\input{snippets/r1m1_abstract_framing}\end{revised} Interactively extracted targets embedded modeler effort in the extraction process, producing near-final output. The schemas ensure completeness and enable reproducible, provenance-rich calibration regardless of workflow. \begin{revised}\input{snippets/r1m4_abstract_caveat}\end{revised}
 \end{abstract}
 
 %=============================================================================
@@ -67,27 +74,36 @@ Quantitative systems pharmacology (QSP) models require calibration data from pub
 
 Quantitative systems pharmacology models translate mechanistic understanding of disease biology into predictions of drug response \citep{gadkarSixStageWorkflowRobust2016}. QSP models can comprise tens to hundreds of ordinary differential equations, and calibration requires data from diverse sources including targeted experimental studies and clinical endpoints \citep{wangQuantitativeSystemsPharmacology2025, wangVirtualPatientsDigital2024}. Because virtual population generation and virtual clinical trials depend on parameter distributions rather than point estimates \citep{riegerImprovingGenerationSelection2018a, craigPracticalGuideGeneration2023}, calibration must quantify uncertainty. As QSP increasingly integrates with machine learning \citep{folguera-blascoCouplingQuantitativeSystems2024a, terranovaArtificialIntelligenceQuantitative2024a, goryaninRevolutionizingDrugDiscovery2025, androulakisDawnNewEra2025, androulakisLeveragingLargeLanguage2025}, the bottleneck of manual parameter extraction becomes more acute.
 
-Extracting calibration data from literature requires judgment about applicability, uncertainty, and potential biases, with full provenance for reproducibility. We use the term \textit{calibration target} to refer to a structured representation of published data that captures what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters or observables. Some studies isolate specific mechanisms (e.g., in vitro proliferation assays, ex vivo cytotoxicity studies) and directly constrain individual parameters, while clinical and in vivo endpoints constrain the integrated model through observables computed over the full system state.
+Extracting calibration data from literature requires judgment about applicability, uncertainty, and potential biases, with full provenance for reproducibility. \revisedtext{A structured representation of such data captures} what was measured, under what conditions, with what uncertainty, and how that measurement relates to model parameters or observables. Some studies isolate specific mechanisms (e.g., in vitro proliferation assays, ex vivo cytotoxicity studies) and directly constrain individual parameters, while clinical and in vivo endpoints constrain the integrated model through observables computed over the full system state.
 
 Manual curation remains the standard approach but is labor-intensive, with inconsistent documentation across individuals and projects. When personnel change, the reasoning behind parameter choices may be lost. Without structured representations, combining constraints from multiple experiments requires ad-hoc scripting with no standard path from extracted data to inference code. Traditional NLP pipelines for automated extraction require task-specific training data \citep{zhaoRecentAdvancesBiomedical2021, huAccurateMedicalNamed2024, gonzalezhernandezNamedEntityRecognition2024} and do not generalize to the diverse parameter types in QSP modeling.
 
 Large language models offer a more flexible approach. LLMs can identify relevant literature given mechanistic context, read scientific text, and extract information into structured templates \citep{heAIpoweredImmuneCell2026, khanCollaborativeLargeLanguage2024, sainiQSPCopilotAIAugmentedPlatform2025a, hsuLLMIEPythonPackage2025, wangSciDaSynthInteractiveStructured2025}. However, LLMs exhibit hallucination and fabrication errors that are unacceptable for quantitative modeling \citep{farquharDetectingHallucinationsLarge2024, huangSurveyHallucinationLarge2025, panditMedHalluComprehensiveBenchmark2025}. Many of these failure modes, however, are amenable to systematic detection: hallucinated values can be caught by requiring verbatim source text, fabricated citations through DOI resolution, and internal inconsistencies through schema validation. This suggests a workflow where LLMs handle extraction while automated validators catch characteristic errors, with Pydantic \citep{Colvin_Pydantic_Validation_2025}, a Python data validation library, enabling a self-correcting retry loop.
 
-We present MAPLE (Model-Aware Parameterization from Literature Evidence), a framework for LLM-assisted QSP model calibration with four components: (1) model-aware literature search using mechanistic context to guide LLM web search; (2) validated YAML schemas for two calibration regimes (isolated experiments constraining individual parameters, and clinical/in vivo endpoints constraining the full model), separating data extraction from model specification while preserving traceability; (3) targeted validators for hallucination detection (value-in-snippet matching), citation verification (DOI resolution), and code correctness; and (4) code generation for Bayesian inference. We evaluate MAPLE on calibration targets for a PDAC QSP model and report metrics on validation performance and extraction reliability.
+We present MAPLE (Model-Aware Parameterization from Literature Evidence), a framework for LLM-assisted QSP model calibration with four components: (1) model-aware literature search using mechanistic context to guide LLM web search; (2) validated YAML schemas for two calibration regimes (isolated experiments constraining individual parameters, and clinical/in vivo endpoints constraining the full model), separating data extraction from model specification while preserving traceability; (3) targeted validators for hallucination detection (value-in-snippet matching), citation verification (DOI resolution), and code correctness; and (4) code generation for Bayesian inference. We evaluate MAPLE on \revisedtext{SubmodelTargets and CalibrationTargets} for a PDAC QSP model and report metrics on validation performance and extraction reliability. \begin{revised}\input{snippets/r1m1_intro_framing}\end{revised}
 
 %=============================================================================
 \section{Methods}
 %=============================================================================
 
+\begin{revised}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{figures/workflow.pdf}
+  \caption{MAPLE workflow. An LLM searches the literature for a parameter target and extracts a structured YAML target carrying values, provenance, and a forward model. Automated validators gate the YAML, while failures trigger LLM retry. Validated targets are reviewed by the modeler, who may also revise the source or re-extract. Curated targets feed a joint Bayesian inference yielding posteriors with full provenance.}
+  \label{fig:workflow}
+\end{figure}
+\end{revised}
+
 \subsection{Model-Aware Literature Search}
 
-The user specifies which model parameters or observables need calibration, and the system builds a prompt that guides an LLM with web search capability to find relevant experimental literature. The framework supports multiple LLM providers (OpenAI, Anthropic, Google) through a common interface. In this study, we used GPT-5.1 for batch extraction and Claude Opus 4.6 for interactive extraction.
+\revisedtext{Figure~\ref{fig:workflow} summarizes the full MAPLE pipeline.} The user specifies which model parameters or observables need calibration, and the system builds a prompt that guides an LLM with web search capability to find relevant experimental literature. The framework supports multiple LLM providers (OpenAI, Anthropic, Google) through a common interface. In this study, we used GPT-5.1 for batch extraction and Claude Opus 4.6 for interactive extraction.
 
 The prompt injects mechanistic context from the model structure: for each target, the system retrieves its name, units, and description. For parameters, it also retrieves the reactions where the parameter appears with rate laws, the species involved, and the broader reaction network. For observables, it retrieves the species and compartments that define the observable. This context guides the LLM toward experiments that constrain the targets. Source exclusion prevents reuse of papers across extractions to promote literature diversity. The prompt also includes the complete schema structure and guidance on common pitfalls (SEM vs. SD conversion, hardcoded constants, source relevance documentation), reducing the retry loop by preventing predictable errors.
 
 \subsection{Schema Design}
 
-The framework defines two complementary schemas for two calibration regimes. The \emph{SubmodelTarget} schema captures isolated experiments (in vitro assays, single-mechanism studies) that constrain individual model parameters through simplified forward models. The \emph{CalibrationTarget} schema captures clinical and in vivo endpoints that constrain the full model through observables computed over the complete species state. Both schemas share a common design philosophy but differ in how they connect literature data to model parameters and outputs.
+The framework defines two complementary schemas for two calibration regimes. The \emph{SubmodelTarget} schema captures isolated experiments (in vitro assays, single-mechanism studies) that constrain individual model parameters through simplified forward models. The \emph{CalibrationTarget} schema captures clinical and in vivo endpoints that constrain the full model through observables computed over the complete species state. Both schemas share a common design philosophy but differ in how they connect literature data to model parameters and outputs. \revisedtext{For clarity, the manuscript refers to these two schemas by name (\texttt{SubmodelTarget} and \texttt{CalibrationTarget}) rather than using ``calibration target'' as a general term.}
 
 \subsubsection{Shared Design Principles}
 
@@ -99,7 +115,11 @@ The SubmodelTarget schema structures each record into two layers: an \emph{input
 
 \paragraph{Forward model type system.} The schema provides 15 built-in forward model types organized in four categories: ODE templates (exponential growth, first-order decay, two-state transitions, logistic growth, saturation, Michaelis-Menten), structured steady-state types for equilibrium measurements, a batch accumulation type for secretion assays, and generic fallbacks (algebraic, direct fit, custom). The complete type system is described in Supplementary Table~\ref{tab:model-types}. Each structured model declares its fields as typed roles (calibration parameter, extracted input, reference value, or literal) rather than raw values, allowing the same template to serve different estimation scenarios depending on which field is treated as the unknown.
 
-A complete SubmodelTarget example is provided in Supplementary Section~\ref{sec:complete-example}.
+A complete SubmodelTarget example is provided in Supplementary Section~\ref{sec:complete-example}\revisedtext{; Figure~\ref{fig:compact-schema} shows a compact version illustrating the two-layer structure}.
+
+\begin{revised}
+\input{snippets/r2_compact_schema_example}
+\end{revised}
 
 \subsubsection{CalibrationTarget: Clinical and In Vivo Endpoints}
 
@@ -124,14 +144,14 @@ LLMs sometimes generate references to entities that do not exist elsewhere in th
 
 \subsubsection{Content Validation}
 
-Content validators address fabrication of values, citations, and other factual claims. \emph{DOI validation} queries CrossRef for every DOI; title validation further checks that the extracted paper title fuzzy-matches the CrossRef metadata (75\% similarity threshold), catching cases where a valid DOI is paired with fabricated bibliographic details. \emph{Value-in-snippet validation} compares each extracted numeric value against its associated source text, providing the primary anti-hallucination defense: when an LLM hallucinates a number, it rarely fabricates a consistent snippet, and the mismatch provides a reliable detection signal. A separate external validator (Section~\ref{sec:external-validation}) further verifies that snippets appear in the cited papers. \emph{Unit validation} parses all unit strings using Pint \citep{Grecco_Pint_2025} to verify dimensional validity. \emph{Code validation} executes observation and observable code with mock data to verify correct behavior, catching logic errors and signature mismatches before inference. \emph{Hardcoded constant detection} scans code blocks for undocumented numeric literals that should be traced to inputs or reference values. \emph{Scale consistency validation} checks that observable outputs respond appropriately to varying inputs and have expected magnitudes. \emph{Source relevance validators} enforce minimum uncertainty thresholds for cross-species (2-fold), cross-indication (3-fold), and low TME compatibility (10-fold) extractions, ensuring translation uncertainty propagates to prior widths.
+Content validators address fabrication of values, citations, and other factual claims. \emph{DOI validation} queries CrossRef for every DOI; title validation further checks that the extracted paper title fuzzy-matches the CrossRef metadata (75\% similarity threshold), catching cases where a valid DOI is paired with fabricated bibliographic details. \emph{Value-in-snippet validation} compares each extracted numeric value against its associated source text, providing the primary anti-hallucination defense: when an LLM hallucinates a number, it rarely fabricates a consistent snippet, and the mismatch provides a reliable detection signal. A separate external validator (Section~\ref{sec:external-validation}) further verifies that snippets appear in the cited papers. \emph{Unit validation} parses all unit strings using Pint \citep{Grecco_Pint_2025} to verify dimensional validity. \emph{Code validation} executes observation and observable code with mock data to verify correct behavior, catching logic errors and signature mismatches before inference. \emph{Hardcoded constant detection} scans code blocks for undocumented numeric literals that should be traced to inputs or reference values. \emph{Scale consistency validation} checks that observable outputs respond appropriately to varying inputs and have expected magnitudes. \emph{Source relevance validators} enforce minimum uncertainty thresholds for cross-species (2-fold), cross-indication (3-fold), and low TME compatibility (10-fold) extractions, ensuring translation uncertainty propagates to prior widths. \revisedtext{The fuzzy-match thresholds (75\% for titles, 80\% for snippets) were set to tolerate minor formatting, punctuation, and OCR differences between extracted and source text while still rejecting genuinely different strings; the cross-species, cross-indication, and low-TME multipliers are conservative minimum uncertainty defaults, applied as floors that the modeler may widen further when source applicability is weaker.}
 
 Each validator raises a specific exception class with a \texttt{category} attribute (hallucination, fabrication, code, units, reference, structural, prior) that enables aggregation across extraction runs and feeds into the metrics reported in Section~\ref{sec:results}. Exception messages are designed for the LLM retry loop, including both the specific failure and guidance for correction. Optional Logfire instrumentation \citep{Pydantic_Logfire_2025} provides OpenTelemetry-based tracing for debugging extraction failures. Supplementary Section~\ref{sec:validators} provides implementation details for each validator.
 
 \subsubsection{External Validation}
 \label{sec:external-validation}
 
-An additional external validator verifies that value snippets actually appear in the cited source papers by fetching paper text from Europe PMC and Unpaywall using the DOI, then using fuzzy matching (80\% similarity threshold) to locate each snippet. This catches a subtle failure mode where the LLM fabricates plausible-looking snippets that contain the correct value but do not actually appear in the cited paper. Because this requires network access to external APIs, it runs as a separate manual step.
+An additional external validator verifies that value snippets actually appear in the cited source papers by fetching paper text from Europe PMC and Unpaywall using the DOI, then using fuzzy matching (80\% similarity threshold) to locate each snippet. This catches a subtle failure mode where the LLM fabricates plausible-looking snippets that contain the correct value but do not actually appear in the cited paper. Because this requires network access to external APIs, it runs as a separate manual step. \revisedtext{It is provided in the repository as an on-demand verification tool and was applied selectively during curation rather than as part of the automated per-target validation gate, since external full-text availability is uneven across sources; the value-in-snippet check described above is the systematically applied internal anti-hallucination defense.}
 
 \subsubsection{Structural and CalibrationTarget-Specific Validation}
 
@@ -145,7 +165,7 @@ The two schemas connect through a natural calibration pipeline: SubmodelTarget p
 
 \subsection{Application: PDAC QSP Model}
 
-The PDAC QSP model used in this study is adapted from a spatial QSP model of hepatocellular carcinoma \citep{zhangQuantitativeCalibrationSpatial2025} that first incorporated fibroblast dynamics into the tumor microenvironment. We evaluate MAPLE on this model using both schemas: \nAttempted{} SubmodelTargets for individual parameter calibration from isolated experiments (spanning tumor growth, stromal dynamics, immune recruitment, and cytokine signaling), and \ctTotal{} CalibrationTargets for full-model endpoints (baseline tumor microenvironment composition, neoadjuvant immunotherapy response, and clinical progression).
+The PDAC QSP model used in this study is adapted from a spatial QSP model of hepatocellular carcinoma \citep{zhangQuantitativeCalibrationSpatial2025} that first incorporated fibroblast dynamics into the tumor microenvironment. We evaluate MAPLE on this model using both schemas: \revisedtext{\nYAMLTargets{} curated SubmodelTargets} for individual parameter calibration from isolated experiments (spanning tumor growth, stromal dynamics, immune recruitment, and cytokine signaling), and \ctTotal{} CalibrationTargets for full-model endpoints (baseline tumor microenvironment composition, neoadjuvant immunotherapy response, and clinical progression). \revisedtext{Batch SubmodelTarget extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed between 2026-02-20 and 2026-02-27.}
 
 \subsubsection{Evaluation Metrics}
 
@@ -157,19 +177,13 @@ We report metrics across four workflow stages: extraction performance (pass rate
 %=============================================================================
 
 \subsection{SubmodelTarget Extraction and Validation}
+\label{sec:smt-extraction}
 
 We applied MAPLE to extract SubmodelTargets for a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. An initial batch of \nTargets{} targets was extracted through the automated retry loop (Table~\ref{tab:extraction}); additional targets were extracted interactively during curation, yielding a final curated set of \nYAMLTargets{} SubmodelTargets used for joint inference. The metrics below characterize the automated first pass; Section~\ref{sec:curation} discusses the subsequent human curation step.
 
 \input{generated/extraction_table}
 
-None of the extractions passed validation on the first attempt; all required at least one automated retry (Figure~\ref{fig:retry-distribution}). Seven targets succeeded after a single retry, while parameters like CCL2 secretion and PSC activation required up to \maxRetries{} iterations to resolve unit ambiguities or conflicting literature. Each extraction took \avgDurationMin{} minutes on average, consuming \avgTokens{} tokens per target (\totalTokensM{}M total). The validators caught \totalErrorsCaught{} errors during extraction (Table~\ref{tab:error-categories}), with unit errors most common, followed by fabrication (invalid DOIs), prior specification, and code errors. The LLM used \toolWebSearch{} web searches and \toolCodeExecution{} code executions.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.6\textwidth]{generated/figures/retry_distribution.pdf}
-\caption{Distribution of automated retry counts across \nTargets{} extraction attempts.}
-\label{fig:retry-distribution}
-\end{figure}
+None of the extractions passed validation on the first attempt; all required at least one automated retry. \revisedtext{Seven targets succeeded after a single retry, three each after two, three, and five retries, and one each after six and seven retries;} parameters like CCL2 secretion and PSC activation required up to \maxRetries{} iterations to resolve unit ambiguities or conflicting literature. Each extraction took \avgDurationMin{} minutes on average, consuming \avgTokens{} tokens per target (\totalTokensM{}M total). The validators caught \totalErrorsCaught{} errors during extraction (Table~\ref{tab:error-categories}), with unit errors most common, followed by fabrication (invalid DOIs), prior specification, and code errors. The LLM used \toolWebSearch{} web searches and \toolCodeExecution{} code executions.
 
 \input{generated/error_categories_table}
 
@@ -180,37 +194,50 @@ The \nYAMLTargets{} curated targets drew from diverse sources (Supplementary Sec
 \subsection{Human Curation}
 \label{sec:curation}
 
-To quantify human curation, we compared raw LLM output against final curated versions. All curation was performed interactively with Claude Code (claude-opus-4-6), with the modeler directing edits and modeling decisions while the LLM handled text generation, code writing, and literature comprehension. No batch extraction was used without modification; in a documented review of one batch (12 CalibrationTarget files), 58\% were rejected outright.
+To quantify human curation, we compared raw LLM output against final curated versions. All curation was performed interactively with Claude Code (claude-opus-4-6), with the modeler directing edits and modeling decisions while the LLM handled text generation, code writing, and literature comprehension. No batch extraction was used without modification; in a documented review of one batch (12 CalibrationTarget files), 58\% were rejected outright. \revisedtext{This rate comes from a single small batch and should be read as indicative rather than a precise rejection rate.}
 
-For the \smtCuratedFiles{} batch-extracted SubmodelTarget files, the modeler changed the forward model type in \smtFmTypeChangedPct{} of files (\smtFmTypeChanged{}/\smtCuratedFiles{}), adjusted prior distribution parameters in \smtPriorChangedPct{}, changed input data values in \smtInputsChangedPct{}, and revised source relevance assessments in every file. For the \ctBatchFiles{} batch-extracted CalibrationTargets, the modeler revised observable code in \ctObsCodeChangedPct{} of files, changed species lists in \ctSpeciesChangedPct{}, and adjusted empirical data in \ctEmpiricalChangedPct{}.
+For the \smtCuratedFiles{} batch-extracted SubmodelTarget files, the modeler changed the forward model type in \smtFmTypeChangedPct{} of files (\smtFmTypeChanged{}/\smtCuratedFiles{}), adjusted prior distribution parameters in \smtPriorChangedPct{}, changed input data values in \smtInputsChangedPct{}, and revised source relevance assessments in every file. \revisedtext{For the \ctBatchFiles{} batch-extracted CalibrationTargets (the paired pre/post-curation cohort; \ctGPT{} of these survived later model-build review and appear in the final active cohort reported in Section~\ref{sec:ct-extraction}), the modeler revised observable code in \ctObsCodeChangedPct{} of files, changed species lists in \ctSpeciesChangedPct{}, adjusted empirical data in \ctEmpiricalChangedPct{}, and revised source relevance assessments in \ctRelevanceChangedPct{} of files (a lower rate than for SubmodelTargets, since the batch-extracted CalibrationTargets were sourced from a smaller, more curated input pool).}
 
-The remaining \ctInteractiveFiles{} CalibrationTargets were extracted interactively with Claude Code using source PDFs loaded directly into the session. The modeler provided domain guidance (species mapping, denominator definitions, distribution choices) while the LLM handled literature comprehension and code generation. These files required minimal subsequent revision (a single shared reference value correction across \ctInteractiveTotalLines{} total lines); modeler judgment was embedded in the extraction process rather than applied post-hoc.
+A further \ctInteractiveFiles{} CalibrationTargets in the final cohort were extracted interactively with Claude Code using source PDFs loaded directly into the session. The modeler provided domain guidance (species mapping, denominator definitions, distribution choices) while the LLM handled literature comprehension and code generation. These files required minimal subsequent revision (a single shared reference value correction across \ctInteractiveTotalLines{} total lines); modeler judgment was embedded in the extraction process rather than applied post-hoc.
+
+\begin{revised}\input{snippets/r2_curation_categories}\end{revised}
+
+\begin{revised}\input{snippets/r1m2_batch_interactive_confounds}\end{revised}
 
 \subsection{CalibrationTarget Extraction}
+\label{sec:ct-extraction}
 
 We applied the CalibrationTarget schema to \ctTotal{} full-model endpoints for the same PDAC QSP model, organized into three scenario groups: \ctBaseline{} baseline (no treatment) targets capturing the untreated tumor microenvironment, \ctTreatment{} neoadjuvant immunotherapy targets (GVAX $\pm$ nivolumab), and \ctProgression{} clinical progression target (Table~\ref{tab:ct-summary}). All \ctTotal{} targets pass schema validation including observable code execution, distribution code verification, and unit consistency checks.
 
 \input{generated/ct_summary_table}
 
-Of the \ctTotal{} targets, \ctGPT{} were extracted by GPT-5.1 through the batch pipeline, \ctClaude{} interactively with Claude Opus 4 using source PDFs, and \ctManual{} manually. The \ctTreatment{} neoadjuvant immunotherapy targets include per-patient data digitized from scatter plots (\ctFigureDigitizedPct{} of all CalibrationTargets). Curation metrics for both extraction modes are reported in Section~\ref{sec:curation}.
+Of the \ctTotal{} targets, \ctGPT{} were extracted by GPT-5.1 through the batch pipeline, \ctClaude{} interactively with Claude Opus 4.6 using source PDFs, and \ctManual{} manually.\revisedtext{ The \ctGPT{} batch-extracted figure corresponds to the surviving subset of the \ctBatchFiles{} files for which pre/post-curation diffs are reported in Section~\ref{sec:curation}; the remainder were curated but excluded during downstream model-build review. The \ctManual{} manual targets did not pass through the LLM-extraction pipeline and so do not enter the field-level curation diffs.} The \ctTreatment{} neoadjuvant immunotherapy targets include per-patient data digitized from scatter plots (\ctFigureDigitizedPct{} of all CalibrationTargets). Curation metrics for both extraction modes are reported in Section~\ref{sec:curation}.
 
 The observables span \ctUniqueSpecies{} unique model species, with complexity ranging from \ctSpeciesMin{} to \ctSpeciesMax{} species per target (mean \ctSpeciesMean{}). The targets drew from \ctUniqueDOIs{} unique primary sources (from years \ctYearMin{}--\ctYearMax{}). Supplementary Section~\ref{sec:ct-detailed-metrics} provides detailed per-target metrics.
 
+\begin{revised}
+\input{snippets/r1m5_ct_metrics_gap}
+\end{revised}
+
 \subsection{Code Generation and Inference}
 
-All \nTargets{} SubmodelTargets were translated to a joint Julia inference script targeting Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. All parameters converged ($\hat{R} < 1.01$, ESS $> 3000$), with posterior estimates yielding biologically plausible values (e.g., tumor doubling time of $\sim$130 days, consistent with clinical PDAC observations). Full inference results including convergence diagnostics, posterior distributions, and model type breakdown are reported in Supplementary Section~\ref{sec:inference-results}.
+All \revisedtext{\nYAMLTargets{}} SubmodelTargets were translated to a joint Julia inference script targeting Turing.jl \citep{geTuringLanguageFlexible2018}. The translator identified \nUniqueParams{} unique parameters and generated corresponding priors and likelihood terms. \begin{revised}\input{snippets/r1m3_main_inference_fix}\end{revised} Full inference results including convergence diagnostics, posterior distributions, and model type breakdown are reported in Supplementary Section~\ref{sec:inference-results}.
 
 %=============================================================================
 \section{Discussion}
 %=============================================================================
 
-MAPLE demonstrates that structured schemas can serve as a productive collaboration interface between LLMs and modelers for QSP model calibration. The curation analysis reveals that modeler judgment contributes roughly half of the final record content. Rather than automating away the modeler, the framework restructures the collaboration: the schema defines what must be captured, validators catch errors from both LLM and human sources, and the separation of data extraction from modeling decisions clarifies where different types of expertise are needed.
+MAPLE demonstrates that structured schemas can serve as a productive collaboration interface between LLMs and modelers for QSP model calibration. \revisedtext{The curation analysis shows that LLM-generated drafts are competent at the bibliographic, transcription, and unit-handling tasks the schema encodes, while a substantive minority of fields, concentrated in source selection, prior specification, and forward- or observable-model choice, were revised by the modeler.} Rather than automating away the modeler, the framework restructures the collaboration: the schema defines what must be captured, validators catch errors from both LLM and human sources, and the separation of data extraction from modeling decisions clarifies where different types of expertise are needed.
 
 \subsection{Validation as the Core Mechanism}
 
 None of the \nTargets{} SubmodelTarget extractions passed validation on the first attempt, and the same automated retry pipeline was used for batch-extracted CalibrationTargets (detailed retry metrics are reported for SubmodelTargets, where the Logfire-instrumented pipeline provided per-target tracing). This is expected behavior: the validators serve as an automated first-pass review, and the retry loop resolves most issues without human intervention. Extractions requiring multiple retries (up to \maxRetries{}) typically involved ambiguous unit conventions or conflicting literature values.
 
 The value-in-snippet requirement proved particularly effective, catching a common LLM behavior: paraphrasing source text rather than quoting it exactly. The validator flags these cases, and the retry loop produces verbatim snippets. A separate external validator checks that snippets actually appear in the cited papers, catching cases where the LLM generates plausible text that does not exist in the source. Together, these validators support human review: a reviewer can verify each extraction by checking the snippet against the source paper, without re-reading entire methods sections.
+
+\begin{revised}
+\input{snippets/r2_residual_errors}
+\end{revised}
 
 \subsection{Schema Design Choices}
 
@@ -219,24 +246,34 @@ The separation of data extraction from model specification clarifies where human
 The dual-schema architecture applies the same data-first principles at two scales of calibration. SubmodelTarget operates on isolated experiments that constrain individual parameters through simplified forward models; CalibrationTarget operates on clinical and in vivo endpoints that constrain the integrated model through full-species observables. Shared design elements (source provenance, relevance assessment, experimental context, value-snippet validation) ensure consistent rigor across both scales, while schema-specific components (forward model types vs. observable code, error models vs. distribution code) capture the distinct requirements of each calibration regime.
 
 \subsection{Modeler Contribution and Limitations of Extracted Data}
+\label{sec:modeler-contribution}
 
-The curation results in Section~\ref{sec:curation} confirm that MAPLE does not reduce the need for modeler expertise: for SubmodelTargets, the modeler changed forward model types, adjusted prior distributions, revised input data, and rewrote source relevance assessments across the majority of batch-extracted files; for CalibrationTargets, the modeler revised observable code, corrected species lists, and adjusted empirical data values. These are scientific decisions, not formatting corrections. The framework restructures, rather than replaces, this expertise by separating tasks with different skill requirements. The structured schema ensures documentation completeness: every input requires a source reference and snippet, every prior requires a rationale, every cross-indication extraction requires a justification. The two collaboration modes (batch pipeline vs. interactive extraction) offer different trade-offs (Supplementary Section~\ref{sec:collaboration-modes}).
+\begin{revised}\input{snippets/r1m1_disc_framing}\end{revised}
 
 The source characteristics reveal a fundamental challenge in QSP calibration: only \indExactPct{} of SubmodelTargets came from PDAC-specific experiments, and \spMousetohumanPct{} required cross-species translation from mouse data. The schema addresses this through the \texttt{source\_relevance} block, which requires that translation uncertainty propagate to prior widths. A parameter calibrated from mouse fibrosis data with 5-fold translation uncertainty will have a correspondingly wide posterior, appropriately reflecting the limited applicability of available evidence.
 
+\begin{revised}
+\input{snippets/r1m11_cost_context}
+\end{revised}
+
 \subsection{Relationship to Existing Approaches}
 
-MAPLE addresses a gap between general-purpose biomedical extraction frameworks \citep{hsuLLMIEPythonPackage2025, wangSciDaSynthInteractiveStructured2025}, which do not address QSP-specific downstream requirements (uncertainty quantification, forward model specification, code generation), and QSP-focused tools like QSP-Copilot \citep{sainiQSPCopilotAIAugmentedPlatform2025a}, which emphasize model structure discovery rather than quantitative parameter calibration with provenance. The validation approach combines grounding strategies from retrieval-augmented generation \citep{liMitigatingHallucinationLarge2025} and constrained decoding \citep{gengJSONSchemaBenchRigorous2025} with domain-specific validators (DOI resolution, unit parsing, code execution) tailored to quantitative scientific extraction.
+MAPLE addresses a gap between general-purpose biomedical extraction frameworks \citep{hsuLLMIEPythonPackage2025, wangSciDaSynthInteractiveStructured2025}, which do not address QSP-specific downstream requirements (uncertainty quantification, forward model specification, code generation), and QSP-focused tools like QSP-Copilot \citep{sainiQSPCopilotAIAugmentedPlatform2025a}, which \revisedtext{include literature extraction components but emphasize model structure discovery rather than quantitative parameter calibration with documented provenance and uncertainty propagation}. The validation approach combines grounding strategies from retrieval-augmented generation \citep{liMitigatingHallucinationLarge2025} and constrained decoding \citep{gengJSONSchemaBenchRigorous2025} with domain-specific validators (DOI resolution, unit parsing, code execution) tailored to quantitative scientific extraction.
 
 Unlike knowledge graph approaches that prioritize coverage across thousands of abstracts \citep{heAIpoweredImmuneCell2026, gaoJointExtractionEntity2024} and can tolerate some extraction errors, parameter calibration requires higher per-target stringency because each value directly influences model predictions. MAPLE aligns with IQ Consortium best practices for AI/ML in quantitative modeling \citep{terranovaArtificialIntelligenceQuantitative2024a}, emphasizing explainability, human-in-the-loop oversight, and documented provenance. While evaluated on a QSP model, the approach applies to any parameter-rich mechanistic model that draws calibration data from literature. A more detailed comparison of individual tools and approaches is provided in Supplementary Section~\ref{sec:detailed-comparison}.
 
 \subsection{Limitations and Future Work}
+\label{sec:limitations}
 
-Several limitations merit discussion. First, the framework relies on the LLM's built-in web search for source discovery, so extraction quality is bounded by the LLM's ability to locate and access papers. Closed-access publications may be only partially available (e.g., abstract only), limiting extraction depth. Emerging agentic capabilities (LLM-controlled browsers with institutional authentication) may address this. The framework also depends on evolving LLM capabilities: extraction is stochastic, and performance characteristics vary across providers and model versions.
+Several limitations merit discussion. First, the framework relies on the LLM's built-in web search for source discovery, so extraction quality is bounded by the LLM's ability to locate and access papers. Closed-access publications may be only partially available (e.g., abstract only), limiting extraction depth. Emerging agentic capabilities (LLM-controlled browsers with institutional authentication) may address this. \revisedtext{Work in progress extends the framework to a staged extraction pipeline that retrieves full-text papers in advance and batches extraction over them systematically, which would make the external snippet-in-paper check part of the automated gate rather than an on-demand step.} The framework also depends on evolving LLM capabilities: extraction is stochastic, and performance characteristics vary across providers and model versions.
 
 Second, modeler intervention is pervasive. For SubmodelTargets, the modeler changed the forward model type in \smtFmTypeChangedPct{} of files and adjusted prior parameters in \smtPriorChangedPct{}. Prompt improvements could reduce some recurring errors, but core scientific decisions will remain modeler responsibilities regardless of LLM capability. CalibrationTargets required different curation: observable code (changed in \ctObsCodeChangedPct{} of batch-extracted files), Monte Carlo distribution derivation, and denominator audit fields demand modeling expertise that current LLMs provide as a starting point. The schema and validators can also be used without LLMs, providing structure for purely manual curation.
 
-Third, extracting structured quantitative data from figures remains challenging; the neoadjuvant immunotherapy targets required manual digitization of scatter plots. Integrating multimodal LLM vision capabilities is a natural direction for future work. Finally, this evaluation covers a single model (PDAC QSP); broader evaluation across therapeutic areas would better characterize generalizability.
+Third, extracting structured quantitative data from figures remains challenging; the neoadjuvant immunotherapy targets required manual digitization of scatter plots. Integrating multimodal LLM vision capabilities is a natural direction for future work. \begin{revised}Fourth, per-target extraction metrics are available only for the SubmodelTarget cohort, as discussed in Section~\ref{sec:ct-extraction}.\end{revised}
+
+\begin{revised}
+\input{snippets/r1m4_generalization_requirements}
+\end{revised}
 
 %=============================================================================
 \section*{Study Highlights}
@@ -256,11 +293,13 @@ Structured validation schemas enable LLM-modeler collaboration through batch or 
 
 \textbf{How might this change drug discovery, development, and/or therapeutics?}
 
-The framework produces reproducible, provenance-rich calibration targets that improve documentation consistency across modeling teams while making modeler contributions explicit and auditable.
+The framework produces reproducible, provenance-rich \revisedtext{calibration data} that improve documentation consistency across modeling teams while making modeler contributions explicit and auditable.
 
 %=============================================================================
 \section*{Acknowledgments}
 %=============================================================================
+
+\revisedtext{This work was supported in part by NIH grants R01CA138264 and U01CA212007 and the Lustgarten Foundation: Pancreatic Cancer Research.}
 
 Claude (Anthropic) and GPT-5.1 (OpenAI) were used for literature search, data extraction, and code generation as described in the Methods. Claude Code (claude-opus-4-6) assisted with manuscript preparation and interactive curation. All AI-generated content was reviewed and verified by the authors.
 
@@ -274,7 +313,7 @@ J.E. designed research, performed research, analyzed data, and wrote the manuscr
 \section*{Data Availability Statement}
 %=============================================================================
 
-MAPLE (the SubmodelTarget and CalibrationTarget schemas, validation framework, and Julia code generator) is available at \url{https://github.com/popellab/maple}. Extraction inputs, curated YAML targets, and scripts to reproduce all paper statistics are available at \url{https://github.com/popellab/maple-paper}. The PDAC calibration targets used in this study (\nTargets{} SubmodelTargets and \ctTotal{} CalibrationTargets) are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials.
+MAPLE (the SubmodelTarget and CalibrationTarget schemas, validation framework, and inference code generator) is available at \url{https://github.com/popellab/maple}. \revisedtext{The results reported here were generated with MAPLE v0.1.0 (commit \texttt{7f1faa4}), and the repository includes the representative extraction prompts used for both schemas.} Extraction inputs, curated YAML targets, and scripts to reproduce all paper statistics are available at \url{https://github.com/popellab/maple-paper}. The \revisedtext{\nYAMLTargets{} SubmodelTargets and \ctTotal{} CalibrationTargets} used in this study are provided as supplementary YAML files. Generated Julia inference scripts are included in the supplementary materials. \revisedtext{The underlying PDAC QSP model is part of separate work that has not yet been published; the structural representation that MAPLE consumes (model structure, species and parameter definitions, and unit mappings) is included in the \texttt{maple-paper} repository, so the extraction inputs and reported evaluation are fully reproducible. The complete PDAC model will be released with its own publication.}
 
 %=============================================================================
 % REFERENCES
