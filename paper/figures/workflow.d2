@@ -1,0 +1,152 @@
+vars: {
+  d2-config: {
+    layout-engine: elk
+    pad: 30
+    sketch: false
+    theme-id: 0
+  }
+}
+
+direction: down
+
+classes: {
+  stage: {
+    shape: rectangle
+    style: {
+      fill: "#FFFFFF"
+      stroke: "#333333"
+      stroke-width: 2
+      font-size: 17
+      bold: true
+    }
+  }
+  llm: {
+    shape: rectangle
+    style: {
+      fill: "#E8EEF7"
+      stroke: "#234A87"
+      stroke-width: 2
+      font-size: 17
+      bold: true
+    }
+  }
+  chip: {
+    shape: rectangle
+    style: {
+      fill: "#FFFFFF"
+      stroke: "#666666"
+      stroke-width: 1
+      font-size: 14
+    }
+  }
+  hub: {
+    shape: page
+    style: {
+      fill: "#FFF3C4"
+      stroke: "#8A6D00"
+      stroke-width: 3
+      font-size: 19
+      bold: true
+    }
+  }
+  output: {
+    shape: cylinder
+    style: {
+      fill: "#FFFFFF"
+      stroke: "#333333"
+      stroke-width: 2
+      font-size: 17
+      bold: true
+    }
+  }
+  group: {
+    style: {
+      fill: "#FAFAFA"
+      stroke: "#666666"
+      stroke-width: 2
+      font-size: 16
+      bold: true
+      border-radius: 8
+    }
+  }
+  rowbox: {
+    style: {
+      fill: transparent
+      stroke: transparent
+      font-size: 8
+    }
+  }
+}
+
+row1: "" {
+  class: rowbox
+  direction: right
+  target: "Parameter target\n(model species, units, context)" { class: stage }
+  search: "LLM literature search\n(web search + DOI resolution)" { class: llm }
+  src: "Source literature (PDF)" { class: stage }
+  extract: "LLM extraction" { class: llm }
+
+  target -> search
+  search -> src
+  src -> extract
+}
+
+yaml: |md
+  ## Structured YAML target
+  SubmodelTarget  ·  CalibrationTarget
+  values + provenance + forward model
+| { class: hub }
+
+row3: "" {
+  class: rowbox
+  direction: right
+  validate: "Automated validation" {
+    class: group
+    grid-columns: 2
+    schema: "Schema & units" { class: chip }
+    snippet: "Value-in-snippet" { class: chip }
+    doi: "DOI resolution" { class: chip }
+    code: "Code execution" { class: chip }
+  }
+  curate: "Modeler curation" {
+    class: group
+    grid-columns: 2
+    fm: "Forward-model type" { class: chip }
+    priors: "Priors" { class: chip }
+    relevance: "Source relevance" { class: chip }
+    units: "Units & aggregation" { class: chip }
+  }
+}
+
+row4: "" {
+  class: rowbox
+  direction: right
+  inference: "Bayesian inference\n(joint calibration across targets)" { class: stage }
+  posteriors: "Calibrated posteriors\nwith full provenance" { class: output }
+
+  inference -> posteriors
+}
+
+row1.extract -> yaml
+yaml -> row3.validate
+row3.validate -> row3.curate: "on pass" {
+  style.font-size: 13
+  style.italic: true
+}
+row3.curate -> row4.inference
+
+row3.validate -> row1.extract: "retry on failure" {
+  style.stroke-dash: 4
+  style.font-size: 13
+  style.italic: true
+}
+row3.curate -> row1.extract: "re-extract" {
+  style.stroke-dash: 4
+  style.font-size: 13
+  style.italic: true
+}
+row3.curate -> row1.search: "revise source" {
+  style.stroke-dash: 4
+  style.font-size: 13
+  style.italic: true
+}
