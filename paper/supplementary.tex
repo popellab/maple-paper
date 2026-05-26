@@ -96,17 +96,7 @@ calibration:
           1 day implies k = ln(4) = 1.4/day, so prior median of 1/day
           is reasonable.
 
-  state_variables:
-    - name: aPSC_rel
-      units: dimensionless
-      initial_condition:
-        value: 1.0
-        rationale: |
-          PSC proliferation data are reported as fold of control. We
-          normalize the initial aPSC population to 1.0 (100% control)
-          to match this convention.
-
-  model:
+  forward_model:
     type: exponential_growth
     rate_constant: k_apsc_prolif
     data_rationale: |
@@ -119,16 +109,24 @@ calibration:
       k_apsc_prolif * aPSC * (PDGF / (PDGF_50_prolif + PDGF)).
       At 50 ng/mL PDGF >> PDGF_50_prolif, the saturation term ~ 1,
       reducing to exponential growth with rate k_apsc_prolif.
+    independent_variable:
+      name: time
+      units: day
+      span: [0.0, 1.0]
+      rationale: |
+        Proliferation assay duration assumed to be ~24 hours based on
+        typical cytokine incubation protocols for rat PSCs.
+    state_variables:
+      - name: aPSC_rel
+        units: dimensionless
+        initial_condition:
+          value: 1.0
+          rationale: |
+            PSC proliferation data are reported as fold of control. We
+            normalize the initial aPSC population to 1.0 (100% control)
+            to match this convention.
 
-  independent_variable:
-    name: time
-    units: day
-    span: [0.0, 1.0]
-    rationale: |
-      Proliferation assay duration assumed to be ~24 hours based on
-      typical cytokine incubation protocols for rat PSCs.
-
-  measurements:
+  error_model:
     - name: proliferation_fold_change
       observable:
         type: identity
@@ -1005,46 +1003,46 @@ calibration:
 
 \subsection{Forward Model Specification}
 
-The forward model (\texttt{model} field) captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice.
+The \texttt{forward\_model} field captures the dynamics relevant to the experiment. For time-course data, this is typically a simplified ODE; for steady-state or derived measurements, an algebraic model may suffice. State variables and the independent-variable block are nested inside \texttt{forward\_model}.
 
-Code block~\ref{lst:model} shows a forward model using the exponential growth template, together with the surrounding state variables and independent-variable block.
+Code block~\ref{lst:model} shows a forward model using the exponential growth template.
 
 \begin{figure}[H]
 \begin{verbatim}
 calibration:
-  state_variables:
-    - name: aPSC_rel
-      units: dimensionless
-      initial_condition:
-        value: 1.0
-        rationale: Normalized to control baseline.
-  model:
+  forward_model:
     type: exponential_growth
     rate_constant: k_apsc_prolif
+    independent_variable:
+      name: time
+      units: day
+      span: [0.0, 1.0]
+    state_variables:
+      - name: aPSC_rel
+        units: dimensionless
+        initial_condition:
+          value: 1.0
+          rationale: Normalized to control baseline.
     data_rationale: |
       BrdU assay measures proliferation over ~24h with
       constant PDGF stimulus. Exponential growth fits.
     submodel_rationale: |
       At saturating PDGF, the full model reduces to
       dN/dt = k_apsc_prolif * N.
-  independent_variable:
-    name: time
-    units: day
-    span: [0.0, 1.0]
 \end{verbatim}
 \caption{Forward model specification with state variable and time span.}
 \label{lst:model}
 \end{figure}
 
-\subsection{Measurement Specification}
+\subsection{Error Model Specification}
 
-Each entry of the \texttt{measurements} list specifies the statistical relationship between model predictions and one observed quantity. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
+The \texttt{error\_model} field is a list of measurement entries, each specifying the statistical relationship between model predictions and one observed quantity. The \texttt{observation\_code} derives the observed value and uncertainty from raw inputs. The \texttt{observable} defines the transformation from state variables to predicted measurement. The \texttt{likelihood} specifies the distribution family.
 
-Code block~\ref{lst:error-model} shows a complete measurement entry.
+Code block~\ref{lst:error-model} shows a complete error model entry.
 
 \begin{figure}[H]
 \begin{verbatim}
-  measurements:
+  error_model:
     - name: viability_48h
       units: dimensionless
       uses_inputs: [viability_mean, viability_sem]
