@@ -76,9 +76,12 @@ def group_categories(cat_counts: Counter) -> dict:
 
 
 def load_targets():
-    """Load all CalibrationTarget YAMLs."""
+    """Load all CalibrationTarget YAMLs, skipping retired files under excluded/."""
     targets = []
     for yaml_path in sorted(CT_DIR.rglob("*.yaml")):
+        # Skip retired targets retained for provenance under */excluded/
+        if "excluded" in yaml_path.parts:
+            continue
         with open(yaml_path) as f:
             data = yaml.safe_load(f)
 
