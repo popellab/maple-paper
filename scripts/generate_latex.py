@@ -243,7 +243,7 @@ def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated extraction metrics table
 \begin{{table}}[htbp]
 \centering
-\caption{{Extraction metrics per calibration target.}}
+\caption{{Extraction metrics per SubmodelTarget.}}
 \label{{tab:extraction}}
 \begin{{tabular}}{{lccc}}
 \toprule
@@ -270,7 +270,7 @@ def generate_retry_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated retry distribution table
 \begin{{table}}[htbp]
 \centering
-\caption{{Distribution of retry attempts across calibration targets.}}
+\caption{{Distribution of retry attempts across SubmodelTargets.}}
 \label{{tab:retries}}
 \begin{{tabular}}{{ccc}}
 \toprule
@@ -334,7 +334,7 @@ def generate_parameter_table_tex(codegen: CodeGenMetrics) -> str:
     return rf"""% Auto-generated parameter table
 \begin{{table}}[htbp]
 \centering
-\caption{{Parameters extracted with calibration targets.}}
+\caption{{Parameters extracted from SubmodelTargets.}}
 \label{{tab:parameters}}
 \begin{{tabular}}{{lcc}}
 \toprule
@@ -409,14 +409,18 @@ Target & Observed & Predicted (median) & 90\\% PI Coverage \\\\
 
 def _load_param_units() -> dict:
     """Load parameter units from model_structure.json."""
-    model_path = SCRIPT_DIR.parent / "supporting_files" / "model_structure.json"
+    model_path = SCRIPT_DIR.parent / "batch_extraction" / "model_structure.json"
     if not model_path.exists():
         return {}
     with open(model_path) as f:
         data = json.load(f)
     units = {p["name"]: p["units"] for p in data.get("parameters", [])}
-    # Auxiliary parameters not in model_structure
+    # Parameters not present in model_structure.json (auxiliary or submodel-only),
+    # with units sourced from model_definitions.json and the curated SubmodelTarget YAMLs
     units["L_leukocyte_T"] = "cell/milliliter"
+    units["k_apsc_death"] = "1/day"
+    units["k_psc_activation"] = "1/day"
+    units["cd8_exclusion_fraction"] = "dimensionless"
     return units
 
 
@@ -424,8 +428,10 @@ def _format_units_latex(units: str) -> str:
     """Convert units string to LaTeX format."""
     import re
 
-    if units == "dimensionless" or not units:
+    if not units:
         return "---"
+    if units == "dimensionless":
+        return "dimensionless"
 
     # Handle specific complex units first
     if units == "1/(centimeter^3*minute)":
@@ -443,9 +449,10 @@ def _format_units_latex(units: str) -> str:
     u = u.replace("nanomole", "nmol")
     u = u.replace("minute", "min")
 
-    # Handle 1/day pattern
-    if u == "1/day":
-        return r"day$^{-1}$"
+    # Handle simple reciprocal pattern "1/<unit>" (e.g. 1/day, 1/hour)
+    m = re.fullmatch(r"1/(\w+)", u)
+    if m:
+        return rf"{m.group(1)}$^{{-1}}$"
 
     # Handle exponents - wrap in math mode
     u = re.sub(r"\^(\d+)", r"$^{\1}$", u)
@@ -601,7 +608,7 @@ def generate_source_quality_table_tex(yaml_metrics: YAMLMetrics) -> str:
     return rf"""% Auto-generated source quality table
 \begin{{table}}[htbp]
 \centering
-\caption{{Distribution of primary data source quality across calibration targets.}}
+\caption{{Distribution of primary data source quality across SubmodelTargets.}}
 \label{{tab:source-quality}}
 \begin{{tabular}}{{lcc}}
 \toprule
@@ -800,7 +807,7 @@ def generate_complexity_table_tex(yaml_metrics: YAMLMetrics) -> str:
     return rf"""% Auto-generated complexity table
 \begin{{table}}[htbp]
 \centering
-\caption{{Complexity metrics for calibration targets. Inputs are experimental values; parameters are model rate constants; states are ODE variables.}}
+\caption{{Complexity metrics for SubmodelTargets. Inputs are experimental values; parameters are model rate constants; states are ODE variables.}}
 \label{{tab:complexity}}
 \begin{{tabular}}{{lcccc}}
 \toprule
