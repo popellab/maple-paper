@@ -165,7 +165,7 @@ The two schemas connect through a natural calibration pipeline: SubmodelTarget p
 
 \subsection{Application: PDAC QSP Model}
 
-The PDAC QSP model used in this study is adapted from a spatial QSP model of hepatocellular carcinoma \citep{zhangQuantitativeCalibrationSpatial2025} that first incorporated fibroblast dynamics into the tumor microenvironment. We evaluate MAPLE on this model using both schemas: \revisedtext{\nYAMLTargets{} curated SubmodelTargets} for individual parameter calibration from isolated experiments (spanning tumor growth, stromal dynamics, immune recruitment, and cytokine signaling), and \ctTotal{} CalibrationTargets for full-model endpoints (baseline tumor microenvironment composition, neoadjuvant immunotherapy response, and clinical progression). \revisedtext{Batch SubmodelTarget extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed between 2026-02-20 and 2026-02-27.}
+The PDAC QSP model used in this study is adapted from a spatial QSP model of hepatocellular carcinoma \citep{zhangQuantitativeCalibrationSpatial2025} that first incorporated fibroblast dynamics into the tumor microenvironment. We evaluate MAPLE on this model using both schemas: \revisedtext{\nYAMLTargets{} curated SubmodelTargets} for individual parameter calibration from isolated experiments (spanning tumor growth, stromal dynamics, immune recruitment, and cytokine signaling), and \ctTotal{} CalibrationTargets for full-model endpoints (baseline tumor microenvironment composition, neoadjuvant immunotherapy response, and clinical progression). \revisedtext{Batch extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort, both for SubmodelTargets and for the batch-pipeline portion of CalibrationTargets; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed between 2026-02-20 and 2026-02-27.}
 
 \subsubsection{Evaluation Metrics}
 
@@ -179,7 +179,7 @@ We report metrics across four workflow stages: extraction performance (pass rate
 \subsection{SubmodelTarget Extraction and Validation}
 \label{sec:smt-extraction}
 
-We applied MAPLE to extract SubmodelTargets for a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. An initial batch of \nTargets{} targets was extracted through the automated retry loop (Table~\ref{tab:extraction}); additional targets were extracted interactively during curation, yielding a final curated set of \nYAMLTargets{} SubmodelTargets used for joint inference. The metrics below characterize the automated first pass; Section~\ref{sec:curation} discusses the subsequent human curation step.
+We applied MAPLE to extract SubmodelTargets for a PDAC QSP model, covering tumor growth, stromal dynamics, immune recruitment, and cytokine signaling. \revisedtext{An initial batch of \nTargets{} targets (one derivation per parameter) was extracted through the automated retry loop and traced with Logfire (Table~\ref{tab:extraction}); additional derivations were extracted by the same batch pipeline for parameters where multiple complementary sources were available, yielding a final curated set of \nYAMLTargets{} SubmodelTargets used for joint inference. Per-target Logfire metrics in Table~\ref{tab:extraction} cover the initial \nTargets{}-target subset; the schema-validation and curation results in Section~\ref{sec:curation} cover all \nYAMLTargets{}.}
 
 \input{generated/extraction_table}
 
@@ -299,9 +299,7 @@ The framework produces reproducible, provenance-rich \revisedtext{calibration da
 \section*{Acknowledgments}
 %=============================================================================
 
-\revisedtext{This work was supported in part by NIH grants R01CA138264 and U01CA212007 and the Lustgarten Foundation: Pancreatic Cancer Research.}
-
-Claude (Anthropic) and GPT-5.1 (OpenAI) were used for literature search, data extraction, and code generation as described in the Methods. Claude Code (claude-opus-4-6) assisted with manuscript preparation and interactive curation. All AI-generated content was reviewed and verified by the authors.
+Claude Opus 4.6 (Anthropic, model identifier \texttt{claude-opus-4-6}) and GPT-5.1 (OpenAI, model identifier \texttt{gpt-5.1}) were used for literature search, data extraction, and code generation as described in the Methods, and Claude Code (\texttt{claude-opus-4-6}) assisted with manuscript preparation and interactive curation. All AI-generated content was reviewed and verified by the authors.
 
 %=============================================================================
 \section*{Author Contributions}
