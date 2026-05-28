@@ -268,10 +268,8 @@ The SubmodelTarget schema has the following top-level structure:
     \item \textbf{calibration}: Everything needed for inference code generation
     \begin{itemize}
         \item \texttt{parameters}: Parameters to estimate with priors
-        \item \texttt{state\_variables}: ODE state variables with initial conditions
-        \item \texttt{model}: Model type specification (built-in or custom)
-        \item \texttt{independent\_variable}: Time or other independent variable
-        \item \texttt{measurements}: Observables with likelihoods
+        \item \texttt{forward\_model}: Forward model specification (built-in type or custom). For ODE models, contains nested \texttt{state\_variables} (state variables with initial conditions) and \texttt{independent\_variable} (e.g. time)
+        \item \texttt{error\_model}: Observable specifications mapping model predictions to data with likelihoods
         \item \texttt{identifiability\_notes}: Discussion of parameter identifiability
     \end{itemize}
     \item \textbf{experimental\_context}: Species, system, cell types, culture conditions
@@ -675,8 +673,8 @@ class Input(BaseModel):
 The schema uses Pydantic's discriminated union pattern to support multiple model types, each with type-specific required fields:
 
 \begin{verbatim}
-class BaseModelSpec(BaseModel):
-    """Base class for all model specifications."""
+class BaseForwardModelSpec(BaseModel):
+    """Base class for all forward model specifications."""
     data_rationale: str = Field(
         description="Why this model type fits the experimental data"
     )
@@ -684,28 +682,28 @@ class BaseModelSpec(BaseModel):
         description="Why this is a valid submodel of the full QSP model"
     )
 
-class ExponentialGrowthModel(BaseModelSpec):
+class ExponentialGrowthModel(BaseForwardModelSpec):
     """Exponential growth: dy/dt = k * y"""
     type: Literal["exponential_growth"] = "exponential_growth"
     rate_constant: ParameterRole = Field(
         description="Rate constant parameter name or input_ref"
     )
 
-class TwoStateModel(BaseModelSpec):
+class TwoStateModel(BaseForwardModelSpec):
     """Two-state transition: A -> B with first-order kinetics."""
     type: Literal["two_state"] = "two_state"
     forward_rate: ParameterRole = Field(
         description="Forward transition rate constant"
     )
 
-class CustomModel(BaseModelSpec):
-    """Custom ODE with user-provided code"""
-    type: Literal["custom"] = "custom"
+class CustomODEModel(BaseForwardModelSpec):
+    """Custom ODE with user-provided code."""
+    type: Literal["custom_ode"] = "custom_ode"
     code: str = Field(description="Python ODE function")
     code_julia: str = Field(description="Julia ODE function for inference")
 
 # Discriminated union selects model class based on 'type' field
-Model = Annotated[
+ForwardModel = Annotated[
     Union[
         FirstOrderDecayModel,
         ExponentialGrowthModel,
@@ -713,9 +711,15 @@ Model = Annotated[
         MichaelisMentenModel,
         TwoStateModel,
         SaturationModel,
-        DirectConversionModel,
+        SteadyStateDensityModel,
+        SteadyStateFractionModel,
+        SteadyStateConcentrationModel,
+        SteadyStateRatioModel,
+        SteadyStateProliferationIndexModel,
+        BatchAccumulationModel,
+        AlgebraicModel,
         DirectFitModel,
-        CustomModel,
+        CustomODEModel,
     ],
     Field(discriminator="type"),
 ]

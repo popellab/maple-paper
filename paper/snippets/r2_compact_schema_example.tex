@@ -25,13 +25,13 @@ calibration:
         distribution: lognormal
         mu: 0.0
         sigma: 1.0
-  model:
+  forward_model:
     type: exponential_growth
     rate_constant: k_apsc_prolif
-  independent_variable:
-    name: time
-    units: day
-    span: [0.0, 1.0]
+    independent_variable:
+      name: time
+      units: day
+      span: [0.0, 1.0]
 \end{verbatim}
 \end{minipage}
 \caption{Compact SubmodelTarget example. The \texttt{inputs} layer records the literature value with the verbatim source snippet that anchors it; the \texttt{calibration} layer specifies how that value constrains the model parameter \texttt{k\_apsc\_prolif} through a simplified forward model. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}
