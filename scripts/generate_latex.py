@@ -313,39 +313,6 @@ Error Category & Count & \% \\
 \end{{table}}"""
 
 
-def generate_parameter_table_tex(codegen: CodeGenMetrics) -> str:
-    """Generate LaTeX table of parameters."""
-    rows = []
-    for p in sorted(codegen.parameters):
-        # Parameters can be strings or dicts
-        if isinstance(p, str):
-            name = p.replace("_", r"\_")
-            targets = codegen.shared_params_detail.get(p, [])
-            n_targets = len(targets) if targets else 1
-            units = "---"
-        else:
-            name = p.get("name", "").replace("_", r"\_")
-            n_targets = p.get("targets", 1)
-            units = p.get("units", "---").replace("_", r"\_")
-        rows.append(f"{name} & {n_targets} & {units}")
-
-    rows_tex = " \\\\\n".join(rows)
-
-    return rf"""% Auto-generated parameter table
-\begin{{table}}[htbp]
-\centering
-\caption{{Parameters extracted from SubmodelTargets.}}
-\label{{tab:parameters}}
-\begin{{tabular}}{{lcc}}
-\toprule
-Parameter & Targets & Units \\
-\midrule
-{rows_tex} \\
-\bottomrule
-\end{{tabular}}
-\end{{table}}"""
-
-
 def generate_convergence_table_tex(
     inference: InferenceMetrics, codegen: CodeGenMetrics, inference_results: Optional[dict]
 ) -> str:
@@ -1235,7 +1202,6 @@ def main():
         ("extraction_table.tex", generate_extraction_table_tex(extraction)),
         ("retry_table.tex", generate_retry_table_tex(extraction)),
         ("error_categories_table.tex", generate_error_categories_table_tex(extraction)),
-        ("parameter_table.tex", generate_parameter_table_tex(codegen)),
         ("convergence_table.tex", generate_convergence_table_tex(inference, codegen, inference_results)),
         ("ppc_table.tex", generate_ppc_table_tex(inference, codegen)),
         ("posterior_table.tex", generate_posterior_table_tex(codegen, inference_results)),
