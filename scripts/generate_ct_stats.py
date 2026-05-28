@@ -22,7 +22,7 @@ import yaml
 # Configuration
 # =============================================================================
 
-CT_DIR = Path(__file__).parent.parent / "metadata_storage" / "calibration_targets" / "pdac_build"
+CT_DIR = Path(__file__).parent.parent / "metadata_storage" / "calibration_targets" / "final"
 OUTPUT_DIR = Path(__file__).parent.parent / "paper" / "generated"
 
 

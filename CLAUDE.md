@@ -25,9 +25,8 @@ batch_extraction/               # Extraction provenance (inputs to maple)
 metadata_storage/               # Extraction outputs (YAML files)
   submodel_targets/curated/     # 37 curated SubmodelTarget YAMLs (paper stats + inference)
   submodel_targets/originals/   # 38 original LLM-generated YAMLs (pre-curation)
-  calibration_targets/originals/  # 23 original CalibrationTarget YAMLs (pre-curation)
-  calibration_targets/curated/    # 50 curated CalibrationTargets (paired with originals for curation stats)
-  calibration_targets/pdac_build/ # 59 final CalibrationTargets for PDAC model (generate_ct_stats.py)
+  calibration_targets/originals/  # 22 raw batch-extracted CalibrationTarget YAMLs (pre-curation; frozen)
+  calibration_targets/final/      # Live corpus: 54 active CalibrationTargets + 5 retired under */excluded/
 
 scripts/                        # Statistics and inference generation
   generate_results.py           # Extraction pipeline metrics + source characteristics

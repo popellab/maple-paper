@@ -487,9 +487,9 @@
   "inference_results": null,
   "validation": {
     "n_files": 37,
-    "n_valid": 37,
+    "n_valid": 0,
     "n_invalid": 0,
-    "pass_rate": 1.0
+    "pass_rate": 0.0
   },
   "inference_available": false,
   "yaml_metrics": {

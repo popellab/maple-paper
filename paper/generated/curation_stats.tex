@@ -15,17 +15,23 @@
 \newcommand{\smtRelevanceChangedPct}{100\%}
 %
 % CalibrationTarget curation (batch pipeline, gpt-5.1)
-\newcommand{\ctBatchFiles}{22}
-\newcommand{\ctRelevanceChanged}{8}
-\newcommand{\ctRelevanceChangedPct}{36\%}
+% ctBatchFiles = surviving paired files (originals whose curated counterpart is an active final/ target)
+% ctBatchRejected = paired originals whose curated counterpart was retired to final/**/excluded/
+% ctBatchPairedTotal = ctBatchFiles + ctBatchRejected
+\newcommand{\ctBatchFiles}{18}
+\newcommand{\ctBatchRejected}{4}
+\newcommand{\ctBatchPairedTotal}{22}
+\newcommand{\ctBatchRejectedPct}{18\%}
+\newcommand{\ctRelevanceChanged}{5}
+\newcommand{\ctRelevanceChangedPct}{28\%}
 \newcommand{\ctObsCodeChanged}{7}
-\newcommand{\ctObsCodeChangedPct}{32\%}
-\newcommand{\ctEmpiricalChanged}{4}
-\newcommand{\ctEmpiricalChangedPct}{18\%}
-\newcommand{\ctDoiChanged}{1}
+\newcommand{\ctObsCodeChangedPct}{39\%}
+\newcommand{\ctEmpiricalChanged}{3}
+\newcommand{\ctEmpiricalChangedPct}{17\%}
+\newcommand{\ctDoiChanged}{0}
 \newcommand{\ctSpeciesChanged}{5}
-\newcommand{\ctSpeciesChangedPct}{23\%}
+\newcommand{\ctSpeciesChangedPct}{28\%}
 %
 % Interactive extraction (claude-opus-4-6)
 \newcommand{\ctInteractiveFiles}{27}
-\newcommand{\ctInteractiveTotalLines}{7,483}
+\newcommand{\ctInteractiveTotalLines}{7,619}

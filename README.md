@@ -28,9 +28,8 @@ maple-paper/
 │   │   ├── curated/              # 37 curated SubmodelTargets (paper stats + inference)
 │   │   └── originals/            # 38 original LLM outputs (pre-curation)
 │   └── calibration_targets/
-│       ├── originals/            # 23 original CalibrationTargets (pre-curation)
-│       ├── curated/              # 50 curated CalibrationTargets (paired with originals)
-│       └── pdac_build/           # 59 final targets for PDAC model deployment
+│       ├── originals/            # 22 raw batch-extracted CalibrationTargets (frozen)
+│       └── final/                # Live corpus: 54 active + 5 retired under */excluded/
 │
 ├── scripts/                      # Statistics and inference generation
 │   ├── generate_results.py       # Extraction pipeline metrics

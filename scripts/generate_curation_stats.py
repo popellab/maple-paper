@@ -7,7 +7,13 @@ expert-curated versions by comparing parsed YAML content.
 
 Reads from:
   metadata_storage/submodel_targets/{originals,curated}/
-  metadata_storage/calibration_targets/{originals,curated/*/}
+  metadata_storage/calibration_targets/{originals,final/*/}
+
+CalibrationTarget pairing: originals are matched to their curated counterpart
+under final/**/ by stripping the _derivNNN suffix. Originals whose counterpart
+lives under final/**/excluded/ are reported as modeler-rejected (counted in
+denominators for the rejection rate, but excluded from field-change rates,
+since "rejected" is the curation outcome).
 
 Outputs:
   paper/generated/curation_stats.tex
@@ -29,7 +35,7 @@ METADATA = ROOT / "metadata_storage"
 SMT_ORIGINALS = METADATA / "submodel_targets" / "originals"
 SMT_CURATED = METADATA / "submodel_targets" / "curated"
 CT_ORIGINALS = METADATA / "calibration_targets" / "originals"
-CT_CURATED = METADATA / "calibration_targets" / "curated"
+CT_FINAL = METADATA / "calibration_targets" / "final"
 OUTPUT = ROOT / "paper" / "generated" / "curation_stats.tex"
 
 CT_SCENARIOS = ["baseline_no_treatment", "gvax_nivo_neoadjuvant", "clinical_progression"]
@@ -149,15 +155,20 @@ def compare_ct_pair(orig_path: Path, curated_path: Path) -> dict:
 
 
 def compute_interactive_ct_stats() -> dict:
-    """Compute stats for interactive (claude-opus-4-6) CalibrationTargets."""
+    """Compute stats for interactive (claude-opus-4-6) CalibrationTargets.
+
+    Reads from final/ scenario dirs, skipping excluded/.
+    """
     total_lines = 0
     n_files = 0
 
     for scenario in CT_SCENARIOS:
-        scenario_dir = CT_CURATED / scenario
+        scenario_dir = CT_FINAL / scenario
         if not scenario_dir.exists():
             continue
-        for yaml_path in sorted(scenario_dir.glob("*.yaml")):
+        for yaml_path in sorted(scenario_dir.rglob("*.yaml")):
+            if "excluded" in yaml_path.parts:
+                continue
             with open(yaml_path) as f:
                 data = yaml.safe_load(f)
             if data.get("extraction_model") == "claude-opus-4-6":
@@ -173,13 +184,26 @@ def compute_interactive_ct_stats() -> dict:
 # =============================================================================
 
 
-def find_curated_ct(orig_filename: str) -> Path | None:
-    """Find the curated counterpart of a CT original in scenario subdirs."""
+def find_final_ct(orig_filename: str) -> tuple[Path | None, bool]:
+    """Find the curated counterpart of a CT original under final/.
+
+    Matches by exact filename. Returns (path, is_rejected). is_rejected is True
+    iff the match lives under final/**/excluded/, i.e. the modeler curated the
+    target and decided to retire it. Originals whose deriv number was bumped
+    intentionally do not pair (a new deriv represents a distinct source, not
+    a revision of the same one).
+    """
     for scenario in CT_SCENARIOS:
-        candidate = CT_CURATED / scenario / orig_filename
-        if candidate.exists():
-            return candidate
-    return None
+        scenario_dir = CT_FINAL / scenario
+        if not scenario_dir.exists():
+            continue
+        active = scenario_dir / orig_filename
+        if active.exists():
+            return (active, False)
+        excluded = scenario_dir / "excluded" / orig_filename
+        if excluded.exists():
+            return (excluded, True)
+    return (None, False)
 
 
 def pct(n: int, total: int) -> int:
@@ -222,14 +246,25 @@ def main():
 
     # =========================================================================
     # CalibrationTarget comparisons (batch pipeline)
+    #
+    # Each original is paired to its curated counterpart under final/. If the
+    # counterpart lives under final/**/excluded/, the target was modeler-rejected
+    # during curation: it counts toward the rejection rate but not toward
+    # field-change rates (which are computed over surviving targets).
     # =========================================================================
     ct_results = []
+    ct_rejected = 0
+    ct_paired_total = 0
     for orig in sorted(CT_ORIGINALS.glob("*.yaml")):
-        curated = find_curated_ct(orig.name)
-        if curated is None:
-            print(f"  Warning: no curated match for {orig.name}")
+        final_path, is_rejected = find_final_ct(orig.name)
+        if final_path is None:
+            print(f"  Warning: no final match for {orig.name}")
             continue
-        ct_results.append(compare_ct_pair(orig, curated))
+        ct_paired_total += 1
+        if is_rejected:
+            ct_rejected += 1
+            continue
+        ct_results.append(compare_ct_pair(orig, final_path))
 
     ct_n = len(ct_results)
     ct_relevance = sum(1 for r in ct_results if r["source_relevance_changed"])
@@ -238,7 +273,8 @@ def main():
     ct_doi = sum(1 for r in ct_results if r["source_doi_changed"])
     ct_species = sum(1 for r in ct_results if r["observable_species_changed"])
 
-    print(f"\nCalibrationTargets (batch): {ct_n} paired files")
+    print(f"\nCalibrationTargets (batch): {ct_paired_total} originals paired, "
+          f"{ct_rejected} rejected during curation, {ct_n} surviving")
     print(f"  Source relevance changed:      {ct_relevance}/{ct_n} ({pct(ct_relevance, ct_n)}%)")
     print(f"  Observable code changed:       {ct_obs_code}/{ct_n} ({pct(ct_obs_code, ct_n)}%)")
     print(f"  Empirical values changed:      {ct_empirical}/{ct_n} ({pct(ct_empirical, ct_n)}%)")
@@ -252,13 +288,17 @@ def main():
     print(f"\nInteractive CTs: {interactive['n_files']} files, {interactive['total_lines']} total lines")
 
     # =========================================================================
-    # Total target files (SMT derivations + all CTs across scenarios)
+    # Total target files (SMT derivations + active CTs across scenarios)
     # =========================================================================
     all_ct_files = 0
     for scenario in CT_SCENARIOS:
-        scenario_dir = CT_CURATED / scenario
-        if scenario_dir.exists():
-            all_ct_files += len(list(scenario_dir.glob("*.yaml")))
+        scenario_dir = CT_FINAL / scenario
+        if not scenario_dir.exists():
+            continue
+        for yaml_path in scenario_dir.rglob("*.yaml"):
+            if "excluded" in yaml_path.parts:
+                continue
+            all_ct_files += 1
     total_ct_files = smt_n + all_ct_files
     print(f"\nTotal target files: {smt_n} SMT + {all_ct_files} CT = {total_ct_files}")
 
@@ -283,7 +323,16 @@ def main():
         f"\\newcommand{{\\smtRelevanceChangedPct}}{{{pct(smt_relevance, smt_n)}\\%}}",
         "%",
         "% CalibrationTarget curation (batch pipeline, gpt-5.1)",
+        "% ctBatchFiles = surviving paired files (originals whose curated counterpart"
+        " is an active final/ target)",
+        "% ctBatchRejected = paired originals whose curated counterpart was retired"
+        " to final/**/excluded/",
+        "% ctBatchPairedTotal = ctBatchFiles + ctBatchRejected",
         f"\\newcommand{{\\ctBatchFiles}}{{{ct_n}}}",
+        f"\\newcommand{{\\ctBatchRejected}}{{{ct_rejected}}}",
+        f"\\newcommand{{\\ctBatchPairedTotal}}{{{ct_paired_total}}}",
+        f"\\newcommand{{\\ctBatchRejectedPct}}"
+        f"{{{pct(ct_rejected, ct_paired_total)}\\%}}",
         f"\\newcommand{{\\ctRelevanceChanged}}{{{ct_relevance}}}",
         f"\\newcommand{{\\ctRelevanceChangedPct}}{{{pct(ct_relevance, ct_n)}\\%}}",
         f"\\newcommand{{\\ctObsCodeChanged}}{{{ct_obs_code}}}",
