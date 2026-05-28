@@ -200,7 +200,7 @@ For the \smtCuratedFiles{} batch-extracted SubmodelTarget files, the modeler cha
 
 A further \ctInteractiveFiles{} CalibrationTargets in the final cohort were extracted interactively with Claude Code using source PDFs loaded directly into the session. The modeler provided domain guidance (species mapping, denominator definitions, distribution choices) while the LLM handled literature comprehension and code generation. These files required minimal subsequent revision (a single shared reference value correction across \ctInteractiveTotalLines{} total lines); modeler judgment was embedded in the extraction process rather than applied post-hoc. \revisedtext{The field-level change rates above therefore characterize only the \ctBatchPairedTotal{} batch-extracted CalibrationTargets; the \ctInteractiveFiles{} interactive and \ctManual{} manual targets have no pre-curation draft to diff against.}
 
-\begin{revised}\input{snippets/r2_curation_categories}\end{revised}
+\revisedtext{The curation edits fell into seven recurring categories of modeler-supplied context, ranging from unit conventions and source-selection decisions to denominator choices and scenario-specific structural constraints (Supplementary Section~\ref{sec:curation-categories}).}
 
 \begin{revised}\input{snippets/r1m2_batch_interactive_confounds}\end{revised}
 
@@ -248,7 +248,7 @@ The dual-schema architecture applies the same data-first principles at two scale
 \subsection{Modeler Contribution and Limitations of Extracted Data}
 \label{sec:modeler-contribution}
 
-\begin{revised}\input{snippets/r1m1_disc_framing}\end{revised}
+\revisedtext{The LLM produces competent forward-model choices and observable code given enough context, but cannot recognize when context is missing or when a paper's marker definitions disagree with the model's categorization; the modeler supplies that context and reviews each record for the lapses validators do not detect. The framework makes the dependency auditable: every claim in the YAML carries a source reference and verbatim snippet, with cross-species or cross-indication uses requiring documented justification. Supplementary Section~\ref{sec:curation-categories} enumerates the recurring categories of modeler-supplied context observed in this corpus.}
 
 The source characteristics reveal a fundamental challenge in QSP calibration: only \indExactPct{} of SubmodelTargets came from PDAC-specific experiments, and \spMousetohumanPct{} required cross-species translation from mouse data. The schema addresses this through the \texttt{source\_relevance} block, which requires that translation uncertainty propagate to prior widths. A parameter calibrated from mouse fibrosis data with 5-fold translation uncertainty will have a correspondingly wide posterior, appropriately reflecting the limited applicability of available evidence.
 
