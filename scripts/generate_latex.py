@@ -807,7 +807,7 @@ def generate_yaml_stats_tex(yaml_metrics: YAMLMetrics) -> str:
     total_sq = sum(yaml_metrics.source_quality.values())
     for sq, count in yaml_metrics.source_quality.items():
         sq_name = sq.replace("_", " ").title().replace(" ", "")
-        pct = int(100 * count / total_sq) if total_sq > 0 else 0
+        pct = round(100 * count / total_sq) if total_sq > 0 else 0
         lines.append(f"\\newcommand{{\\sq{sq_name}}}{{{count}}}")
         lines.append(f"\\newcommand{{\\sq{sq_name}Pct}}{{{pct}\\%}}")
 
@@ -815,7 +815,7 @@ def generate_yaml_stats_tex(yaml_metrics: YAMLMetrics) -> str:
     total_sp = sum(yaml_metrics.species_translation.values())
     for sp, count in yaml_metrics.species_translation.items():
         sp_name = sp.replace("→", "To").replace("_", "").title()
-        pct = int(100 * count / total_sp) if total_sp > 0 else 0
+        pct = round(100 * count / total_sp) if total_sp > 0 else 0
         lines.append(f"\\newcommand{{\\sp{sp_name}}}{{{count}}}")
         lines.append(f"\\newcommand{{\\sp{sp_name}Pct}}{{{pct}\\%}}")
 
@@ -823,7 +823,7 @@ def generate_yaml_stats_tex(yaml_metrics: YAMLMetrics) -> str:
     total_ind = sum(yaml_metrics.indication_match.values())
     for ind, count in yaml_metrics.indication_match.items():
         ind_name = ind.title()
-        pct = int(100 * count / total_ind) if total_ind > 0 else 0
+        pct = round(100 * count / total_ind) if total_ind > 0 else 0
         lines.append(f"\\newcommand{{\\ind{ind_name}}}{{{count}}}")
         lines.append(f"\\newcommand{{\\ind{ind_name}Pct}}{{{pct}\\%}}")
 
@@ -831,7 +831,7 @@ def generate_yaml_stats_tex(yaml_metrics: YAMLMetrics) -> str:
     total_mt = sum(yaml_metrics.model_types.values())
     for mt, count in yaml_metrics.model_types.items():
         mt_name = mt.replace("_", " ").title().replace(" ", "")
-        pct = int(100 * count / total_mt) if total_mt > 0 else 0
+        pct = round(100 * count / total_mt) if total_mt > 0 else 0
         lines.append(f"\\newcommand{{\\mt{mt_name}}}{{{count}}}")
         lines.append(f"\\newcommand{{\\mt{mt_name}Pct}}{{{pct}\\%}}")
 
