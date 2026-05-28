@@ -32,8 +32,8 @@
 
 \title{Response to Reviewers\\
 \large Manuscript PSP-2026-0079:\\
-``Structured Schemas for LLM-Modeler Collaboration in\\
-Quantitative Systems Pharmacology Model Calibration''}
+``Structured Schemas for Provenance-Rich,\\
+LLM-Assisted QSP Model Calibration''}
 \author{Joel Eliason and Aleksander S. Popel}
 \date{}
 
@@ -70,7 +70,7 @@ We thank Reviewer 1 for the careful and generous reading, and especially for not
 
 \reviewer{The title says ``LLM-Modeler Collaboration,'' but the data tells us the modeler changed the forward model type in 65\% of files, adjusted priors in 46\%, and revised source relevance in 100\%. After curation, the LLM's surviving contribution is essentially literature identification, snippet extraction, and YAML scaffolding. That is genuinely useful, but it is closer to an intelligent assistant than a scientific collaborator. I am not suggesting this is a weakness; it may be exactly the right division of labor. But the framing should match the evidence. Explicitly characterizing the LLM as handling mechanical tasks while the modeler provides scientific content would actually make the contribution claim more defensible.}
 
-\response{Agreed that the original framing overclaimed the LLM's role. We have revised the abstract, the closing paragraph of the Introduction, and the opening of Section~\ref{sec:modeler-contribution} to describe the LLM as competent at the scientific tasks it is given when supplied with sufficient context, while characterising the modeler's primary contribution as supplying or correcting the context the LLM cannot infer from the static prompt. The new Section~\ref{sec:curation-categories} enumerates the categories of context the modeler supplies, with concrete examples from this dataset.}
+\response{Agreed that the original framing overclaimed the LLM's role. We have revised the abstract, the closing paragraph of the Introduction, and the opening of Section~\ref{sec:modeler-contribution} to describe the LLM as competent at the scientific tasks it is given when supplied with sufficient context, while characterising the modeler's primary contribution as supplying or correcting the context the LLM cannot infer from the static prompt. Section~\ref{sec:curation-categories} (now in the supplement) enumerates the categories of context the modeler supplies, with concrete examples from this dataset. Following the reviewer's point about the title, we have also revised the title from ``Structured Schemas for LLM-Modeler Collaboration in Quantitative Systems Pharmacology Model Calibration'' to ``Structured Schemas for Provenance-Rich, LLM-Assisted QSP Model Calibration'' to match the evidence: ``LLM-assisted'' is more accurate than ``collaboration'' given the division of labour the data show, and ``provenance-rich'' names the framework's central differentiator.}
 
 \medskip
 
