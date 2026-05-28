@@ -330,7 +330,7 @@ Each structured steady-state and accumulation model declares its fields as typed
 \label{sec:validators}
 %=============================================================================
 
-\revisedtext{The validation framework comprises several dozen Pydantic \texttt{@model\_validator} and \texttt{@field\_validator} methods spread across the SubmodelTarget and CalibrationTarget schemas. They run after field parsing and raise a \texttt{ValidationError} with detailed messages when constraints are violated. The implementation is granular (many small validators), but the checks fall into the ten categories below.}
+\revisedtext{The validation framework includes several dozen Pydantic \texttt{@model\_validator} and \texttt{@field\_validator} methods across the SubmodelTarget and CalibrationTarget schemas. They run after field parsing and raise a \texttt{ValidationError} when constraints are violated. The individual validators are fine-grained, but their behaviour is grouped into the ten categories below.}
 
 \subsection{Summary of Validators}
 
@@ -1344,7 +1344,7 @@ Figure~\ref{fig:posteriors} shows posterior estimates for all \nUniqueParams{} p
 
 Most posteriors are narrower than their priors, indicating that the data constrained the parameters. The tumor growth rate \texttt{k\_C1\_growth} (\KConeGrowthMed{} day$^{-1}$, 90\% CI: \KConeGrowthCILo{}--\KConeGrowthCIHi{}) implies a doubling time of about 130 days, consistent with clinical PDAC volume-doubling-time measurements \citep{ahnTimeProgressionPancreatic2017, jangMissedPancreaticDuctal2015}. The activated PSC death rate \texttt{k\_apsc\_death} (\KApscDeathMed{} day$^{-1}$) implies a half-life of about 10 days.
 
-The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall within the 7--8 generation range expected from CFSE proliferation tracking, where dye dilution limits counting. \revisedtext{The CD8+ estimate (\NIltwoCdeightMed{}) falls below this range, suggesting either a genuinely lower IL-2 division capacity for the CD8+ subset in the source data or unmodelled differences between the CD4 and CD8 experimental conditions; the wide posterior for this parameter (see Table~\ref{tab:posteriors}) reflects the limited identifiability from a single calibration target.}
+The IL-2-dependent division counts for CD4+ T cells (\NIltwoCdfourMed{}) fall within the 7--8 generation range expected from CFSE proliferation tracking, where dye dilution limits counting. \revisedtext{The CD8+ estimate (\NIltwoCdeightMed{}) falls below this range, suggesting either a lower IL-2 division capacity for the CD8+ subset in the source data or unmodelled differences between the CD4 and CD8 experimental conditions; the posterior for this parameter is correspondingly wide (Table~\ref{tab:posteriors}), as expected when only one calibration target constrains it.}
 
 %=============================================================================
 \section{Model-Aware Prompt Construction Details}
