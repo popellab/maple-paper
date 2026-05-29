@@ -196,9 +196,32 @@ The \nYAMLTargets{} curated targets drew from diverse sources (Supplementary Sec
 
 To quantify human curation, we compared raw LLM output against final curated versions. All curation was performed interactively with Claude Code (claude-opus-4-6), with the modeler directing edits and modeling decisions while the LLM handled text generation, code writing, and literature comprehension. No batch extraction was used without modification; \revisedtext{in a documented review of one batch (12 CalibrationTarget files), the modeler did not promote 58\% (7 of 12) to the corpus; recorded reasons included placeholder outputs from LLM tool-access failures, parse errors, observable mislabeling, and source/assumption conflicts. This rate comes from a single small batch and should be read as indicative rather than a precise rejection rate.}
 
-For the \smtCuratedFiles{} batch-extracted SubmodelTarget files, the modeler changed the forward model type in \smtFmTypeChangedPct{} of files (\smtFmTypeChanged{}/\smtCuratedFiles{}), adjusted prior distribution parameters in \smtPriorChangedPct{}, changed input data values in \smtInputsChangedPct{}, and revised source relevance assessments in every file. \revisedtext{For CalibrationTargets, \ctBatchPairedTotal{} batch-extracted drafts each retain a pre-curation original alongside their curated version, so they can be compared field by field; \ctBatchRejected{} of the \ctBatchPairedTotal{} were retired during curation (\ctBatchRejectedPct{}), leaving \ctBatchFiles{} batch-extracted targets in the active cohort. (These are separate from the 12-file review above, whose non-promoted drafts were dropped before reaching the curated corpus and have no curated version to compare.) Among the survivors the modeler revised observable code in \ctObsCodeChangedPct{} of files, changed species lists in \ctSpeciesChangedPct{}, adjusted empirical data in \ctEmpiricalChangedPct{}, and revised source relevance assessments in \ctRelevanceChangedPct{} of files (a lower rate than for SubmodelTargets, because the batch CalibrationTargets came from a smaller and more curated input pool).}
+\begin{revised}
+\begin{table}[htbp]
+\centering
+\caption{\revisedtext{Modeler revision of batch-extracted targets, by field. Each rate is the fraction of files whose field changed between the raw LLM draft and the curated version, over the cohorts that carry a pre-curation draft: \smtCuratedFiles{} SubmodelTargets and \ctBatchFiles{} surviving batch-extracted CalibrationTargets (curated from \ctBatchPairedTotal{} paired drafts, \ctBatchRejected{} of which were retired during curation). The full CalibrationTarget corpus is these \ctBatchFiles{} batch-extracted targets plus \ctInteractiveFiles{} interactive targets (\ctTotal{} total); the interactive targets were shaped during extraction and have no pre-curation draft to diff against.}}
+\label{tab:curation}
+\begin{tabular}{llr}
+\toprule
+Schema ($n$) & Field & Revised \\
+\midrule
+SubmodelTarget (\smtCuratedFiles{}) & forward-model type & \smtFmTypeChangedPct{} \\
+ & prior parameters & \smtPriorChangedPct{} \\
+ & input values & \smtInputsChangedPct{} \\
+ & source relevance & \smtRelevanceChangedPct{} \\
+\midrule
+CalibrationTarget (\ctBatchFiles{}) & observable code & \ctObsCodeChangedPct{} \\
+ & species list & \ctSpeciesChangedPct{} \\
+ & empirical data & \ctEmpiricalChangedPct{} \\
+ & source relevance & \ctRelevanceChangedPct{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{revised}
 
-A further \ctInteractiveFiles{} CalibrationTargets in the final cohort were extracted interactively with Claude Code using source PDFs loaded directly into the session. The modeler provided domain guidance (species mapping, denominator definitions, distribution choices) while the LLM handled literature comprehension and code generation. These files required minimal subsequent revision (a single shared reference value correction across \ctInteractiveTotalLines{} total lines); modeler judgment was embedded in the extraction process rather than applied post-hoc. \revisedtext{The field-level change rates above therefore apply only to the \ctBatchPairedTotal{} batch-extracted CalibrationTargets; the \ctInteractiveFiles{} interactive and \ctManual{} manual targets have no pre-curation draft to diff against.}
+\revisedtext{Table~\ref{tab:curation} reports the field-level revision rates for the batch-extracted targets that carry a pre-curation draft. The revisions concentrate in the modeling-judgment fields: forward-model type (\smtFmTypeChangedPct{}) and source relevance (every file) for SubmodelTargets, and observable code (\ctObsCodeChangedPct{}) and species mapping for CalibrationTargets. Source relevance was revised in fewer batch CalibrationTargets than SubmodelTargets, reflecting their smaller and more curated input pool.}
+
+A further \ctInteractiveFiles{} CalibrationTargets in the final cohort were extracted interactively with Claude Code using source PDFs loaded directly into the session. The modeler provided domain guidance (species mapping, denominator definitions, distribution choices) while the LLM handled literature comprehension and code generation. These files required minimal subsequent revision (a single shared reference value correction across \ctInteractiveTotalLines{} total lines); modeler judgment was embedded in the extraction process rather than applied post-hoc.
 
 \revisedtext{The curation edits fell into seven recurring categories, including unit conventions, source selection, denominator choices, and scenario-specific structural constraints; the full list is in Supplementary Section~\ref{sec:curation-categories}.}
 
@@ -211,7 +234,7 @@ We applied the CalibrationTarget schema to \ctTotal{} full-model endpoints for t
 
 \input{generated/ct_summary_table}
 
-Of the \ctTotal{} targets, \ctGPT{} were extracted by GPT-5.1 through the batch pipeline, \ctClaude{} interactively with Claude Opus 4.6 using source PDFs, and \ctManual{} manually.\revisedtext{ The \ctGPT{} batch-extracted figure is the surviving subset of the \ctBatchPairedTotal{} drafts produced by the batch pipeline; \ctBatchRejected{} drafts were curated and then retired (Section~\ref{sec:curation}). The \ctManual{} manual targets did not pass through the LLM-extraction pipeline and so do not enter the field-level curation diffs.} \revisedtext{The neoadjuvant immunotherapy targets draw on per-patient data digitized from scatter plots; \ctFigureDigitized{} CalibrationTargets (\ctFigureDigitizedPct{} of the total) carry figure-digitized data.} Curation metrics for both extraction modes are reported in Section~\ref{sec:curation}.
+Of the \ctTotal{} targets, \ctGPT{} were extracted by GPT-5.1 through the batch pipeline and \ctClaude{} interactively with Claude Opus 4.6 using source PDFs.\revisedtext{ The \ctGPT{} batch-extracted figure is the surviving subset of the \ctBatchPairedTotal{} drafts produced by the batch pipeline; \ctBatchRejected{} drafts were curated and then retired (Section~\ref{sec:curation}).} \revisedtext{The neoadjuvant immunotherapy targets draw on per-patient data digitized from scatter plots; \ctFigureDigitized{} CalibrationTargets (\ctFigureDigitizedPct{} of the total) carry figure-digitized data.} Curation metrics for both extraction modes are reported in Section~\ref{sec:curation}.
 
 The observables span \ctUniqueSpecies{} unique model species, with complexity ranging from \ctSpeciesMin{} to \ctSpeciesMax{} species per target (mean \ctSpeciesMean{}). The targets drew from \ctUniqueDOIs{} unique primary sources (from years \ctYearMin{}--\ctYearMax{}). Supplementary Section~\ref{sec:ct-detailed-metrics} provides detailed per-target metrics.
 
