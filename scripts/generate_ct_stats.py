@@ -209,7 +209,7 @@ def generate_stats_macros(targets, output_path):
         f"\\newcommand{{\\ctYearMax}}{{{year_max}}}",
         f"\\newcommand{{\\ctAIGenerated}}{{{n_ai_generated}}}",
         f"\\newcommand{{\\ctHumanVerified}}{{{n_human_verified}}}",
-        f"\\newcommand{{\\ctHumanVerifiedPct}}{{{n_human_verified * 100 // n_total}\\%}}",
+        f"\\newcommand{{\\ctHumanVerifiedPct}}{{{n_human_verified * 100 // n_ai_generated}\\%}}",
         f"\\newcommand{{\\ctFigureDigitized}}{{{n_figure_digitized}}}",
         f"\\newcommand{{\\ctFigureDigitizedPct}}{{{n_figure_digitized * 100 // n_total}\\%}}",
         f"\\newcommand{{\\ctTableExtracted}}{{{n_table_extracted}}}",
@@ -315,7 +315,7 @@ def generate_extraction_model_table(targets, output_path):
     n_total = len(targets)
 
     model_display = {
-        "claude-opus-4-6": "Claude Opus 4",
+        "claude-opus-4-6": "Claude Opus 4.6",
         "gpt-5.1": "GPT-5.1",
     }
 

@@ -167,8 +167,8 @@ def generate_extraction_stats_tex(metrics: ExtractionMetrics) -> str:
     total_errors = sum(metrics.error_categories.values()) if metrics.error_categories else 1
     err_hallucination = metrics.error_categories.get("hallucination", 0)
     err_fabrication = metrics.error_categories.get("fabrication", 0)
-    err_code = metrics.error_categories.get("code_error", 0)
-    err_prior = metrics.error_categories.get("prior_error", 0)
+    err_code = metrics.error_categories.get("code", 0)
+    err_prior = metrics.error_categories.get("prior", 0)
 
     # Tool usage totals
     tool_web = sum(t.get("tool_calls", {}).get("web_search", 0) for t in metrics.per_target)
@@ -431,8 +431,11 @@ def _format_units_latex(units: str) -> str:
     return u
 
 
-# Auxiliary parameters introduced during extraction (not in original model)
-AUXILIARY_PARAMS = {"L_leukocyte_T"}
+# Auxiliary parameters introduced during extraction (not in the QSP model itself).
+# These are bridging quantities estimated within a target rather than model rate
+# constants; submodel-only model parameters absent from model_structure.json
+# (e.g. k_apsc_death, k_psc_activation) are NOT auxiliary and are excluded here.
+AUXILIARY_PARAMS = {"L_leukocyte_T", "cd8_exclusion_fraction"}
 
 
 def generate_posterior_table_tex(codegen: CodeGenMetrics, inference_results: Optional[dict]) -> str:
@@ -628,7 +631,8 @@ def generate_indication_table_tex(yaml_metrics: YAMLMetrics) -> str:
 
     desc = {
         "exact": "Data from PDAC patients/models",
-        "proxy": "Related indication (e.g., other cancers, fibrosis)",
+        "proxy": "Proxy indication (e.g., other cancers, fibrosis)",
+        "related": "Related indication (same organ/disease class)",
         "general": "General physiological data",
         "unknown": "Not specified",
     }
