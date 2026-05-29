@@ -11,7 +11,7 @@ inputs:
   - name: pdgf_fold_mean
     value: 4.37
     units: dimensionless
-    role: target
+    role: target                          # fit in the likelihood
     source_ref: Schneider2001_PSC_PDGF
     value_snippet: "Cell proliferation (4.37 +/- 0.49- and
                     2.96 +/- 0.39-fold of control)."
@@ -21,19 +21,26 @@ calibration:
   parameters:
     - name: k_apsc_prolif
       units: 1/day
-      prior:
-        distribution: lognormal
-        mu: 0.0
-        sigma: 1.0
+      prior: {distribution: lognormal, mu: 0.0, sigma: 1.0}
   forward_model:
     type: exponential_growth
-    rate_constant: k_apsc_prolif
+    rate_constant: k_apsc_prolif          # parameter estimated
+    state_variables:
+      - name: aPSC_rel                    # touchpoint: evolved here, read below
+        units: dimensionless
+        initial_condition: {value: 1.0}   # normalized to control
     independent_variable:
       name: time
       units: day
       span: [0.0, 1.0]
+  error_model:
+    - name: proliferation_fold_change
+      observable: {type: identity, state_variables: [aPSC_rel]}  # same state
+      uses_inputs: [pdgf_fold_mean]       # data the prediction is fit to
+      evaluation_points: [1.0]            # compare aPSC_rel at t=1 day
+      likelihood: {distribution: lognormal}
 \end{verbatim}
 \end{minipage}
-\caption{Compact SubmodelTarget example. The \texttt{inputs} layer records the literature value with the verbatim source snippet that anchors it; the \texttt{calibration} layer specifies how that value constrains the model parameter \texttt{k\_apsc\_prolif} through a simplified forward model. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}
+\caption{\revisedtext{Compact SubmodelTarget example showing how an extracted value connects to the forward model. The \texttt{inputs} layer records the literature value with the verbatim snippet that anchors it. Within the \texttt{calibration} layer, the state variable \texttt{aPSC\_rel} is the touchpoint between the forward model and the data: the forward model evolves it from a control-normalized initial condition at rate \texttt{k\_apsc\_prolif}, and the \texttt{error\_model} observable reads that same state and fits its value at \texttt{t=1}~day to the measured input \texttt{pdgf\_fold\_mean} (linked through \texttt{uses\_inputs}) under a lognormal likelihood. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}}
 \label{fig:compact-schema}
 \end{figure}

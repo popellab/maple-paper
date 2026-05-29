@@ -74,7 +74,7 @@ We thank Reviewer 1 for the careful and generous reading, and especially for not
 
 \medskip
 
-Revised abstract closing (replaces the final two sentences of the abstract):
+Revised abstract framing of the LLM-versus-modeler division:
 
 \begin{revised}
 \input{snippets/r1m1_abstract_framing}
@@ -189,7 +189,7 @@ Added to Section~\ref{sec:ct-extraction} (CalibrationTarget Extraction):
 \response{It was not applied systematically across the full corpus. Because external full-text availability is uneven across sources, the external validator was used as an on-demand spot-check during curation; we have clarified this in Section~\ref{sec:external-validation} and made explicit that the internal value-in-snippet check is the systematically applied anti-hallucination defense.}
 
 \begin{revised}
-It is provided in the repository as an on-demand verification tool and was applied selectively during curation rather than as part of the automated per-target validation gate, since external full-text availability is uneven across sources; the value-in-snippet check described above is the systematically applied internal anti-hallucination defense.
+It is provided as an on-demand script (\texttt{scripts/validate\_snippets\_in\_source.py}) in the analysis repository, built on the MAPLE full-text fetch and fuzzy-matching validators, and was applied selectively during curation rather than as part of the automated per-target validation gate, since external full-text availability is uneven across sources; the value-in-snippet check described above is the systematically applied internal anti-hallucination defense.
 \end{revised}
 
 \subsubsection*{3. Threshold justification}
@@ -197,7 +197,7 @@ It is provided in the repository as an on-demand verification tool and was appli
 \response{Added a brief justification to the Content Validation subsection (Section~\ref{sec:results}, Methods).}
 
 \begin{revised}
-The fuzzy-match thresholds (75\% for titles, 80\% for snippets) were set to tolerate minor formatting, punctuation, and OCR differences between extracted and source text while still rejecting genuinely different strings; the cross-species, cross-indication, and low-TME multipliers are conservative minimum uncertainty defaults, applied as floors that the modeler may widen further when source applicability is weaker.
+The fuzzy-match thresholds (75\% for titles, 80\% for snippets) were set to tolerate minor formatting, punctuation, and OCR differences between extracted and source text while still rejecting genuinely different strings, and are configurable defaults the modeler can tighten or loosen; the cross-species, cross-indication, and low-TME multipliers are likewise conservative minimum uncertainty defaults, applied as floors that the modeler may widen further when source applicability is weaker.
 \end{revised}
 
 \subsubsection*{4. Prompt availability}

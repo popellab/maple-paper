@@ -1,6 +1,6 @@
 # MAPLE Paper
 
-Manuscript and supporting materials for "Structured Schemas for LLM-Modeler Collaboration in QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
+Manuscript and supporting materials for "Structured Schemas for Provenance-Rich, LLM-Assisted QSP Model Calibration", targeting CPT: Pharmacometrics & Systems Pharmacology.
 
 MAPLE is a framework for LLM-assisted calibration of quantitative systems pharmacology (QSP) models. It combines model-aware literature search (using LLM web search guided by mechanistic context) with structured extraction, automated validation, and code generation for Bayesian inference.
 
@@ -38,6 +38,7 @@ maple-paper/
 │   ├── generate_curation_stats.py
 │   ├── generate_ct_stats.py
 │   ├── validate_submodel_target.py
+│   ├── validate_snippets_in_source.py  # External check: snippets vs. source papers (Europe PMC/Unpaywall)
 │   ├── joint_calibration.jl      # Generated Julia inference script
 │   ├── export_docx.sh            # Export to Word docx via pandoc
 │   ├── postprocess_docx.py       # Post-process docx (captions, bold headers)
@@ -96,6 +97,22 @@ python scripts/generate_ct_stats.py
 python scripts/generate_inference.py metadata_storage/submodel_targets/curated --skip-single
 julia scripts/joint_calibration.jl
 ```
+
+## Verifying Snippets Against Source Papers
+
+`scripts/validate_snippets_in_source.py` is the on-demand external validator described in the manuscript (Methods, "External Validation"). For each `value_snippet` in a target, it fetches the cited paper's text from Europe PMC and Unpaywall by DOI and uses fuzzy matching (80% similarity) to confirm the snippet actually appears in the source, catching cases where a snippet contains the right number but was not taken from the paper. It builds on the MAPLE validators `get_paper_texts_from_doi` and `fuzzy_find_snippet_in_text` (in [maple](https://github.com/popellab/maple)).
+
+Because external full-text availability is uneven across sources, this runs on demand rather than as part of the per-target validation gate; the internal value-in-snippet check (run automatically during extraction) is the systematically applied anti-hallucination defense.
+
+```bash
+# Verify one target
+python scripts/validate_snippets_in_source.py metadata_storage/submodel_targets/curated/<target>.yaml
+
+# Verify all targets in a directory
+python scripts/validate_snippets_in_source.py metadata_storage/submodel_targets/curated/
+```
+
+Requires network access. Snippets from sources without accessible full text are reported as skipped rather than failed.
 
 ## Building the Paper
 
