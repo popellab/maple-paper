@@ -13,6 +13,8 @@
 \usepackage{pdflscape}
 \usepackage{lineno}
 \linenumbers
+\usepackage{xr-hyper}
+\externaldocument{main}
 
 % Revision tracking
 \providecommand{\trackchanges}{1}
@@ -1392,7 +1394,7 @@ Finally, \texttt{estimated\_translation\_uncertainty\_fold} quantifies the expec
 \label{sec:collaboration-modes}
 %=============================================================================
 
-The two collaboration modes observed in this study offer different trade-offs. In the batch pipeline mode, the LLM produces a structured draft that the modeler then curates interactively: selecting appropriate forward model types and prior distributions for SubmodelTargets, correcting observable code and species mappings for CalibrationTargets, and revising source relevance assessments for both. This mode is efficient for initial coverage (many files per run) but carries a high rejection rate (58\% in a documented batch review) because the LLM lacks real-time modeler guidance on source selection, species mapping, and denominator definitions. In the interactive mode, the modeler and LLM work together from the start, with the modeler directing extraction decisions while the LLM handles text generation, code writing, and literature comprehension. This mode produces near-final quality but requires deeper per-file engagement.
+The two collaboration modes observed in this study offer different trade-offs. In the batch pipeline mode, the LLM produces a structured draft that the modeler then curates interactively: selecting appropriate forward model types and prior distributions for SubmodelTargets, correcting observable code and species mappings for CalibrationTargets, and revising source relevance assessments for both. This mode is efficient for initial coverage (many files per run) but carries a high rejection rate (58\% in a documented batch review) because the LLM lacks real-time modeler guidance on source selection, species mapping, and denominator definitions. In the interactive mode, the modeler and LLM work together from the start, with the modeler directing extraction decisions while the LLM handles text generation, code writing, and literature comprehension. This mode front-loads modeler effort during extraction and leaves less to revise afterwards. Because the batch and interactive runs used different LLMs (GPT-5.1 and Claude Opus 4.6) and the interactive work followed curation of the batch outputs, this difference is observational rather than evidence that interactive extraction is inherently superior.
 
 In both modes, the schema serves as the collaboration interface. It defines what information must be captured (ensuring completeness), constrains how it is represented (enabling validation), and separates data extraction from modeling decisions (clarifying where different types of expertise are needed). The validators provide guardrails during both LLM extraction and human editing, catching errors regardless of their source.
 
