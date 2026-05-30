@@ -55,7 +55,8 @@ The principal revisions are:
   \item Documented the CalibrationTarget metrics gap and pinned the MAPLE version (v0.1.0, commit \texttt{7f1faa4}) used to generate the reported results (R1 Major \#5, Minor \#5).
   \item Audited and reconciled all target counts, corrected Table 3, and clarified the dataset accounting (R2).
   \item Added a workflow figure and a compact schema example, and expanded the human-curation analysis (R2).
-  \item Editorial: page and line numbers, ORCID IDs, conflict of interest and funding statements on the title page, figures as separate files, AI use disclosure, reference audit.
+  \item Editorial: page and line numbers, ORCID IDs, conflict of interest and funding statements on the title page, figures as separate files, AI use disclosure, reference audit, and an ethics statement.
+  \item Condensed redundant methodological detail (already given in full in the Supplementary Materials) to meet the 4{,}000-word limit; no reported result or reviewer-requested addition was removed.
 \end{itemize}
 
 \bigskip
@@ -209,7 +210,7 @@ The fuzzy-match thresholds (75\% for titles, 80\% for snippets) were set to tole
 \response{Exact identifiers and the extraction period are now recorded in Section~\ref{sec:results} (Application: PDAC QSP Model).}
 
 \begin{revised}
-Batch SubmodelTarget extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed in January and February 2026.
+Batch extraction used OpenAI \texttt{gpt-5.1} at high reasoning effort, both for SubmodelTargets and for the batch-pipeline portion of CalibrationTargets; interactive CalibrationTarget extraction and all curation used Anthropic \texttt{claude-opus-4-6} through Claude Code. All extraction and curation runs were performed in January and February 2026.
 \end{revised}
 
 \subsubsection*{6. 58\% rejection rate}
@@ -282,7 +283,7 @@ We thank Reviewer 2 for the constructive framing of MAPLE as a structured handof
 
 \subsubsection*{Workflow figure and compact schema example}
 \reviewer{$\ldots$ as well as adding a workflow figure and one compact schema example $\ldots$}\\
-\response{We have added a compact SubmodelTarget example (Figure~\ref{fig:compact-schema}) to the Schema Design section, showing the two-layer inputs/calibration structure in roughly thirty lines, and a workflow figure (Figure~\ref{fig:workflow}) at the top of the Methods section showing the end-to-end pipeline (parameter target, LLM literature search, extraction, automated validation with retry, modeler curation with re-extract and revise-source feedback edges, and joint Bayesian inference).}
+\response{We have added a compact SubmodelTarget example (Figure~\ref{fig:compact-schema}) to the Schema Design section, showing the two-layer inputs/calibration structure in about thirty-five lines, and a workflow figure (Figure~\ref{fig:workflow}) at the top of the Methods section showing the end-to-end pipeline (parameter target, LLM literature search, extraction, automated validation with retry, modeler curation with re-extract and revise-source feedback edges, and joint Bayesian inference).}
 
 \medskip
 
@@ -290,7 +291,7 @@ The added figures appear in the marked-up manuscript at the top of the Methods s
 
 \subsubsection*{Expanded human-curation analysis}
 \reviewer{$\ldots$ expanding the human-curation analysis.}\\
-\response{The new Section~\ref{sec:curation-categories} enumerates seven recurring categories of modeler-supplied context observed across SubmodelTarget and CalibrationTarget curation, each illustrated with a concrete example from the dataset (units, source selection, cross-source aggregation, auxiliary-parameter bridging, denominator choices, scenario-specific forward-model structure, and uncertainty widening from source quality). The existing field-level rates in Section~\ref{sec:curation} remain.}
+\response{The new Section~\ref{sec:curation-categories} enumerates seven recurring categories of modeler-supplied context observed across SubmodelTarget and CalibrationTarget curation, each illustrated with a concrete example from the dataset (units, source selection, cross-source aggregation, measurement-to-state translation, denominator choices, scenario-specific forward-model structure, and uncertainty widening from source quality). The existing field-level rates in Section~\ref{sec:curation} remain, now collected in Table~\ref{tab:curation}.}
 
 \bigskip
 
@@ -315,6 +316,13 @@ The added figures appear in the marked-up manuscript at the top of the Methods s
 
 \subsubsection*{Reference completeness}
 \response{We audited the reference list. Every in-text citation resolves to a complete bibliography entry, all entries carry a DOI or full publication details, and no reference is cited only in a figure or table caption (so no reordering of figure/table references is required). Reference metadata was cross-checked against Crossref, arXiv, and Semantic Scholar.}
+
+\subsubsection*{Ethics statement}
+\response{The study used only previously published, aggregate literature data and involved no human subjects or animal experimentation. We have added a statement to this effect in Section~\ref{sec:results} (Application: PDAC QSP Model).}
+
+\begin{revised}
+This study used only previously published, aggregate literature data and did not involve human subjects or animal experimentation, so institutional review board or IACUC approval was not required.
+\end{revised}
 
 \bibliographystyle{vancouver}
 \bibliography{references}
