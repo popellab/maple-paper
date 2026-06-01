@@ -1,5 +1,4 @@
-\begin{figure}[htbp]
-\centering
+\begin{center}
 \begin{minipage}{0.92\textwidth}
 \small
 \begin{verbatim}
@@ -41,6 +40,4 @@ calibration:
       likelihood: {distribution: lognormal}
 \end{verbatim}
 \end{minipage}
-\caption{\revisedtext{Compact SubmodelTarget example showing how an extracted value connects to the forward model. The \texttt{inputs} layer records the literature value with the verbatim snippet that anchors it. Within the \texttt{calibration} layer, the state variable \texttt{aPSC\_rel} is the touchpoint between the forward model and the data: the forward model evolves it from a control-normalized initial condition at rate \texttt{k\_apsc\_prolif}, and the \texttt{error\_model} observable reads that same state and fits its value at \texttt{t=1}~day to the measured input \texttt{pdgf\_fold\_mean} (linked through \texttt{uses\_inputs}) under a lognormal likelihood. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}}
-\label{fig:compact-schema}
-\end{figure}
+\end{center}

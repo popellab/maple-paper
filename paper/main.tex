@@ -88,15 +88,6 @@ We present MAPLE (Model-Aware Parameterization from Literature Evidence), a fram
 \section{Methods}
 %=============================================================================
 
-\begin{revised}
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{figures/workflow.pdf}
-  \caption{\revisedtext{MAPLE workflow. An LLM searches the literature for a parameter target and extracts a structured YAML target carrying values, provenance, and a forward model. Automated validators gate the YAML, while failures trigger LLM retry. Validated targets are reviewed by the modeler, who may also revise the source or re-extract. Curated targets feed a joint Bayesian inference yielding posteriors with full provenance.}}
-  \label{fig:workflow}
-\end{figure}
-\end{revised}
-
 \subsection{Model-Aware Literature Search}
 
 \revisedtext{Figure~\ref{fig:workflow} summarizes the full MAPLE pipeline.} The user specifies which model parameters or observables need calibration, and the system builds a prompt that guides an LLM with web search capability to find relevant experimental literature. The framework supports multiple LLM providers (OpenAI, Anthropic, Google) through a common interface. In this study, we used GPT-5.1 for batch extraction and Claude Opus 4.6 for interactive extraction.
@@ -346,5 +337,19 @@ MAPLE (the SubmodelTarget and CalibrationTarget schemas and validation framework
 
 \bibliographystyle{vancouver}
 \bibliography{references}
+
+%=============================================================================
+\section*{Figure Legends}
+%=============================================================================
+
+\begin{figure}[h!]
+\caption{\revisedtext{MAPLE workflow. An LLM searches the literature for a parameter target and extracts a structured YAML target carrying values, provenance, and a forward model. Automated validators gate the YAML, while failures trigger LLM retry. Validated targets are reviewed by the modeler, who may also revise the source or re-extract. Curated targets feed a joint Bayesian inference yielding posteriors with full provenance.}}
+\label{fig:workflow}
+\end{figure}
+
+\begin{figure}[h!]
+\caption{\revisedtext{Compact SubmodelTarget example showing how an extracted value connects to the forward model. The \texttt{inputs} layer records the literature value with the verbatim snippet that anchors it. Within the \texttt{calibration} layer, the state variable \texttt{aPSC\_rel} is the touchpoint between the forward model and the data: the forward model evolves it from a control-normalized initial condition at rate \texttt{k\_apsc\_prolif}, and the \texttt{error\_model} observable reads that same state and fits its value at \texttt{t=1}~day to the measured input \texttt{pdgf\_fold\_mean} (linked through \texttt{uses\_inputs}) under a lognormal likelihood. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}}
+\label{fig:compact-schema}
+\end{figure}
 
 \end{document}
