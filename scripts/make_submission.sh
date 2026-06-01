@@ -33,27 +33,43 @@ mkdir -p "$OUT/figures" "$OUT/generated/figures"
 cp "$PAPER/figures/workflow.pdf"                       "$OUT/figures/"
 cp "$PAPER/generated/figures/posterior_marginals.pdf"  "$OUT/generated/figures/"
 
-# Compile both with cross-references resolved (supplement <-> main cycled; no
-# bibtex because the .bbl is inlined). This produces the final supplementary.pdf
-# and the .aux files needed to freeze main's external refs.
+# Compile with cross-references resolved (no bibtex; the .bbl is inlined).
+# main and the supplement \externaldocument each other, so xr-hyper chokes on the
+# OTHER document's not-yet-settled .aux during early passes. Those failures
+# self-heal once both .aux files exist, so we tolerate transient nonzero exits
+# here (|| true) and assert the settled outputs afterwards rather than halting.
+# Seed main.aux first, then alternate until both documents settle.
 cd "$OUT"
-for pass in 1 2; do
-  pdflatex -interaction=nonstopmode -halt-on-error supplementary.tex >/dev/null
-  pdflatex -interaction=nonstopmode -halt-on-error main.tex          >/dev/null
+# Route pdflatex's terminal output to a build log, NOT /dev/null: on some TeX
+# builds writing the terminal stream to /dev/null intermittently aborts the run.
+for pass in 1 2 3; do
+  pdflatex -interaction=nonstopmode main.tex          >build.log 2>&1 || true
+  pdflatex -interaction=nonstopmode supplementary.tex >build.log 2>&1 || true
 done
+[ -f supplementary.pdf ] && [ -f main.aux ] && [ -f supplementary.aux ] \
+  || { echo "Error: build did not settle (missing supplementary.pdf or .aux)"; exit 1; }
 
 # Freeze main's \ref's into the supplement to literal numbers and drop
 # \externaldocument, so main.tex compiles standalone (the supplement ships as a
 # PDF, so its .aux won't be present at the journal's compile of main.tex).
 "$PY" "$SCRIPT_DIR/freeze_external_refs.py" main.tex main.aux supplementary.aux
 
-# Recompile the now-standalone main.tex (two passes for its own refs).
-pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null
-pdflatex -interaction=nonstopmode -halt-on-error main.tex >/dev/null
+# Recompile the now-standalone main.tex from a clean slate (two passes for its
+# own refs). Drop ALL pre-freeze main artifacts first: they were written with
+# \externaldocument active and carry xr/hyperref state that crashes a standalone
+# read. supplementary.aux is also removed so nothing external lingers.
+rm -f main.aux main.out main.toc main.lof main.lot supplementary.aux
+pdflatex -interaction=nonstopmode main.tex >build.log 2>&1 || true
+pdflatex -interaction=nonstopmode main.tex >build.log 2>&1 || true
+[ -f main.pdf ] || { echo "Error: main.pdf not produced"; exit 1; }
+# main.tex is now standalone: fail loudly if any cross-ref stayed unresolved.
+if grep -q "Reference.*undefined" main.log; then
+  echo "Error: undefined references remain in standalone main.tex"; exit 1
+fi
 
 # The flattened supplementary.tex is only a build artifact now; the deliverable
-# is the PDF. Remove it to avoid confusion about what to upload.
-rm -f supplementary.tex
+# is the PDF. Remove it (and the scratch build log) to avoid confusion.
+rm -f supplementary.tex build.log
 
 echo
 echo "Submission files in $OUT:"

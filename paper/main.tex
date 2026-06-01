@@ -18,11 +18,14 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage{float}
 \usepackage{rotating}
+\usepackage{caption}
 
 % Revision tracking: set \trackchanges to 1 to render revised text in blue, 0 to suppress.
 \providecommand{\trackchanges}{1}
 \newenvironment{revised}{\if1\trackchanges\color{blue}\fi}{}
-\newcommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
+% Robust so it survives being written into .aux \newlabel entries (e.g. inside
+% \caption); a fragile \if...\fi expands during \write and corrupts the .aux.
+\DeclareRobustCommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
@@ -121,7 +124,7 @@ Many calibration constraints come from clinical or in vivo studies where the mea
 \subsubsection{Source Relevance Assessment}
 \label{sec:source-relevance}
 
-Experimental data rarely matches the target model perfectly. The \texttt{source\_relevance} block documents the translation from source context to model context across several dimensions: indication match, species translation, evidence type, and tumor microenvironment compatibility. Each dimension requires justification when the source deviates from the target model. An \texttt{estimated\_translation\_uncertainty\_fold} field quantifies the combined expected uncertainty from all translation factors, which propagates to prior width during inference (e.g., cross-species extraction from a proxy indication might warrant 10-fold uncertainty). Supplementary Section~\ref{sec:source-relevance-detail} provides detailed field descriptions.
+Experimental data rarely matches the target model perfectly. The \texttt{source\_relevance} block documents the translation from source context to model context across several dimensions: indication match, species translation, evidence type, and tumor microenvironment compatibility. Each dimension requires justification when the source deviates from the target model. An \texttt{estimated\_\allowbreak translation\_\allowbreak uncertainty\_\allowbreak fold} field quantifies the combined expected uncertainty from all translation factors, which propagates to prior width during inference (e.g., cross-species extraction from a proxy indication might warrant 10-fold uncertainty). Supplementary Section~\ref{sec:source-relevance-detail} provides detailed field descriptions.
 
 \subsubsection{Schema Implementation}
 
@@ -192,7 +195,7 @@ To quantify human curation, we compared raw LLM output against final curated ver
 \begin{revised}
 \begin{table}[htbp]
 \centering
-\caption{\revisedtext{Modeler revision of batch-extracted targets, by field. Each rate is the fraction of files whose field changed between the raw LLM draft and the curated version, over the cohorts that carry a pre-curation draft: \smtCuratedFiles{} SubmodelTargets and \ctBatchFiles{} surviving batch-extracted CalibrationTargets (curated from \ctBatchPairedTotal{} paired drafts, \ctBatchRejected{} of which were retired during curation). The full CalibrationTarget corpus is these \ctBatchFiles{} batch-extracted targets plus \ctInteractiveFiles{} interactive targets (\ctTotal{} total); the interactive targets were shaped during extraction and have no pre-curation draft to diff against.}}
+\caption[Modeler revision of batch-extracted targets, by field.]{\revisedtext{Modeler revision of batch-extracted targets, by field. Each rate is the fraction of files whose field changed between the raw LLM draft and the curated version, over the cohorts that carry a pre-curation draft: \smtCuratedFiles{} SubmodelTargets and \ctBatchFiles{} surviving batch-extracted CalibrationTargets (curated from \ctBatchPairedTotal{} paired drafts, \ctBatchRejected{} of which were retired during curation). The full CalibrationTarget corpus is these \ctBatchFiles{} batch-extracted targets plus \ctInteractiveFiles{} interactive targets (\ctTotal{} total); the interactive targets were shaped during extraction and have no pre-curation draft to diff against.}}
 \label{tab:curation}
 \begin{tabular}{llr}
 \toprule
@@ -342,14 +345,13 @@ MAPLE (the SubmodelTarget and CalibrationTarget schemas and validation framework
 \section*{Figure Legends}
 %=============================================================================
 
+% Figure 2 (compact SubmodelTarget listing) is captioned in place in the Methods,
+% since it is typeset code rather than an uploaded graphic. Reset the counter so
+% the uploaded workflow graphic below is numbered Figure 1.
+\setcounter{figure}{0}
 \begin{figure}[h!]
-\caption{\revisedtext{MAPLE workflow. An LLM searches the literature for a parameter target and extracts a structured YAML target carrying values, provenance, and a forward model. Automated validators gate the YAML, while failures trigger LLM retry. Validated targets are reviewed by the modeler, who may also revise the source or re-extract. Curated targets feed a joint Bayesian inference yielding posteriors with full provenance.}}
+\caption[MAPLE workflow.]{\revisedtext{MAPLE workflow. An LLM searches the literature for a parameter target and extracts a structured YAML target carrying values, provenance, and a forward model. Automated validators gate the YAML, while failures trigger LLM retry. Validated targets are reviewed by the modeler, who may also revise the source or re-extract. Curated targets feed a joint Bayesian inference yielding posteriors with full provenance.}}
 \label{fig:workflow}
-\end{figure}
-
-\begin{figure}[h!]
-\caption{\revisedtext{Compact SubmodelTarget example showing how an extracted value connects to the forward model. The \texttt{inputs} layer records the literature value with the verbatim snippet that anchors it. Within the \texttt{calibration} layer, the state variable \texttt{aPSC\_rel} is the touchpoint between the forward model and the data: the forward model evolves it from a control-normalized initial condition at rate \texttt{k\_apsc\_prolif}, and the \texttt{error\_model} observable reads that same state and fits its value at \texttt{t=1}~day to the measured input \texttt{pdgf\_fold\_mean} (linked through \texttt{uses\_inputs}) under a lognormal likelihood. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}}
-\label{fig:compact-schema}
 \end{figure}
 
 \end{document}

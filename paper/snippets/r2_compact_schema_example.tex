@@ -1,6 +1,9 @@
-\begin{center}
-\begin{minipage}{0.92\textwidth}
-\small
+% Compact SubmodelTarget example. Presented as an in-text listing (not a float)
+% so it can break across pages; the caption is attached here rather than in the
+% end-of-document Figure Legends because this is typeset code, not an uploaded
+% figure file. The figure counter is set so this renders as "Figure 2" while the
+% uploaded workflow graphic remains "Figure 1" (its counter is reset at the end).
+{\small
 \begin{verbatim}
 # SubmodelTarget: activated PSC proliferation rate
 target_id: psc_proliferation_PDAC_deriv001
@@ -38,6 +41,7 @@ calibration:
       uses_inputs: [pdgf_fold_mean]       # data the prediction is fit to
       evaluation_points: [1.0]            # compare aPSC_rel at t=1 day
       likelihood: {distribution: lognormal}
-\end{verbatim}
-\end{minipage}
-\end{center}
+\end{verbatim}}
+\setcounter{figure}{1}% render as Figure 2 (Figure 1 is the workflow graphic)
+\captionof{figure}[Compact SubmodelTarget example.]{Compact SubmodelTarget example showing how an extracted value connects to the forward model. The \texttt{inputs} layer records the literature value with the verbatim snippet that anchors it. Within the \texttt{calibration} layer, the state variable \texttt{aPSC\_rel} is the touchpoint between the forward model and the data: the forward model evolves it from a control-normalized initial condition at rate \texttt{k\_apsc\_prolif}, and the \texttt{error\_model} observable reads that same state and fits its value at \texttt{t=1}~day to the measured input \texttt{pdgf\_fold\_mean} (linked through \texttt{uses\_inputs}) under a lognormal likelihood. Rationale fields and the auxiliary standard-deviation input are omitted for brevity; Supplementary Section~\ref{sec:complete-example} gives the complete record.}
+\label{fig:compact-schema}

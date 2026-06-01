@@ -19,7 +19,9 @@
 % Revision tracking
 \providecommand{\trackchanges}{1}
 \newenvironment{revised}{\if1\trackchanges\color{blue}\fi}{}
-\newcommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
+% Robust so it survives being written into .aux \newlabel entries (e.g. inside
+% \caption); a fragile \if...\fi expands during \write and corrupts the .aux.
+\DeclareRobustCommand{\revisedtext}[1]{\if1\trackchanges\textcolor{blue}{#1}\else#1\fi}
 
 \title{Supplementary Materials:\\Structured Schemas for Provenance-Rich, LLM-Assisted QSP Model Calibration}
 \author{Joel Eliason and Aleksander S. Popel}
@@ -1383,11 +1385,11 @@ The \texttt{indication\_match} field classifies how well the source disease cont
 
 Species translation is captured by \texttt{species\_source} and \texttt{species\_target} fields. When these differ (e.g., mouse data informing a human model), the extraction must document the assumed translation.
 
-The \texttt{source\_quality} field categorizes the evidence type: \texttt{primary\_human\_clinical}, \texttt{primary\_human\_in\_vitro}, \texttt{primary\_animal\_in\_vivo}, \texttt{primary\_animal\_in\_vitro}, \texttt{review\_article}, or \texttt{textbook}. By default, non-peer-reviewed sources trigger a validation warning; in practice, preprints (e.g., from bioRxiv) that have been publicly available for several months can provide valuable data, and the validator can be configured to accept them with documented justification.
+The \texttt{source\_quality} field categorizes the evidence type: \texttt{primary\_\allowbreak human\_\allowbreak clinical}, \texttt{primary\_\allowbreak human\_\allowbreak in\_\allowbreak vitro}, \texttt{primary\_\allowbreak animal\_\allowbreak in\_\allowbreak vivo}, \texttt{primary\_\allowbreak animal\_\allowbreak in\_\allowbreak vitro}, \texttt{review\_\allowbreak article}, or \texttt{textbook}. By default, non-peer-reviewed sources trigger a validation warning; in practice, preprints (e.g., from bioRxiv) that have been publicly available for several months can provide valuable data, and the validator can be configured to accept them with documented justification.
 
 For immune and stromal parameters, \texttt{tme\_compatibility} assesses whether the tumor microenvironment in the source matches the target model (\texttt{high}, \texttt{moderate}, or \texttt{low}). A T cell trafficking rate measured in melanoma (a T cell-permissive tumor) may not translate directly to PDAC (an immunosuppressive tumor); low compatibility requires explicit documentation.
 
-Finally, \texttt{estimated\_translation\_uncertainty\_fold} quantifies the expected uncertainty from all translation factors combined. Cross-species extraction from a proxy indication with low TME compatibility might warrant 10-fold or greater uncertainty, which propagates to prior width during inference.
+Finally, \texttt{estimated\_\allowbreak translation\_\allowbreak uncertainty\_\allowbreak fold} quantifies the expected uncertainty from all translation factors combined. Cross-species extraction from a proxy indication with low TME compatibility might warrant 10-fold or greater uncertainty, which propagates to prior width during inference.
 
 %=============================================================================
 \section{Collaboration Mode Details}

@@ -243,7 +243,7 @@ def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated extraction metrics table
 \begin{{table}}[htbp]
 \centering
-\caption{{\revisedtext{{Extraction metrics for the \nTargets{{}} Logfire-instrumented SubmodelTargets. Retries: automated re-extractions triggered by validator failures before any human review. Duration: wall-clock extraction time. Tokens: total LLM tokens consumed. The final row reports the mean across targets.}}}}
+\caption[Extraction metrics for the Logfire-instrumented SubmodelTargets.]{{\revisedtext{{Extraction metrics for the \nTargets{{}} Logfire-instrumented SubmodelTargets. Retries: automated re-extractions triggered by validator failures before any human review. Duration: wall-clock extraction time. Tokens: total LLM tokens consumed. The final row reports the mean across targets.}}}}
 \label{{tab:extraction}}
 \begin{{tabular}}{{lccc}}
 \toprule
@@ -299,7 +299,7 @@ def generate_error_categories_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated error categories table
 \begin{{table}}[htbp]
 \centering
-\caption{{\revisedtext{{Categories of validation exceptions captured during batch-extraction tracing. The total is a lower bound: it counts distinct exception types per target, so repeated retries for the same kind of error collapse to a single entry, whereas the validators triggered \totalRetries{{}} retries in total across the \nTargets{{}} instrumented extractions. Categories match the validator types described in the Validation Framework (Methods); ``prior'' denotes an uncertainty range incompatible with the stated translation context.}}}}
+\caption[Categories of validation exceptions captured during batch-extraction tracing.]{{\revisedtext{{Categories of validation exceptions captured during batch-extraction tracing. The total is a lower bound: it counts distinct exception types per target, so repeated retries for the same kind of error collapse to a single entry, whereas the validators triggered \totalRetries{{}} retries in total across the \nTargets{{}} instrumented extractions. Categories match the validator types described in the Validation Framework (Methods); ``prior'' denotes an uncertainty range incompatible with the stated translation context.}}}}
 \label{{tab:error-categories}}
 \begin{{tabular}}{{lcc}}
 \toprule
