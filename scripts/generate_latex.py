@@ -299,7 +299,7 @@ def generate_error_categories_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated error categories table
 \begin{{table}}[htbp]
 \centering
-\caption{{Categories of validation exceptions captured during batch-extraction tracing. The total is a lower bound on validator interventions: tracing recorded a representative subset of exceptions per target, whereas the validators triggered \totalRetries{{}} retries across the \nTargets{{}} instrumented extractions overall. Categories match the validator types described in the Validation Framework (Methods); ``prior'' denotes an uncertainty range incompatible with the stated translation context.}}
+\caption{{Categories of validation exceptions captured during batch-extraction tracing. The total is a lower bound: each retry follows at least one validator exception, but tracing logged only some of them, so these counts fall short of the \totalRetries{{}} retries the validators triggered across the \nTargets{{}} instrumented extractions. Categories match the validator types described in the Validation Framework (Methods); ``prior'' denotes an uncertainty range incompatible with the stated translation context.}}
 \label{{tab:error-categories}}
 \begin{{tabular}}{{lcc}}
 \toprule
