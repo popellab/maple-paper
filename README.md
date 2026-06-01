@@ -39,6 +39,8 @@ maple-paper/
 │   ├── generate_ct_stats.py
 │   ├── validate_submodel_target.py
 │   ├── validate_snippets_in_source.py  # External check: snippets vs. source papers (Europe PMC/Unpaywall)
+│   ├── verify_validation.sh         # Re-run the MAPLE v0.1.0 validator suite over all final targets
+│   ├── verify_validation.py         # Worker for verify_validation.sh
 │   ├── joint_calibration.jl      # Generated Julia inference script
 │   ├── export_docx.sh            # Export to Word docx via pandoc
 │   ├── postprocess_docx.py       # Post-process docx (captions, bold headers)
@@ -113,6 +115,17 @@ python scripts/validate_snippets_in_source.py metadata_storage/submodel_targets/
 ```
 
 Requires network access. Snippets from sources without accessible full text are reported as skipped rather than failed.
+
+## Verifying All Targets Pass Validation
+
+`scripts/verify_validation.sh` re-runs the MAPLE Pydantic validator pipeline (schema, unit, reference, structural, and observable/observation code validators) over every final target and reports pass/fail. This reproduces the manuscript's claim that no final target retains an unresolved validator failure.
+
+```bash
+./scripts/verify_validation.sh        # validate all final targets
+./scripts/verify_validation.sh -v     # also list each file
+```
+
+The result is pinned to MAPLE v0.1.0 (commit `7f1faa4`); later versions have a different schema and would report spurious failures. The wrapper puts the pinned version on the path automatically: it uses `$MAPLE_SRC` if set, otherwise extracts commit `7f1faa4` from a sibling `../maple` checkout (via `git archive`, cached under `.maple-v0.1.0/`). It validates the 37 SubmodelTargets and 45 CalibrationTargets against the model structure, species units, and reference database in `batch_extraction/`, and exits non-zero if any target fails. This is the deterministic pipeline only; the network-dependent DOI and external-snippet checks are run separately (see above).
 
 ## Building the Paper
 
