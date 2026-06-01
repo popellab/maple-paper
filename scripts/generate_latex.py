@@ -243,7 +243,7 @@ def generate_extraction_table_tex(metrics: ExtractionMetrics) -> str:
     return rf"""% Auto-generated extraction metrics table
 \begin{{table}}[htbp]
 \centering
-\caption{{Extraction metrics per SubmodelTarget.}}
+\caption{{Extraction metrics for the \nTargets{{}} Logfire-instrumented SubmodelTargets. Retries: automated re-extractions triggered by validator failures before any human review. Duration: wall-clock extraction time. Tokens: total LLM tokens consumed. The final row reports the mean across targets.}}
 \label{{tab:extraction}}
 \begin{{tabular}}{{lccc}}
 \toprule
