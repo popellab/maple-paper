@@ -125,7 +125,7 @@ Requires network access. Snippets from sources without accessible full text are 
 ./scripts/verify_validation.sh -v     # also list each file
 ```
 
-The result is pinned to MAPLE v0.1.0 (commit `7f1faa4`); later versions have a different schema and would report spurious failures. The wrapper puts the pinned version on the path automatically: it uses `$MAPLE_SRC` if set, otherwise extracts commit `7f1faa4` from a sibling `../maple` checkout (via `git archive`, cached under `.maple-v0.1.0/`). It validates the 37 SubmodelTargets and 45 CalibrationTargets against the model structure, species units, and reference database in `batch_extraction/`, and exits non-zero if any target fails. This is the deterministic pipeline only; the network-dependent DOI and external-snippet checks are run separately (see above).
+The result is pinned to MAPLE v0.1.0 (commit `7f1faa4`); later versions have a different schema and would report spurious failures. The wrapper puts the pinned version on the path automatically: it uses `$MAPLE_SRC` if set, otherwise clones the public MAPLE repo at commit `7f1faa4` (cached under `.maple-v0.1.0/`; override the URL with `$MAPLE_REPO_URL`). No local MAPLE checkout is required. It validates the 37 SubmodelTargets and 45 CalibrationTargets against the model structure, species units, and reference database in `batch_extraction/`, and exits non-zero if any target fails. This is the deterministic pipeline only; the network-dependent DOI and external-snippet checks are run separately (see above).
 
 ## Building the Paper
 
