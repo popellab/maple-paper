@@ -275,7 +275,7 @@ The dual-schema architecture applies the same data-first principles at two scale
 \subsection{Modeler Contribution and Limitations of Extracted Data}
 \label{sec:modeler-contribution}
 
-\revisedtext{The LLM produces usable forward-model choices and observable code when it has the right context, but cannot tell when the context is incomplete or when a paper's marker definitions disagree with the model's categorization. The modeler supplies that context and reviews each record for the lapses the validators do not catch. Every claim in the YAML records a source reference and verbatim snippet, and cross-species or cross-indication uses require a documented justification, so the modeler's input is itself auditable. Supplementary Section~\ref{sec:curation-categories} lists the recurring categories of modeler-supplied context observed in this corpus. This is by design. The modeler's reasoning about which data apply and how uncertain they are is the costly part of calibration, and it usually goes unrecorded. MAPLE writes it down in a form that can be re-run and checked and that outlives any one person on the project. As LLMs improve, more of the drafting can move to the model, but the schema keeps the modeler's decisions on the record either way.}
+\begin{revised}\input{snippets/r1m1_disc_framing}\end{revised}
 
 The source characteristics reveal a fundamental challenge in QSP calibration: only \indExactPct{} of SubmodelTargets came from PDAC-specific experiments, and \spMousetohumanPct{} required cross-species translation from mouse data. The schema addresses this through the \texttt{source\_relevance} block, which requires that translation uncertainty propagate to prior widths.
 
